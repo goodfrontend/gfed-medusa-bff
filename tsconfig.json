@@ -1,0 +1,28 @@
+{
+  "extends": "./packages/config/typescript-config/base.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": ".",
+    "paths": {
+      "@types/*": ["./src/types/*"],
+      "@services/*": ["./src/services/*"],
+      "@graphql/*": ["./src/graphql/*"],
+      "@mocks/*": ["./src/__mocks__/*"]
+    }
+  },
+  "include": ["**/*", "src/**/*.graphql", "apps/subgraphs/orders/.prettierrc.mjs"],
+  "exclude": ["node_modules", "dist"]
+}
