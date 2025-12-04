@@ -1,6 +1,5 @@
 import cors from 'cors';
 import express from 'express';
-import gql from 'graphql-tag';
 import http from 'http';
 
 import { ApolloServer } from '@apollo/server';
@@ -8,26 +7,8 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
-
-const typeDefs = gql`
-  type Product @key(fields: "id") {
-    id: ID!
-    title: String!
-  }
-
-  type Query {
-    products: [Product!]!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    products: () => [
-      { id: '1', title: 'Test Product' },
-      { id: '2', title: 'Another Product' },
-    ],
-  },
-};
+import { resolvers } from '@graphql/resolvers';
+import { typeDefs } from '@graphql/schemas';
 
 async function startServer() {
   const app = express();
