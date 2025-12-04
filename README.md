@@ -20,23 +20,39 @@ This is a monorepo for a Backend-for-Frontend (BFF) using Apollo Federation to p
    pnpm install
    ```
 
-2. Run all services for local development using Turbo (or standalone):
+2. Running all services for local development:
+
+   You can start all subgraphs and the gateway simultaneously by running the following script from the root directory:
 
    ```sh
    pnpm run dev
    ```
 
-   Or run any subgraph/gateway individually:
+   This will:
+   - Start all subgraph servers on their configured ports.
+
+   - Start the gateway on http://localhost:4000/graphql, which dynamically composes the supergraph from the running subgraphs.
+
+3. Running services individually
+
+   You can also start any subgraph or the gateway separately:
 
    ```sh
+   # Start the gateway
    cd apps/gateway && pnpm run dev
+
+   # Start the Products subgraph
    cd apps/subgraphs/products && pnpm run dev
-   ...
+
+   # Start the Orders subgraph
+   cd apps/subgraphs/orders && pnpm run dev
+
    ```
 
-3. Each subgraph/server runs on its own port. The gateway aggregates them under `http://localhost:4000/graphql`.
+   **Note:** When running individually, make sure the subgraphs the gateway needs are running.
+   The gateway will only include subgraphs that are active; missing subgraphs will cause errors if queried.
 
-> **Note:** All subgraphs must be running for the gateway to work correctly. If any subgraph is down, the gateway will not be able to compose the supergraph and will return errors for missing services.
+4. Each subgraph/server runs on its own port. The gateway aggregates them under `http://localhost:4000/graphql`.
 
 ## Scripts
 
@@ -84,7 +100,7 @@ This command:
 - Introspects the GraphQL schema
 - Outputs the federation-compatible schema to `schema.graphql`
 
-**Note**: The target subgraph must be running (e.g., at [http://localhost:4001/graphql](http://localhost:4001/graphql)) for introspection to succeed.
+**Note**: The target subgraph must be running (e.g., at http://localhost:4001/graphql) for introspection to succeed.
 
 #### Publish Schema
 
@@ -116,7 +132,7 @@ SUBGRAPH_URL="http://localhost:4001/graphql" # The running local subgraph endpoi
 
 1. Start the subgraph you want to register (for example, products):
 
-   ```
+   ```bash
    cd apps/subgraphs/products
    pnpm run dev
    ```
