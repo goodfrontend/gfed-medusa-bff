@@ -1,0 +1,62 @@
+{
+  "name": "@gfed-medusa/bff-lib-common",
+  "version": "1.0.0",
+  "description": "Shared observability utilities for GFED Medusa BFF",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goodfrontend/gfed-medusa-bff.git",
+    "directory": "packages/lib-common"
+  },
+  "keywords": [
+    "observability",
+    "logging",
+    "health-check",
+    "error-handling",
+    "pino",
+    "express"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --ext .js,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "check-types": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.0"
+  },
+  "devDependencies": {
+    "@gfed-medusa-bff/eslint-config": "workspace:*",
+    "@gfed-medusa-bff/prettier-config": "workspace:*",
+    "@gfed-medusa-bff/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "express": "^5.0.0"
+  }
+}
