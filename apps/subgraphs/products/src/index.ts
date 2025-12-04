@@ -1,4 +1,5 @@
 import cors from 'cors';
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 
@@ -9,6 +10,7 @@ import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from '@graphql/resolvers';
 import { typeDefs } from '@graphql/schemas';
+import { createContext } from '@services/index';
 
 async function startServer() {
   const app = express();
@@ -27,11 +29,23 @@ async function startServer() {
 
   await server.start();
 
-  app.use(cors<cors.CorsRequest>());
+  const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',');
+
+  app.use(
+    cors<cors.CorsRequest>({
+      origin: allowedOrigins,
+      credentials: true,
+    })
+  );
 
   app.use(express.json());
 
-  app.use('/graphql', expressMiddleware(server));
+  app.use(
+    '/graphql',
+    expressMiddleware(server, {
+      context: async ({ req, res }) => createContext({ req, res }),
+    })
+  );
 
   await new Promise<void>((resolve) =>
     httpServer.listen({ port: 4001 }, resolve)
