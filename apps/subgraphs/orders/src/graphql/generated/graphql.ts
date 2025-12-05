@@ -106,13 +106,6 @@ export type Cart = {
   total: Scalars['Int']['output'];
 };
 
-export type Collection = {
-  handle: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  products?: Maybe<ProductList>;
-  title: Scalars['String']['output'];
-};
-
 export type CompleteCartError = {
   message: Scalars['String']['output'];
   name: Scalars['String']['output'];
@@ -298,76 +291,8 @@ export type PaymentStatus =
   | 'not_paid'
   | 'partially_authorized';
 
-export type Price = {
-  amount?: Maybe<Scalars['Float']['output']>;
-  currencyCode?: Maybe<Scalars['String']['output']>;
-  priceType?: Maybe<Scalars['String']['output']>;
-};
-
-export type Product = {
-  collection?: Maybe<Collection>;
-  collectionId?: Maybe<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  handle: Scalars['String']['output'];
-  height?: Maybe<Scalars['Float']['output']>;
-  id: Scalars['ID']['output'];
-  images?: Maybe<Array<ProductImage>>;
-  length?: Maybe<Scalars['Float']['output']>;
-  material?: Maybe<Scalars['String']['output']>;
-  options?: Maybe<Array<ProductOption>>;
-  originCountry?: Maybe<Scalars['String']['output']>;
-  tags?: Maybe<Array<ProductTag>>;
-  thumbnail?: Maybe<Scalars['String']['output']>;
-  title: Scalars['String']['output'];
-  type?: Maybe<Scalars['String']['output']>;
-  variants?: Maybe<Array<ProductVariant>>;
-  weight?: Maybe<Scalars['Float']['output']>;
-  width?: Maybe<Scalars['Float']['output']>;
-};
-
-export type ProductImage = {
-  id: Scalars['ID']['output'];
-  url: Scalars['String']['output'];
-};
-
-export type ProductList = {
-  count: Scalars['Int']['output'];
-  items?: Maybe<Array<Product>>;
-};
-
-export type ProductOption = {
-  id: Scalars['ID']['output'];
-  title: Scalars['String']['output'];
-  values: Array<ProductOptionValue>;
-};
-
-export type ProductOptionValue = {
-  id: Scalars['ID']['output'];
-  value: Scalars['String']['output'];
-};
-
-export type ProductTag = {
-  id: Scalars['ID']['output'];
-};
-
 export type ProductVariant = {
-  allowBackorder?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
-  inventoryQuantity?: Maybe<Scalars['Int']['output']>;
-  manageInventory?: Maybe<Scalars['Boolean']['output']>;
-  options?: Maybe<Array<Maybe<ProductVariantOption>>>;
-  originalPrice?: Maybe<Price>;
-  price?: Maybe<Price>;
-  product?: Maybe<Product>;
-  sku?: Maybe<Scalars['String']['output']>;
-  title?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProductVariantOption = {
-  id: Scalars['ID']['output'];
-  optionId: Scalars['ID']['output'];
-  value: Scalars['String']['output'];
 };
 
 export type Promotion = {
@@ -551,7 +476,6 @@ export type ResolversTypes = {
   ApplicationType: ApplicationType;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Cart: ResolverTypeWrapper<Cart>;
-  Collection: ResolverTypeWrapper<Collection>;
   CompleteCartError: ResolverTypeWrapper<CompleteCartError>;
   CompleteCartErrorResult: ResolverTypeWrapper<CompleteCartErrorResult>;
   CompleteCartOrderResult: ResolverTypeWrapper<CompleteCartOrderResult>;
@@ -562,7 +486,6 @@ export type ResolversTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
-  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -575,15 +498,7 @@ export type ResolversTypes = {
   PaymentSessionStatus: PaymentSessionStatus;
   PaymentSessions: ResolverTypeWrapper<PaymentSessions>;
   PaymentStatus: PaymentStatus;
-  Price: ResolverTypeWrapper<Price>;
-  Product: ResolverTypeWrapper<Product>;
-  ProductImage: ResolverTypeWrapper<ProductImage>;
-  ProductList: ResolverTypeWrapper<ProductList>;
-  ProductOption: ResolverTypeWrapper<ProductOption>;
-  ProductOptionValue: ResolverTypeWrapper<ProductOptionValue>;
-  ProductTag: ResolverTypeWrapper<ProductTag>;
   ProductVariant: ResolverTypeWrapper<ProductVariant>;
-  ProductVariantOption: ResolverTypeWrapper<ProductVariantOption>;
   Promotion: ResolverTypeWrapper<Promotion>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Region: ResolverTypeWrapper<Region>;
@@ -601,7 +516,6 @@ export type ResolversParentTypes = {
   ApplicationMethod: ApplicationMethod;
   Boolean: Scalars['Boolean']['output'];
   Cart: Cart;
-  Collection: Collection;
   CompleteCartError: CompleteCartError;
   CompleteCartErrorResult: CompleteCartErrorResult;
   CompleteCartOrderResult: CompleteCartOrderResult;
@@ -610,7 +524,6 @@ export type ResolversParentTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: Scalars['DateTime']['output'];
-  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
@@ -621,15 +534,7 @@ export type ResolversParentTypes = {
   PaymentCollection: PaymentCollection;
   PaymentProviders: PaymentProviders;
   PaymentSessions: PaymentSessions;
-  Price: Price;
-  Product: Product;
-  ProductImage: ProductImage;
-  ProductList: ProductList;
-  ProductOption: ProductOption;
-  ProductOptionValue: ProductOptionValue;
-  ProductTag: ProductTag;
   ProductVariant: ProductVariant;
-  ProductVariantOption: ProductVariantOption;
   Promotion: Promotion;
   Query: Record<PropertyKey, never>;
   Region: Region;
@@ -749,21 +654,6 @@ export type CartResolvers<
   subtotal?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   taxTotal?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-};
-
-export type CollectionResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Collection'] = ResolversParentTypes['Collection'],
-> = {
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  products?: Resolver<
-    Maybe<ResolversTypes['ProductList']>,
-    ParentType,
-    ContextType
-  >;
-  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type CompleteCartErrorResolvers<
@@ -1071,184 +961,12 @@ export type PaymentSessionsResolvers<
   >;
 };
 
-export type PriceResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Price'] = ResolversParentTypes['Price'],
-> = {
-  amount?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  currencyCode?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-  priceType?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-};
-
-export type ProductResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Product'] = ResolversParentTypes['Product'],
-> = {
-  collection?: Resolver<
-    Maybe<ResolversTypes['Collection']>,
-    ParentType,
-    ContextType
-  >;
-  collectionId?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  description?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  height?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  images?: Resolver<
-    Maybe<Array<ResolversTypes['ProductImage']>>,
-    ParentType,
-    ContextType
-  >;
-  length?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  material?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  options?: Resolver<
-    Maybe<Array<ResolversTypes['ProductOption']>>,
-    ParentType,
-    ContextType
-  >;
-  originCountry?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-  tags?: Resolver<
-    Maybe<Array<ResolversTypes['ProductTag']>>,
-    ParentType,
-    ContextType
-  >;
-  thumbnail?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
-  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  variants?: Resolver<
-    Maybe<Array<ResolversTypes['ProductVariant']>>,
-    ParentType,
-    ContextType
-  >;
-  weight?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  width?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-};
-
-export type ProductImageResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductImage'] = ResolversParentTypes['ProductImage'],
-> = {
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-};
-
-export type ProductListResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductList'] = ResolversParentTypes['ProductList'],
-> = {
-  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  items?: Resolver<
-    Maybe<Array<ResolversTypes['Product']>>,
-    ParentType,
-    ContextType
-  >;
-};
-
-export type ProductOptionResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption'],
-> = {
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  values?: Resolver<
-    Array<ResolversTypes['ProductOptionValue']>,
-    ParentType,
-    ContextType
-  >;
-};
-
-export type ProductOptionValueResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductOptionValue'] = ResolversParentTypes['ProductOptionValue'],
-> = {
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-};
-
-export type ProductTagResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductTag'] = ResolversParentTypes['ProductTag'],
-> = {
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-};
-
 export type ProductVariantResolvers<
   ContextType = GraphQLContext,
   ParentType extends
     ResolversParentTypes['ProductVariant'] = ResolversParentTypes['ProductVariant'],
 > = {
-  allowBackorder?: Resolver<
-    Maybe<ResolversTypes['Boolean']>,
-    ParentType,
-    ContextType
-  >;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  inventoryQuantity?: Resolver<
-    Maybe<ResolversTypes['Int']>,
-    ParentType,
-    ContextType
-  >;
-  manageInventory?: Resolver<
-    Maybe<ResolversTypes['Boolean']>,
-    ParentType,
-    ContextType
-  >;
-  options?: Resolver<
-    Maybe<Array<Maybe<ResolversTypes['ProductVariantOption']>>>,
-    ParentType,
-    ContextType
-  >;
-  originalPrice?: Resolver<
-    Maybe<ResolversTypes['Price']>,
-    ParentType,
-    ContextType
-  >;
-  price?: Resolver<Maybe<ResolversTypes['Price']>, ParentType, ContextType>;
-  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
-  sku?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-};
-
-export type ProductVariantOptionResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductVariantOption'] = ResolversParentTypes['ProductVariantOption'],
-> = {
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type PromotionResolvers<
@@ -1339,7 +1057,6 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Address?: AddressResolvers<ContextType>;
   ApplicationMethod?: ApplicationMethodResolvers<ContextType>;
   Cart?: CartResolvers<ContextType>;
-  Collection?: CollectionResolvers<ContextType>;
   CompleteCartError?: CompleteCartErrorResolvers<ContextType>;
   CompleteCartErrorResult?: CompleteCartErrorResultResolvers<ContextType>;
   CompleteCartOrderResult?: CompleteCartOrderResultResolvers<ContextType>;
@@ -1354,15 +1071,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   PaymentCollection?: PaymentCollectionResolvers<ContextType>;
   PaymentProviders?: PaymentProvidersResolvers<ContextType>;
   PaymentSessions?: PaymentSessionsResolvers<ContextType>;
-  Price?: PriceResolvers<ContextType>;
-  Product?: ProductResolvers<ContextType>;
-  ProductImage?: ProductImageResolvers<ContextType>;
-  ProductList?: ProductListResolvers<ContextType>;
-  ProductOption?: ProductOptionResolvers<ContextType>;
-  ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
-  ProductTag?: ProductTagResolvers<ContextType>;
   ProductVariant?: ProductVariantResolvers<ContextType>;
-  ProductVariantOption?: ProductVariantOptionResolvers<ContextType>;
   Promotion?: PromotionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Region?: RegionResolvers<ContextType>;

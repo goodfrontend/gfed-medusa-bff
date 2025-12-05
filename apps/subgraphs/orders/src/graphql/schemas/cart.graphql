@@ -3,6 +3,10 @@ enum ApplicationType {
   percentage
 }
 
+type ProductVariant @key(fields: "id") {
+  id: ID! @external
+}
+
 type LineItem {
   id: ID!
   title: String
