@@ -1,0 +1,148 @@
+type Query {
+  products(
+    limit: Int
+    offset: Int
+    region_id: String
+    handle: String
+    category_id: [String]
+    collection_id: [String]
+    q: String
+    id: [ID!]
+    is_giftcard: Boolean
+    tag_id: [String]
+  ): ProductListResponse!
+  product(id: ID!, region_id: String): Product
+  productCategories(
+    limit: Int
+    offset: Int
+    q: String
+    handle: String
+    is_active: Boolean
+    is_internal: Boolean
+    include_descendants_tree: Boolean
+    parent_category_id: String
+  ): [ProductCategory!]!
+  productCategory(id: ID!): ProductCategory
+  collections(limit: Int, offset: Int, handle: [String]): [Collection!]!
+  collection(id: ID!): Collection
+  searchProducts(
+    query: String
+    indexName: String
+    hitsPerPage: Int
+    page: Int
+    filters: String
+    facets: [String!]
+  ): SearchProducts!
+}
+
+type ProductListResponse {
+  products: [Product]
+  count: Int!
+}
+
+type Product {
+  id: ID!
+  title: String!
+  handle: String!
+  description: String
+  thumbnail: String
+  width: Float
+  weight: Float
+  length: Float
+  height: Float
+  originCountry: String
+  material: String
+  images: [ProductImage!]
+  tags: [ProductTag!]
+  options: [ProductOption!]
+  variants: [ProductVariant!]
+  collection: Collection
+  type: String
+  collectionId: String
+  createdAt: DateTime!
+}
+
+type ProductImage {
+  id: ID!
+  url: String!
+}
+
+type ProductTag {
+  id: ID!
+}
+
+type ProductOption {
+  id: ID!
+  title: String!
+  values: [ProductOptionValue!]!
+}
+
+type ProductOptionValue {
+  id: ID!
+  value: String!
+}
+
+type ProductVariant {
+  id: ID!
+  sku: String
+  inventoryQuantity: Int
+  allowBackorder: Boolean
+  manageInventory: Boolean
+  options: [ProductVariantOption]
+  price: Price
+  originalPrice: Price
+  title: String
+  product: Product
+}
+
+type ProductVariantOption {
+  id: ID!
+  optionId: ID!
+  value: String!
+}
+
+type Price {
+  amount: Float
+  currencyCode: String
+  priceType: String
+}
+
+type ProductCategory {
+  id: ID!
+  name: String!
+  description: String
+  handle: String!
+  parentCategory: ProductCategory
+  categoryChildren: [ProductCategory!]
+  products: ProductList
+}
+
+type Collection {
+  id: ID!
+  title: String!
+  handle: String!
+  products: ProductList
+}
+
+type ProductList {
+  count: Int!
+  items: [Product!]
+}
+
+type ProductHit {
+  id: ID!
+  title: String
+  description: String
+  handle: String!
+  thumbnail: String
+}
+
+type SearchProducts {
+  total: Int!
+  page: Int!
+  totalPages: Int!
+  hitsPerPage: Int!
+  query: String!
+  params: String!
+  items: [ProductHit!]!
+}

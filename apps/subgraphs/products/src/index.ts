@@ -1,6 +1,6 @@
 import cors from 'cors';
+import 'dotenv/config';
 import express from 'express';
-import gql from 'graphql-tag';
 import http from 'http';
 
 import { ApolloServer } from '@apollo/server';
@@ -8,26 +8,9 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
-
-const typeDefs = gql`
-  type Product @key(fields: "id") {
-    id: ID!
-    title: String!
-  }
-
-  type Query {
-    products: [Product!]!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    products: () => [
-      { id: '1', title: 'Test Product' },
-      { id: '2', title: 'Another Product' },
-    ],
-  },
-};
+import { resolvers } from '@graphql/resolvers';
+import { typeDefs } from '@graphql/schemas';
+import { createContext } from '@services/index';
 
 async function startServer() {
   const app = express();
@@ -46,11 +29,23 @@ async function startServer() {
 
   await server.start();
 
-  app.use(cors<cors.CorsRequest>());
+  const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',');
+
+  app.use(
+    cors<cors.CorsRequest>({
+      origin: allowedOrigins,
+      credentials: true,
+    })
+  );
 
   app.use(express.json());
 
-  app.use('/graphql', expressMiddleware(server));
+  app.use(
+    '/graphql',
+    expressMiddleware(server, {
+      context: async ({ req, res }) => createContext({ req, res }),
+    })
+  );
 
   await new Promise<void>((resolve) =>
     httpServer.listen({ port: 4001 }, resolve)
