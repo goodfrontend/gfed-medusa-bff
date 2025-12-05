@@ -19,30 +19,4 @@ export const footerResolvers = {
       }
     },
   },
-
-  RichTextBlock: {
-    __resolveType(obj: { _type: string }) {
-      if (obj._type === 'block') {
-        return 'TextBlock';
-      }
-      if (obj._type === 'image') {
-        return 'ImageBlock';
-      }
-      if (obj._type === 'file') {
-        return 'FileBlock';
-      }
-      return null;
-    },
-  },
-  MarkDef: {
-    __resolveType(obj: { _type: string }) {
-      if (obj._type === 'link') {
-        return 'LinkMark';
-      }
-      if (obj._type === 'iconlink') {
-        return 'IconLinkMark';
-      }
-      return null;
-    },
-  },
 };
