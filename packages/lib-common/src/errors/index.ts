@@ -132,3 +132,6 @@ export function asyncHandler<T>(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
+
+// Export GraphQL-specific errors
+export * from './graphql.js';
