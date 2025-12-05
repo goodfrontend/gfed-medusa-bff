@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Shared observability utilities for GFED Medusa BFF",
   "license": "MIT",
+  "type": "module",
   "private": false,
   "repository": {
     "type": "git",
@@ -18,18 +19,11 @@
     "express"
   ],
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [

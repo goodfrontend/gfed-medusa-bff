@@ -1,5 +1,5 @@
 import type { Request, Response, RequestHandler } from 'express';
-import type { HealthCheckResult } from '../types';
+import type { HealthCheckResult } from '../types.js';
 
 export type HealthChecker = () => Promise<{
   status: 'healthy' | 'unhealthy' | 'degraded';
