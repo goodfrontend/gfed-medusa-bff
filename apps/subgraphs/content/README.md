@@ -10,6 +10,22 @@ Apollo Federation subgraph for content management, integrated with Sanity CMS.
    SANITY_STUDIO_PROJECT_ID=your-project-id
    SANITY_STUDIO_DATASET=production
    SANITY_STUDIO_API_VERSION=2023-05-03
+   SANITY_API_TOKEN=your-api-token
+   SANITY_STUDIO_FOOTER_ID=your-footer-document-id
+   ```
+
+   **Getting the Footer ID from Sanity:**
+   1. Open your Sanity Studio
+   2. Navigate to the Footer document
+   3. The document ID is in the URL: `https://your-project.sanity.studio/desk/footer;your-footer-id`
+   4. Copy the ID after the semicolon (e.g., `your-footer-id`)
+
+   Alternatively, use the Sanity Vision plugin to query:
+
+   ```groq
+   *[_type == "footer"]{
+   _id
+   }
    ```
 
 2. Install dependencies:

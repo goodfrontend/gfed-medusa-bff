@@ -1,16 +1,16 @@
+import 'dotenv/config';
+
 import { sanityClient } from '../../config/sanity';
-import { Footer, QueryFooterArgs } from '../../generated/graphql';
+import { Footer } from '../../generated/graphql';
 import { FOOTER_QUERY } from './groq-queries';
 
 export const footerResolvers = {
   Query: {
-    footer: async (
-      _parent: unknown,
-      args: QueryFooterArgs
-    ): Promise<Footer | null> => {
+    footer: async (): Promise<Footer | null> => {
+      const footerId = process.env.SANITY_STUDIO_FOOTER_ID;
       try {
         const result = await sanityClient.fetch(FOOTER_QUERY, {
-          footerId: args.footerId,
+          footerId,
         });
         return result;
       } catch (error) {

@@ -40,6 +40,7 @@
     "@graphql-codegen/cli": "^6.0.0",
     "@graphql-codegen/typescript": "^5.0.0",
     "@graphql-codegen/typescript-resolvers": "^5.1.0",
+    "@parcel/watcher": "^2.5.1",
     "@types/cors": "^2.8.19",
     "@types/jest": "^29.5.14",
     "@types/express": "^5.0.6",

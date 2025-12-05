@@ -17,5 +17,5 @@ type Footer @key(fields: "_id") {
 }
 
 extend type Query {
-  footer(footerId: String!): Footer
+  footer(footerId: String): Footer
 }

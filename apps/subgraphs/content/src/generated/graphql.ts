@@ -24,9 +24,6 @@ export type Incremental<T> =
   | {
       [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never;
     };
-export type RequireFields<T, K extends keyof T> = Omit<T, K> & {
-  [P in K]-?: NonNullable<T[P]>;
-};
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: { input: string; output: string };
@@ -55,13 +52,11 @@ export type PartialRichText = {
 };
 
 export type Query = {
-  _empty?: Maybe<Scalars['String']['output']>;
-  allFooter: Array<Footer>;
   footer?: Maybe<Footer>;
 };
 
 export type QueryFooterArgs = {
-  footerId: Scalars['String']['input'];
+  footerId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SocialLink = {
@@ -264,17 +259,11 @@ export type QueryResolvers<
   ParentType extends
     ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
 > = {
-  _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  allFooter?: Resolver<
-    Array<ResolversTypes['Footer']>,
-    ParentType,
-    ContextType
-  >;
   footer?: Resolver<
     Maybe<ResolversTypes['Footer']>,
     ParentType,
     ContextType,
-    RequireFields<QueryFooterArgs, 'footerId'>
+    Partial<QueryFooterArgs>
   >;
 };
 

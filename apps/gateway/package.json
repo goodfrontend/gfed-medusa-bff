@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "sleep 5 && NODE_ENV=development tsx watch src/index.ts",
+    "dev": "NODE_ENV=development tsx watch src/index.ts --no-cache",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --ext .js,.ts,.tsx --fix",
     "format": "prettier --write ."

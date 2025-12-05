@@ -3,9 +3,6 @@ export const baseTypeDefs = `
     query: Query
   }
 
-scalar DateTime
-scalar JSON
-
   type Query {
     _empty: String
   }

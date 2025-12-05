@@ -32,7 +32,7 @@ export const emptyFooterHandler = http.get(sanityHttp, ({ request }) => {
 
   if (query && query.includes('footer')) {
     return HttpResponse.json({
-      result: [],
+      result: {},
     });
   }
 
