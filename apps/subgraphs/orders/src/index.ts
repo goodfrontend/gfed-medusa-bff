@@ -10,6 +10,7 @@ import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from '@graphql/resolvers';
 import { typeDefs } from '@graphql/schemas';
+import { createContext } from '@services/index';
 
 async function startServer() {
   const app = express();
@@ -32,7 +33,12 @@ async function startServer() {
 
   app.use(express.json());
 
-  app.use('/graphql', expressMiddleware(server));
+  app.use(
+    '/graphql',
+    expressMiddleware(server, {
+      context: async ({ req, res }) => createContext({ req, res }),
+    })
+  );
 
   await new Promise<void>((resolve) =>
     httpServer.listen({ port: 4004 }, resolve)
