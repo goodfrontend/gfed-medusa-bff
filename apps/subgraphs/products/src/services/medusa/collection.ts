@@ -1,9 +1,9 @@
 import type { Collection } from '@graphql/generated/graphql';
 import type { HttpTypes } from '@medusajs/types';
 
+import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { MedusaBaseService } from '.';
 import { COLLECTION_FIELDS } from '../../constants/medusa';
-import { handleMedusaError } from '../../lib/error-utils';
 
 export class CollectionService extends MedusaBaseService {
   async getCollections(
