@@ -1,6 +1,6 @@
 import pino from 'pino';
 import type { Logger } from 'pino';
-import type { LoggerConfig } from '../types';
+import type { LoggerConfig } from '../types.js';
 
 export type { Logger };
 
@@ -54,4 +54,4 @@ export function createChildLogger(
   return logger.child(context);
 }
 
-export * from '../types';
+export * from '../types.js';
