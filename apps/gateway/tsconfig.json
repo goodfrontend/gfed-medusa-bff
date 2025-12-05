@@ -1,9 +1,9 @@
 {
-  "extends": "./packages/config/typescript-config/base.json",
+  "extends": "@gfed-medusa-bff/typescript-config/base.json",
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
+    "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
@@ -15,14 +15,8 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "paths": {
-      "@types/*": ["./src/types/*"],
-      "@services/*": ["./src/services/*"],
-      "@graphql/*": ["./src/graphql/*"],
-      "@mocks/*": ["./src/__mocks__/*"]
-    }
+    "baseUrl": "."
   },
-  "include": ["**/*", "src/**/*.graphql", "apps/subgraphs/orders/.prettierrc.mjs"],
+  "include": ["**/*", "src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

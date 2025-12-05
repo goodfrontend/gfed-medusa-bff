@@ -78,14 +78,6 @@ Each subgraph exposes scripts to generate and publish its schema using the Apoll
 
 ### Available Rover Scripts
 
-#### Authentication
-
-To authenticate with Apollo Rover, you need to create a Personal API Key in the Apollo Studio dashboard.
-
-```bash
-rover config auth
-```
-
 #### Generate Schema
 
 Introspects the running GraphQL server and generates a `schema.graphql` file:
@@ -122,6 +114,7 @@ Add these environment variables to your `.env.publish` file:
 
 ```bash
 # Apollo Studio Configuration
+APOLLO_KEY="your-apollo-key"  # API key used to authenticate with Apollo Studio / GraphOS
 APOLLO_GRAPH_REF="your-graph-id@current"  # Your Apollo Studio graph reference
 APOLLO_GRAPH_ROUTING_URL="your-graph-routing-url"  # Your Apollo Studio graph routing URL
 APOLLO_SUBGRAPH_NAME="your-subgraph-name"  # Your Apollo Studio subgraph name

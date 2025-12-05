@@ -13,9 +13,17 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
-    "dev": {
+    "dev:subgraphs": {
+      "dependsOn": ["^dev"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "outputs": []
+    },
+    "dev": {
+      "dependsOn": ["dev:subgraphs"],
+      "cache": false,
+      "persistent": true,
+      "outputs": []
     },
     "generate-schema": {
       "cache": false,
