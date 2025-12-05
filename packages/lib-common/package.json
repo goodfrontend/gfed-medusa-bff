@@ -38,6 +38,10 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .js,.ts,.tsx --fix",
     "format": "prettier --write .",
     "check-types": "tsc --noEmit",
@@ -53,8 +57,10 @@
     "@gfed-medusa-bff/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@vitest/ui": "^4.0.15",
     "tsup": "^8.5.1",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.0.15"
   },
   "peerDependencies": {
     "express": "^5.0.0"
