@@ -10,7 +10,7 @@ Install the package from npm:
 pnpm add @gfed-medusa/bff-lib-common
 ```
 
-For monorepo development, you can also use workspace dependencies:
+For monorepo or local development (to use what's latest), you can also use workspace dependencies:
 
 ```json
 {
