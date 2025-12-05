@@ -1,0 +1,182 @@
+enum ApplicationType {
+  fixed
+  percentage
+}
+
+type LineItem {
+  id: ID!
+  title: String
+  quantity: Int!
+  requiresShipping: Boolean
+  unitPrice: Int
+  cart: Cart
+  cartId: String
+  createdAt: DateTime
+  productHandle: String
+  productTitle: String
+  thumbnail: String
+  total: Int
+  originalTotal: Int
+  variant: ProductVariant
+}
+
+type Address {
+  id: String
+  metadata: JSON
+  createdAt: DateTime
+  firstName: String
+  lastName: String
+  phone: String
+  address1: String
+  address2: String
+  company: String
+  province: String
+  city: String
+  countryCode: String
+  postalCode: String
+}
+
+type Promotion {
+  id: String!
+  code: String
+  isAutomatic: Boolean
+  applicationMethod: ApplicationMethod
+}
+
+type Country {
+  id: String
+  iso2: String
+  name: String
+  displayName: String
+}
+
+type Region {
+  id: ID!
+  name: String!
+  currencyCode: String!
+  createdAt: DateTime
+  countries: [Country]
+}
+
+type ShippingMethod {
+  id: String!
+  cartId: String
+  name: String!
+  amount: Int!
+  createdAt: DateTime
+  shippingOptionId: String
+  total: Int
+}
+
+type ApplicationMethod {
+  value: String!
+  type: ApplicationType!
+  currencyCode: String!
+}
+
+type Cart {
+  id: ID!
+  currencyCode: String!
+  originalTotal: Int!
+  total: Int!
+  subtotal: Int!
+  taxTotal: Int!
+  discountTotal: Int!
+  giftCardTotal: Int!
+  shippingTotal: Int!
+  itemTotal: Int!
+  promotions: [Promotion]!
+  email: String
+  items: [LineItem!]
+  regionId: String
+  shippingAddress: Address
+  billingAddress: Address
+  createdAt: DateTime
+  promoCodes: [String]
+  shippingMethods: [ShippingMethod]
+  region: Region
+  paymentCollection: PaymentCollection
+  customerId: String
+}
+
+input AddressInput {
+  customerId: String
+  firstName: String
+  lastName: String
+  phone: String
+  address1: String
+  address2: String
+  company: String
+  province: String
+  city: String
+  countryCode: String
+  postalCode: String
+}
+
+input CreateCartInput {
+  regionId: String
+  shippingAddress: AddressInput
+  billingAddress: AddressInput
+  email: String
+  currencyCode: String
+  items: [CreateLineItemInput!]
+  promoCodes: [String]
+}
+
+input UpdateCartInput {
+  regionId: String
+  shippingAddress: AddressInput
+  billingAddress: AddressInput
+  email: String
+  promoCodes: [String]
+}
+
+input CreateLineItemInput {
+  variantId: String!
+  quantity: Int!
+}
+
+input UpdateLineItemInput {
+  quantity: Int!
+}
+
+type StoreLineItemDeleteResponse {
+  id: ID!
+  object: String
+  deleted: Boolean!
+}
+
+type CompleteCartError {
+  message: String!
+  name: String!
+  type: String!
+}
+
+type CompleteCartErrorResult {
+  type: String!
+  cart: Cart
+  error: CompleteCartError
+}
+
+type CompleteCartOrderResult {
+  type: String!
+  order: Order
+}
+
+union CompleteCartResponse = CompleteCartErrorResult | CompleteCartOrderResult
+
+extend type Query {
+  cart(id: ID!): Cart
+}
+
+extend type Mutation {
+  createCart(data: CreateCartInput!): Cart
+  updateCart(id: ID!, data: UpdateCartInput!): Cart
+  createLineItem(cartId: ID!, data: CreateLineItemInput!): Cart
+  updateLineItem(cartId: ID!, lineItemId: ID!, data: UpdateLineItemInput!): Cart
+  deleteLineItem(cartId: ID!, lineItemId: ID!): StoreLineItemDeleteResponse!
+  addShippingMethod(cartId: ID!, optionId: ID!): Cart
+  completeCart(cartId: ID!): CompleteCartResponse
+  transferCart(cartId: ID!): Cart
+  applyPromotions(cartId: ID!, codes: [String!]!): Cart
+}

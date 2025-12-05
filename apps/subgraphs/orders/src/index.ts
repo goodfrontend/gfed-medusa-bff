@@ -1,6 +1,6 @@
 import cors from 'cors';
+import 'dotenv/config';
 import express from 'express';
-import gql from 'graphql-tag';
 import http from 'http';
 
 import { ApolloServer } from '@apollo/server';
@@ -8,26 +8,8 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
-
-const typeDefs = gql`
-  type Order @key(fields: "id") {
-    id: ID!
-    title: String!
-  }
-
-  type Query {
-    orders: [Order!]!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    orders: () => [
-      { id: '1', title: 'Test Order' },
-      { id: '2', title: 'Another Order' },
-    ],
-  },
-};
+import { resolvers } from '@graphql/resolvers';
+import { typeDefs } from '@graphql/schemas';
 
 async function startServer() {
   const app = express();
