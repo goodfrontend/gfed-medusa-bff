@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { mergeTypeDefs } from '@graphql-tools/merge';
 
-const graphqlDir = join(process.cwd(), 'src/graphql/schemas');
+const graphqlDir = join(__dirname);
 
 const files = glob.sync('**/*.graphql', {
   cwd: graphqlDir,

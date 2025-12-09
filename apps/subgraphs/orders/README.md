@@ -32,7 +32,7 @@ pnpm dev
 ### Build & start
 
 ```sh
-pnpm build   # runs codegen + tsc + tsc-alias
+pnpm build   # runs codegen + tsup
 pnpm start   # runs the compiled server from dist
 ```
 

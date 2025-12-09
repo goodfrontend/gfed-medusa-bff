@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",
-    "build": "pnpm run codegen && tsup",
+    "build": "pnpm run codegen && tsup && pnpm copy-schema",
+    "copy-schema": "copyfiles -f ./src/graphql/schemas/*.graphql dist/",
     "start": "node dist/src/index.js",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
@@ -53,9 +54,9 @@
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.16",
     "tsup": "^8.5.1",
     "tsx": "^4.20.6",
+    "copyfiles": "^2.4.1",
     "typescript": "^5.6.2"
   },
   "engines": {
