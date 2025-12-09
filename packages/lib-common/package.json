@@ -1,6 +1,6 @@
 {
   "name": "@gfed-medusa/bff-lib-common",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Shared observability utilities for GFED Medusa BFF",
   "license": "MIT",
   "type": "module",
