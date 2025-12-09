@@ -1,5 +1,6 @@
 {
   "name": "@gfed-medusa-bff/identity",
+  "private": true,
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",
     "generate-schema": "dotenv -e .env.publish -- sh -c 'rover subgraph introspect \"${SUBGRAPH_URL}\" > schema.graphql'",

@@ -4,7 +4,9 @@
   "description": "Shared observability utilities for GFED Medusa BFF",
   "license": "MIT",
   "type": "module",
-  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/goodfrontend/gfed-medusa-bff.git",
