@@ -1,0 +1,92 @@
+name: Deployment
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    environment: deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract service key from source branch
+        id: service
+        run: |
+          raw="${{ github.event.pull_request.head.ref }}"
+          key=$(echo "$raw" | awk -F'[/-]' '{print $2}')
+          echo "key=$key" >> $GITHUB_OUTPUT
+
+      - name: Lookup Render service ID
+        id: find_service
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_KEY: ${{ steps.service.outputs.key }}
+        run: |
+          service_id=$(curl -v -s "https://api.render.com/v1/services" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            | jq -r --arg key "$SERVICE_KEY" '.[] | select(.service.name == $key) | .service.id')
+
+          if [ -z "$service_id" ]; then
+            echo "Service not found"
+            echo
+            echo "Check the following: "
+            echo "1. Render API is available"
+            echo "2. Branch contains the service name (e.g. release/PRODUCT-branch-1)"
+            exit 1
+          fi
+
+          echo "service_id=$service_id" >> $GITHUB_OUTPUT
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ steps.find_service.outputs.service_id }}
+        run: |
+          dep_id=$(curl -s -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            | jq -r '.id')
+
+            if [ -z "$dep_id" ]; then
+              echo "Deployment was not triggered"
+              exit 1
+            fi
+
+  publish:
+    runs-on: ubuntu-latest
+    environment: deployment
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .npmrc # not clear in changeset docs how to specify scope, so we create a custom one instead
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > $HOME/.npmrc
+          echo "@gfed-medusa:registry=https://registry.npmjs.org/" >> $HOME/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> $HOME/.npmrc
+        
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run ci:publish
