@@ -1,5 +1,8 @@
+import {
+  UnauthorizedError,
+  handleMedusaError,
+} from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
-import { handleMedusaError } from '@lib/error-utils';
 
 import { transformCustomer } from './util/transforms';
 
@@ -12,10 +15,9 @@ export const customerResolvers = {
     ) => {
       try {
         if (!session?.isCustomerLoggedIn && !session?.medusaToken) {
-          handleMedusaError({ message: 'Unauthorized' }, 'run Query.me', [
-            'Query',
-            'me',
-          ]);
+          throw new UnauthorizedError('Unauthorized', {
+            description: 'Customer is not logged in',
+          });
         }
 
         const { customer } = await medusa.store.customer.retrieve({
