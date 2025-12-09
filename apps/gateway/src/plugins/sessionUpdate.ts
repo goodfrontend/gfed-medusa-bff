@@ -44,10 +44,9 @@ export const sessionUpdatePlugin: ApolloServerPlugin<{
               if (err) reject(err);
               else {
                 contextValue.res.clearCookie('storefront.sid', {
-                  // TODO: Adjust for production
                   httpOnly: true,
                   sameSite: 'lax',
-                  secure: false,
+                  secure: process.env.NODE_ENV === 'production',
                 });
                 resolve();
               }
