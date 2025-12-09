@@ -3,7 +3,7 @@ enum ApplicationType {
   percentage
 }
 
-type ProductVariant @key(fields: "id") {
+extend type ProductVariant @key(fields: "id") {
   id: ID! @external
 }
 
