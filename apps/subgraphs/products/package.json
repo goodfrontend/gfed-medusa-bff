@@ -21,7 +21,7 @@
     "@apollo/server": "^5.2.0",
     "@apollo/subgraph": "^2.12.1",
     "@as-integrations/express5": "^1.1.2",
-    "@gfed-medusa/bff-lib-common": "^1.0.0",
+    "@gfed-medusa/bff-lib-common": "^1.0.1",
     "@graphql-tools/merge": "^9.1.1",
     "@medusajs/js-sdk": "2.10.3",
     "@medusajs/types": "2.10.3",

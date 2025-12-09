@@ -346,7 +346,7 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2(@apollo/server@5.2.0(graphql@16.12.0))(express@5.2.1)
       '@gfed-medusa/bff-lib-common':
-        specifier: ^1.0.0
+        specifier: ^1.0.1
         version: link:../../../packages/lib-common
       '@graphql-tools/merge':
         specifier: ^9.1.1
