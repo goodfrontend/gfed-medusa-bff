@@ -10,7 +10,7 @@ export const sessionConfig: (req: any, res: any, next: any) => void = session({
   store: process.env.NODE_ENV !== 'production' ? undefined : redisStore,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== 'production',
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24,
   },
