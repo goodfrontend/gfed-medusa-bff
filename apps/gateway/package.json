@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup",
     "lint": "eslint . --ext .js,.ts,.tsx --fix",
     "format": "prettier --write ."
   },
@@ -14,6 +14,7 @@
     "@as-integrations/express5": "^1.1.2",
     "connect-redis": "^9.0.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
     "express": "^5.2.1",
     "express-session": "1.18.2",
     "graphql": "^16.12.0",
@@ -28,6 +29,7 @@
     "@types/express": "^5.0.6",
     "@types/express-session": "1.18.2",
     "dotenv-cli": "^11.0.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.20.6"
   }
 }

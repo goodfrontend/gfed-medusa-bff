@@ -12,7 +12,7 @@ RUN apk add --no-cache libc6-compat git && \
 FROM base AS pruner
 WORKDIR /app
 COPY . .
-RUN turbo prune --scope=@gfed-medusa-bff/products --docker
+RUN turbo prune --scope=@gfed-medusa-bff/customers --docker
 
 FROM base AS installer
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN pnpm install \
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
-RUN turbo run build --filter=@gfed-medusa-bff/products...
+RUN turbo run build --filter=@gfed-medusa-bff/customers...
 
 FROM base AS prod-deps
 WORKDIR /app
@@ -52,12 +52,12 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=prod-deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-COPY --from=installer /app/apps/subgraphs/products/dist ./apps/subgraphs/products/dist
-COPY --from=installer /app/apps/subgraphs/products/package.json ./apps/subgraphs/products/package.json
+COPY --from=installer /app/apps/subgraphs/customers/dist ./apps/subgraphs/customers/dist
+COPY --from=installer /app/apps/subgraphs/customers/package.json ./apps/subgraphs/customers/package.json
 
-COPY --from=prod-deps /app/apps/subgraphs/products/node_modules ./apps/subgraphs/products/node_modules
+COPY --from=prod-deps /app/apps/subgraphs/customers/node_modules ./apps/subgraphs/customers/node_modules
 
 USER graphqluser
 
-WORKDIR /app/apps/subgraphs/products
+WORKDIR /app/apps/subgraphs/customers
 CMD ["node", "dist/index.js"]
