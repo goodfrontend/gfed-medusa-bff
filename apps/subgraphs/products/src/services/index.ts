@@ -1,5 +1,6 @@
 import type express from 'express';
 
+import type { Logger } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
 
@@ -11,9 +12,11 @@ import { ProductService } from './medusa/product';
 export function createContext({
   req,
   res,
+  logger,
 }: {
   req: express.Request;
   res: express.Response;
+  logger: Logger;
 }): GraphQLContext {
   let _productService: ProductService | null = null;
   let _categoryService: CategoryService | null = null;
@@ -44,6 +47,7 @@ export function createContext({
     req,
     res,
     medusa,
+    logger,
     get productService() {
       if (!_productService) _productService = new ProductService(medusa);
       return _productService;

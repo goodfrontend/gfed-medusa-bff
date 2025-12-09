@@ -1,0 +1,7 @@
+src/
+tsconfig.json
+.turbo/
+*.log
+.DS_Store
+node_modules/
+*.tsbuildinfo

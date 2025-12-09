@@ -24,6 +24,7 @@
     "@medusajs/js-sdk": "2.10.3",
     "@medusajs/types": "2.10.3",
     "algoliasearch": "^5.40.1",
+    "@gfed-medusa/bff-lib-common": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.2.1",

@@ -11,6 +11,21 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from '@graphql/resolvers';
 import { typeDefs } from '@graphql/schemas';
 import { createContext } from '@services/index';
+import {
+  HealthCheck,
+  createErrorHandler,
+  createLogger,
+} from '@gfed-medusa/bff-lib-common';
+import type { LogLevel } from '@gfed-medusa/bff-lib-common';
+
+const logger = createLogger({
+  serviceName: 'products-subgraph',
+  level: (process.env.LOG_LEVEL as LogLevel) || 'info',
+  pretty: process.env.NODE_ENV === 'development',
+});
+
+const healthCheck = new HealthCheck('products-subgraph', '1.0.0');
+healthCheck.register('self', async () => ({ status: 'healthy' }));
 
 async function startServer() {
   const app = express();
@@ -23,6 +38,25 @@ async function startServer() {
         ? [ApolloServerPluginLandingPageLocalDefault()]
         : []),
       ApolloServerPluginDrainHttpServer({ httpServer }),
+      {
+        async requestDidStart() {
+          return {
+            async didEncounterErrors(requestContext) {
+              for (const error of requestContext.errors) {
+                logger.error(
+                  {
+                    err: error,
+                    operation: requestContext.request.operationName,
+                    variables: requestContext.request.variables,
+                    path: error.path,
+                  },
+                  'GraphQL error occurred'
+                );
+              }
+            },
+          };
+        },
+      },
     ],
     introspection: process.env.NODE_ENV !== 'production',
   });
@@ -40,23 +74,27 @@ async function startServer() {
 
   app.use(express.json());
 
+  app.get('/health', healthCheck.getHandler());
+
   app.use(
     '/graphql',
     expressMiddleware(server, {
-      context: async ({ req, res }) => createContext({ req, res }),
+      context: async ({ req, res }) => createContext({ req, res, logger }),
     })
   );
 
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4001 }, resolve)
-  );
+  app.use(createErrorHandler(logger));
 
-  console.log(
-    `Products subgraph server ready at http://localhost:4001/graphql`
+  const port = process.env.PORT || 4001;
+  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
+
+  logger.info(
+    { port },
+    `Products subgraph server ready at http://localhost:${port}/graphql`
   );
 }
 
 startServer().catch((error) => {
-  console.error('Error starting products subgraph server:', error);
+  logger.error({ err: error }, 'Error starting products subgraph server');
   process.exit(1);
 });

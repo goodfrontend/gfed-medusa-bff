@@ -8,8 +8,9 @@ export const productResolvers = {
     products: async (
       _parent: unknown,
       args: HttpTypes.StoreProductParams & { id?: string },
-      { productService }: GraphQLContext
+      { productService, logger }: GraphQLContext
     ) => {
+      logger.info({ args }, 'Fetching products');
       return await productService.getProducts(args);
     },
     product: async (
@@ -17,6 +18,7 @@ export const productResolvers = {
       params: HttpTypes.StoreProductParams & { id: string },
       context: GraphQLContext
     ) => {
+      context.logger.info({ productId: params.id }, 'Fetching product by ID');
       return await context.productService.getProduct(params.id, params);
     },
     productCategories: async (
@@ -24,6 +26,7 @@ export const productResolvers = {
       args: HttpTypes.FindParams & HttpTypes.StoreProductCategoryListParams,
       context: GraphQLContext
     ) => {
+      context.logger.info({ args }, 'Fetching product categories');
       return await context.categoryService.getCategories(args);
     },
     productCategory: async (
@@ -31,6 +34,7 @@ export const productResolvers = {
       params: HttpTypes.StoreProductCategoryParams & { id: string },
       context: GraphQLContext
     ) => {
+      context.logger.info({ categoryId: params.id }, 'Fetching product category by ID');
       return await context.categoryService.getCategory(params.id);
     },
     collections: async (
@@ -38,6 +42,7 @@ export const productResolvers = {
       args: HttpTypes.FindParams & HttpTypes.StoreCollectionFilters,
       context: GraphQLContext
     ) => {
+      context.logger.info({ args }, 'Fetching collections');
       return await context.collectionService.getCollections(args);
     },
     collection: async (
@@ -45,6 +50,7 @@ export const productResolvers = {
       params: { id: string },
       context: GraphQLContext
     ) => {
+      context.logger.info({ collectionId: params.id }, 'Fetching collection by ID');
       return await context.collectionService.getCollection(params.id);
     },
     searchProducts: async (
@@ -52,6 +58,7 @@ export const productResolvers = {
       args: QuerySearchProductsArgs,
       context: GraphQLContext
     ) => {
+      context.logger.info({ query: args.query }, 'Searching products');
       return await context.algoliaSearchService.search(args);
     },
   },
@@ -61,6 +68,10 @@ export const productResolvers = {
       args: HttpTypes.StoreProductListParams,
       context: GraphQLContext
     ) => {
+      context.logger.info(
+        { collectionId: parent.id, args },
+        'Fetching products for collection'
+      );
       return await context.productService
         .getProducts({
           ...args,
@@ -75,6 +86,10 @@ export const productResolvers = {
       args: HttpTypes.StoreProductListParams,
       context: GraphQLContext
     ) => {
+      context.logger.info(
+        { categoryId: parent.id, args },
+        'Fetching products for category'
+      );
       return await context.productService
         .getProducts({
           ...args,
