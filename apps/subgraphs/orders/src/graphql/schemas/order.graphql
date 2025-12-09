@@ -1,0 +1,22 @@
+type Order {
+  id: ID!
+  regionId: String!
+  customerId: String!
+  email: String!
+  items: [LineItem!]!
+  shippingMethods: [ShippingMethod!]!
+  shippingAddress: Address
+  paymentStatus: String!
+  fulfillmentStatus: String!
+  total: Int!
+  status: String!
+  createdAt: DateTime!
+  currencyCode: String!
+  displayId: Int
+  paymentCollections: [PaymentCollection]
+  subtotal: Int
+  discountTotal: Int
+  giftCardTotal: Int
+  shippingTotal: Int
+  taxTotal: Int
+}

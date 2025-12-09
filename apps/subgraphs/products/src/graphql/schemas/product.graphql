@@ -82,7 +82,7 @@ type ProductOptionValue {
   value: String!
 }
 
-type ProductVariant {
+type ProductVariant @key(fields: "id") {
   id: ID!
   sku: String
   inventoryQuantity: Int
