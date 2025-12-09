@@ -1,0 +1,1 @@
+export { customerResolvers } from './customers';
