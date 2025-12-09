@@ -57,8 +57,6 @@ async function startServer() {
           }
         }
 
-        console.log('CUSTOMERS: Incoming', { session });
-
         return createContext({ req, res, session });
       },
     })
