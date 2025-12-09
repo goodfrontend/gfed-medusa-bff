@@ -9,6 +9,9 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
+import { createErrorHandler } from '@gfed-medusa/bff-lib-common';
+import { healthCheck } from '@services/health-check';
+import { logger } from '@services/logger';
 
 import { customerResolvers } from './graphql/resolvers';
 import { typeDefs } from './graphql/schemas';
@@ -25,6 +28,35 @@ async function startServer() {
         ? [ApolloServerPluginLandingPageLocalDefault()]
         : []),
       ApolloServerPluginDrainHttpServer({ httpServer }),
+      {
+        async requestDidStart() {
+          const start = Date.now();
+          return {
+            async willSendResponse(requestContext) {
+              const duration = Date.now() - start;
+              logger.info(
+                {
+                  operation: requestContext.request.operationName,
+                  duration,
+                },
+                'GraphQL request completed'
+              );
+            },
+            async didEncounterErrors(requestContext) {
+              for (const error of requestContext.errors) {
+                logger.error(
+                  {
+                    err: error,
+                    operation: requestContext.request.operationName,
+                    variables: requestContext.request.variables,
+                  },
+                  'GraphQL error occurred'
+                );
+              }
+            },
+          };
+        },
+      },
     ],
     introspection: process.env.NODE_ENV !== 'production',
   });
@@ -41,6 +73,15 @@ async function startServer() {
   );
 
   app.use(express.json());
+
+  app.get('/health', healthCheck.getHandler());
+  app.get('/health/live', (_, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      service: 'customers-subgraph',
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   app.use(
     '/graphql',
@@ -62,16 +103,27 @@ async function startServer() {
     })
   );
 
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4002 }, resolve)
+  app.use(createErrorHandler(logger));
+
+  const port = process.env.PORT || 4002;
+
+  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
+
+  logger.info(
+    { port, env: process.env.NODE_ENV },
+    `Products subgraph ready at http://localhost:${port}/graphql`
   );
 
-  console.log(
-    `Identity subgraph server ready at http://localhost:4002/graphql`
-  );
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM signal received: closing HTTP server');
+    httpServer.close(() => {
+      logger.info('HTTP server closed');
+      process.exit(0);
+    });
+  });
 }
 
 startServer().catch((error) => {
-  console.error('Error starting identity subgraph server:', error);
+  logger.error({ err: error }, 'Failed to start customers subgraph');
   process.exit(1);
 });
