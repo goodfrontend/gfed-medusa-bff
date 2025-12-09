@@ -1,0 +1,21 @@
+type SocialLink {
+  text: String!
+  url: String!
+}
+
+type PartialRichText {
+  text: JSON
+}
+
+type Footer @key(fields: "_id") {
+  _id: ID!
+  _type: String!
+  storeName: String
+  social: [SocialLink!]
+  copyright: String
+  poweredByCta: PartialRichText
+}
+
+extend type Query {
+  footer: Footer
+}

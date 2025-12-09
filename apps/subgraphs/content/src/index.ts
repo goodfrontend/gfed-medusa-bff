@@ -1,6 +1,5 @@
 import cors from 'cors';
 import express from 'express';
-import gql from 'graphql-tag';
 import http from 'http';
 
 import { ApolloServer } from '@apollo/server';
@@ -9,25 +8,8 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 
-const typeDefs = gql`
-  type Content @key(fields: "id") {
-    id: ID!
-    title: String!
-  }
-
-  type Query {
-    contents: [Content!]!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    contents: () => [
-      { id: '1', title: 'Test Content' },
-      { id: '2', title: 'Another Content' },
-    ],
-  },
-};
+import { resolvers } from './resolvers';
+import { typeDefs } from './schema';
 
 async function startServer() {
   const app = express();
