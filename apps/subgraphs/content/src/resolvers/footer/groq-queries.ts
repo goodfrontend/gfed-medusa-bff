@@ -1,4 +1,4 @@
-export const FOOTER_QUERY = `*[_id == $footerId][0]{
+export const FOOTER_QUERY = `*[_id == "footerId"][0]{
 _id,
 _type,
   storeName,

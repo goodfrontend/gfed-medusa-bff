@@ -55,10 +55,6 @@ export type Query = {
   footer?: Maybe<Footer>;
 };
 
-export type QueryFooterArgs = {
-  footerId?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type SocialLink = {
   text: Scalars['String']['output'];
   url: Scalars['String']['output'];
@@ -259,12 +255,7 @@ export type QueryResolvers<
   ParentType extends
     ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
 > = {
-  footer?: Resolver<
-    Maybe<ResolversTypes['Footer']>,
-    ParentType,
-    ContextType,
-    Partial<QueryFooterArgs>
-  >;
+  footer?: Resolver<Maybe<ResolversTypes['Footer']>, ParentType, ContextType>;
 };
 
 export type SocialLinkResolvers<
