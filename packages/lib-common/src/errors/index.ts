@@ -1,4 +1,9 @@
-import type { ErrorRequestHandler, Request, Response, NextFunction } from 'express';
+import type {
+  ErrorRequestHandler,
+  NextFunction,
+  Request,
+  Response,
+} from 'express';
 import type { Logger } from 'pino';
 
 export class AppError extends Error {
@@ -32,19 +37,28 @@ export class ValidationError extends AppError {
 }
 
 export class NotFoundError extends AppError {
-  constructor(message: string = 'Resource not found', details?: Record<string, unknown>) {
+  constructor(
+    message: string = 'Resource not found',
+    details?: Record<string, unknown>
+  ) {
     super(message, 404, 'NOT_FOUND', details);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized', details?: Record<string, unknown>) {
+  constructor(
+    message: string = 'Unauthorized',
+    details?: Record<string, unknown>
+  ) {
     super(message, 401, 'UNAUTHORIZED', details);
   }
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message: string = 'Forbidden', details?: Record<string, unknown>) {
+  constructor(
+    message: string = 'Forbidden',
+    details?: Record<string, unknown>
+  ) {
     super(message, 403, 'FORBIDDEN', details);
   }
 }
@@ -56,13 +70,30 @@ export class ConflictError extends AppError {
 }
 
 export class ServiceUnavailableError extends AppError {
-  constructor(message: string = 'Service unavailable', details?: Record<string, unknown>) {
+  constructor(
+    message: string = 'Service unavailable',
+    details?: Record<string, unknown>
+  ) {
     super(message, 503, 'SERVICE_UNAVAILABLE', details);
   }
 }
 
+export class TestError extends AppError {
+  constructor(
+    message: string = 'Test error',
+    details?: Record<string, unknown>
+  ) {
+    super(message, 400, 'TEST_ERROR', details);
+  }
+}
+
 export function createErrorHandler(logger: Logger): ErrorRequestHandler {
-  return (err: Error, req: Request, res: Response, next: NextFunction): void => {
+  return (
+    err: Error,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): void => {
     if (res.headersSent) {
       return next(err);
     }
