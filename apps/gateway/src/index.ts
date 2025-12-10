@@ -15,6 +15,9 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { sessionConfig } from './config/session';
 import { sessionUpdatePlugin } from './plugins/sessionUpdate';
 
+const isDev = process.env.NODE_ENV !== 'production';
+const POLL_INTERVAL = 10000;
+
 async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
@@ -39,6 +42,7 @@ async function startServer() {
           url: process.env.ORDERS_URL || 'http://localhost:4004/graphql',
         },
       ],
+      ...(isDev && { pollIntervalInMs: POLL_INTERVAL }),
     }),
     buildService({ name: _, url }) {
       return new RemoteGraphQLDataSource({
@@ -62,7 +66,7 @@ async function startServer() {
 
   const server = new ApolloServer({
     gateway,
-    introspection: process.env.NODE_ENV !== 'production',
+    introspection: isDev,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       sessionUpdatePlugin,

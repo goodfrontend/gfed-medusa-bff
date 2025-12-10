@@ -151,5 +151,48 @@ SUBGRAPH_URL="http://localhost:4001/graphql" # The running local subgraph endpoi
 ## Development Notes
 
 - Subgraphs are hot-reloadable in `dev` mode using `tsx`.
-- Add new subgraphs by creating a folder under `apps/subgraphs/*` and extending the federation config in the gateway.
 - Lint and format config is always inherited—customize only per-app rules if needed.
+- Add new subgraphs by creating a folder under `apps/subgraphs/*` and extending the federation config in the gateway.
+
+### Adding a New Subgraph to Local Development
+
+When you create a new subgraph inside the monorepo, make sure to register it in the Turbo configuration so it starts automatically during local development.
+
+In turbo.json, under the task:
+
+```jsonc
+"@gfed-medusa-bff/gateway#dev": {
+  "with": [
+    "@gfed-medusa-bff/products#dev",
+    "@gfed-medusa-bff/orders#dev",
+    "@gfed-medusa-bff/customers#dev",
+    "@gfed-medusa-bff/content#dev"
+  ],
+  "persistent": true
+}
+```
+
+add your new subgraph’s `#dev` script to the with array.
+
+Example
+
+If you add a new subgraph called **inventory**, update it like this:
+
+```jsonc
+"@gfed-medusa-bff/gateway#dev": {
+  "with": [
+    "@gfed-medusa-bff/products#dev",
+    "@gfed-medusa-bff/orders#dev",
+    "@gfed-medusa-bff/customers#dev",
+    "@gfed-medusa-bff/content#dev",
+    "@gfed-medusa-bff/inventory#dev" // ← Add this
+  ],
+  "persistent": true
+}
+```
+
+This ensures Turbo runs the gateway together with all subgraphs when you execute:
+
+```sh
+turbo run dev
+```

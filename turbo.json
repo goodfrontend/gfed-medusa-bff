@@ -13,17 +13,18 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
-    "dev:subgraphs": {
-      "dependsOn": ["^dev"],
-      "cache": false,
-      "persistent": true,
-      "outputs": []
+    "@gfed-medusa-bff/gateway#dev": {
+      "with": [
+        "@gfed-medusa-bff/products#dev",
+        "@gfed-medusa-bff/orders#dev",
+        "@gfed-medusa-bff/customers#dev",
+        "@gfed-medusa-bff/content#dev"
+      ],
+      "persistent": true
     },
     "dev": {
-      "dependsOn": ["dev:subgraphs"],
       "cache": false,
-      "persistent": true,
-      "outputs": []
+      "persistent": true
     },
     "generate-schema": {
       "cache": false,
