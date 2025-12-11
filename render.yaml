@@ -1,0 +1,128 @@
+projects:
+  - name: gfed-bff-project
+    environments:
+      - name: production
+      services:
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/gateway'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/gateway/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/content'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/products'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/orders'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/customers'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+
+    - name: smoke
+      services:
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/gateway'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/gateway/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/content'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/products'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/orders'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/customers'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+
+    - name: qa
+      services:
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/gateway'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/gateway/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/content'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/products'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/orders'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+        - type: web
+          runtime: docker
+          plan: free
+          name: '@gfed-medusa-bff/customers'
+          region: oregon
+          autoDeployTrigger: off
+          dockerfilePath: ./apps/subgraphs/customers/Dockerfile
