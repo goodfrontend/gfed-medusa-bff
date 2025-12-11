@@ -1,5 +1,6 @@
 {
   "name": "@gfed-medusa-bff/customers",
+  "private": true,
   "scripts": {
     "build": "pnpm run codegen && tsup && pnpm copy-schema",
     "copy-schema": "copyfiles -f ./src/graphql/schemas/*.graphql dist/",

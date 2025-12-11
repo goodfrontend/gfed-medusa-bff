@@ -1,0 +1,128 @@
+projects:
+  - name: gfed-bff-project
+    environments:
+      - name: production
+        services:
+          - type: web
+            runtime: docker
+            plan: free
+            name: gateway-prod
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/gateway/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: content-prod
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: products-prod
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: orders-prod
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: customers-prod
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+
+      - name: smoke
+        services:
+          - type: web
+            runtime: docker
+            plan: free
+            name: gateway-smoke
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/gateway/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: content-smoke
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: products-smoke
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: orders-smoke
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: customers-smoke
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+
+      - name: qa
+        services:
+          - type: web
+            runtime: docker
+            plan: free
+            name: gateway-qa
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/gateway/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: content-qa
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: products-qa
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: orders-qa
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+
+          - type: web
+            runtime: docker
+            plan: free
+            name: customers-qa
+            region: oregon
+            autoDeployTrigger: off
+            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
