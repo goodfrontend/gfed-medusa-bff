@@ -1,0 +1,49 @@
+name: Deploy to Render
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+    secrets:
+      RENDER_API_KEY:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.app }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.app }}
+    steps:
+      - name: Deploy to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_KEY: ${{ inputs.app }}
+        run: |
+          service_id=$(
+            curl -s "https://api.render.com/v1/services?name=$SERVICE_KEY&limit=1" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Accept: application/json" \
+            | jq -r '.[0].service.id // empty'
+          )
+
+          if [ -z "$service_id" ]; then
+            echo "::error::Service not found: $SERVICE_KEY"
+            exit 1
+          fi
+
+          dep_id=$(
+            curl -s -X POST "https://api.render.com/v1/services/$service_id/deploys" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{}' \
+            | jq -r '.id // empty'
+          )
+
+          if [ -z "$dep_id" ]; then
+            echo "::error::Deployment was not triggered"
+            exit 1
+          fi
+
+          echo "Deployed $SERVICE_KEY"

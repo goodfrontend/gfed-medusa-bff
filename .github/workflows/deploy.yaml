@@ -1,93 +1,190 @@
-name: Deployment
+name: Deploy to Render
 
 on:
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
 
 jobs:
-  deploy:
-    if: github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'release/')
-    environment: deployment
+  detect-changes:
+    name: Detect changes
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Extract service key from source branch
-        id: service
-        run: |
-          raw="${{ github.event.pull_request.head.ref }}"
-          key=$(echo "$raw" | awk -F'[/-]' '{print $2}')
-          echo "key=$key" >> $GITHUB_OUTPUT
-
-      - name: Lookup Render service ID
-        id: find_service
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          SERVICE_KEY: ${{ steps.service.outputs.key }}
-        run: |
-          service_id=$(curl -v -s "https://api.render.com/v1/services" \
-            -H "Authorization: Bearer $RENDER_API_KEY" \
-            -H "Accept: application/json" \
-            | jq -r --arg key "$SERVICE_KEY" '.[] | select(.service.name == $key) | .service.id')
-
-          if [ -z "$service_id" ]; then
-            echo "Service not found"
-            echo
-            echo "Check the following: "
-            echo "1. Render API is available"
-            echo "2. Branch contains the service name (e.g. release/PRODUCT-branch-1)"
-            exit 1
-          fi
-
-          echo "service_id=$service_id" >> $GITHUB_OUTPUT
-
-      - name: Trigger Render deploy
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          SERVICE_ID: ${{ steps.find_service.outputs.service_id }}
-        run: |
-          dep_id=$(curl -s -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
-            -H "Authorization: Bearer $RENDER_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{}' \
-            | jq -r '.id')
-
-            if [ -z "$dep_id" ]; then
-              echo "Deployment was not triggered"
-              exit 1
-            fi
-
-  publish:
-    if: github.event.pull_request.merged && (startsWith(github.event.pull_request.head.ref, 'release/') || startsWith(github.event.pull_request.head.ref, 'changeset-release/'))
-    runs-on: ubuntu-latest
-    environment: deployment
-
+    outputs:
+      gateway: ${{ steps.changes.outputs.gateway }}
+      products: ${{ steps.changes.outputs.products }}
+      orders: ${{ steps.changes.outputs.orders }}
+      content: ${{ steps.changes.outputs.content }}
+      customers: ${{ steps.changes.outputs.customers }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          cache: "pnpm"
+          fetch-depth: 0
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Create .npmrc # not clear in changeset docs how to specify scope, so we create a custom one instead
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > $HOME/.npmrc
-          echo "@gfed-medusa:registry=https://registry.npmjs.org/" >> $HOME/.npmrc
-          echo "registry=https://registry.npmjs.org/" >> $HOME/.npmrc
-        
-      - name: Publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: changesets/action@v1
+      - id: changes
+        uses: dorny/paths-filter@v3
         with:
-          publish: pnpm run ci:publish
+          base: ${{ github.event.before || 'HEAD^' }}
+          filters: |
+            gateway:
+              - 'apps/gateway/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+            products:
+              - 'apps/subgraphs/products/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+            orders:
+              - 'apps/subgraphs/orders/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+            content:
+              - 'apps/subgraphs/content/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+            customers:
+              - 'apps/subgraphs/customers/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+
+  smoke-products:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: products-smoke
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  smoke-gateway:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: gateway-smoke
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  smoke-orders:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: orders-smoke
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  smoke-content:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: content-smoke
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  smoke-customers:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: customers-smoke
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  qa-products:
+    needs: [detect-changes, smoke-products]
+    if: needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: products-qa
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  qa-gateway:
+    needs: [detect-changes, smoke-gateway]
+    if: needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: gateway-qa
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  qa-orders:
+    needs: [detect-changes, smoke-orders]
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: orders-qa
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  qa-content:
+    needs: [detect-changes, smoke-content]
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: content-qa
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  qa-customers:
+    needs: [detect-changes, smoke-customers]
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: customers-qa
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  prod-products:
+    needs: [detect-changes, qa-products]
+    if: needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: products-prod
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  prod-gateway:
+    needs: [detect-changes, qa-gateway]
+    if: needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: gateway-prod
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  prod-orders:
+    needs: [detect-changes, qa-orders]
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: orders-prod
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  prod-content:
+    needs: [detect-changes, qa-content]
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: content-prod
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  prod-customers:
+    needs: [detect-changes, qa-customers]
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: customers-prod
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
