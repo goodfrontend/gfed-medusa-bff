@@ -1,0 +1,42 @@
+name: Publish Packages
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged || startsWith(github.event.pull_request.head.ref, 'changeset-release/'))
+    runs-on: ubuntu-latest
+    environment: packages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .npmrc # not clear in changeset docs how to specify scope, so we create a custom one instead
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > $HOME/.npmrc
+          echo "@gfed-medusa:registry=https://registry.npmjs.org/" >> $HOME/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> $HOME/.npmrc
+        
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run ci:publish

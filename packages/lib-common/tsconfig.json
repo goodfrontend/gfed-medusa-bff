@@ -5,6 +5,8 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
+    "module": "preserve",
+    "moduleResolution": "Bundler",
     "composite": true,
     "incremental": true
   },
