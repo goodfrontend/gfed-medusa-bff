@@ -10,16 +10,6 @@ on:
       - "pnpm-workspace.yaml"
       - "package.json"
       - ".github/workflows/**"
-  push:
-    branches: ["main"]
-    paths:
-      - "apps/subgraphs/customers/**"
-      - "packages/**"
-      - "turbo.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "package.json"
-      - ".github/workflows/**"
 
 permissions:
   contents: read

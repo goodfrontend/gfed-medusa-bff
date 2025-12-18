@@ -6,9 +6,23 @@ on:
       app:
         required: true
         type: string
+      image:
+        required: true
+        type: string
+      publish_schema:
+        type: boolean
+        default: false
+      subgraph_name:
+        type: string
     secrets:
       RENDER_API_KEY:
         required: true
+      APOLLO_KEY:
+        required: false
+      APOLLO_GRAPH_REF:
+        required: false
+      APOLLO_ROUTING_URL:
+        required: false
 
 jobs:
   deploy:
@@ -20,30 +34,104 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_KEY: ${{ inputs.app }}
+          IMAGE: ${{ inputs.image }}
         run: |
-          service_id=$(
-            curl -s "https://api.render.com/v1/services?name=$SERVICE_KEY&limit=1" \
-              -H "Authorization: Bearer $RENDER_API_KEY" \
-              -H "Accept: application/json" \
-            | jq -r '.[0].service.id // empty'
+          service_data=$(
+              curl -s "https://api.render.com/v1/services?name=$SERVICE_KEY&limit=1" \
+                  -H "Authorization: Bearer $RENDER_API_KEY" \
+                  -H "Accept: application/json" \
+              | jq -r '.[0].service'
           )
 
+          service_id=$(echo "$service_data" | jq -r '.id // empty')
+          service_owner_id=$(echo "$service_data" | jq -r '.ownerId // empty')
+
           if [ -z "$service_id" ]; then
-            echo "::error::Service not found: $SERVICE_KEY"
-            exit 1
+              echo "::error::Service not found: $SERVICE_KEY"
+              exit 1
+          fi
+
+          updated=$(
+              curl -s -X PATCH "https://api.render.com/v1/services/$service_id" \
+                  -H "Authorization: Bearer $RENDER_API_KEY" \
+                  -H "Accept: application/json" \
+                  -H "Content-Type: application/json" \
+                  -d "{ 
+                          \"image\": { 
+                              \"ownerId\": \"$service_owner_id\", 
+                              \"imagePath\": \"$IMAGE\"
+                          }
+                      }" \
+              | jq -r '.imagePath // empty'
+          )
+
+          if [ "$updated" != "$IMAGE" ]; then
+              echo "::error::Failed to update service"
+              exit 1
           fi
 
           dep_id=$(
-            curl -s -X POST "https://api.render.com/v1/services/$service_id/deploys" \
-              -H "Authorization: Bearer $RENDER_API_KEY" \
-              -H "Content-Type: application/json" \
-              -d '{}' \
-            | jq -r '.id // empty'
+              curl -s -X POST "https://api.render.com/v1/services/$service_id/deploys" \
+                  -H "Authorization: Bearer $RENDER_API_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d "{ \"imageUrl\": \"$IMAGE\" }" \
+              | jq -r '.id // empty'
           )
 
           if [ -z "$dep_id" ]; then
-            echo "::error::Deployment was not triggered"
-            exit 1
+              echo "::error::Deployment was not triggered"
+              exit 1
           fi
 
-          echo "Deployed $SERVICE_KEY"
+          max_attempts=30
+          sleep_seconds=20
+          attempts=1
+
+          while [ "$attempts" -le "$max_attempts" ]; do
+              status=$(curl -s "https://api.render.com/v1/services/$service_id/deploys/$dep_id" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Accept: application/json" \
+              | jq -r '.status // empty')
+
+              echo "Attempt $attempts/$max_attempts: Status is '$status'"
+
+              # created queued build_in_progress update_in_progress live deactivated build_failed 
+              # update_failed canceled pre_deploy_in_progress pre_deploy_failed
+              case "$status" in
+                  "live")
+                      echo "Deployment is live"
+                      exit 0
+                      ;;
+                  "build_failed"|"update_failed"|"canceled"|"pre_deploy_failed")
+                      echo "Deployment failed: $status"
+                      exit 1
+                      ;;
+              esac
+
+              attempts=$((attempts + 1))
+              sleep "$sleep_seconds"
+          done
+
+          echo "::error::Deployment timed out"
+          exit 1
+
+      - name: Install Apollo Rover
+        if: inputs.publish_schema
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Introspect and Publish Schema
+        if: inputs.publish_schema
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+          APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+          ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+          SUBGRAPH_NAME: ${{ inputs.subgraph_name }}
+        run: |
+          rover subgraph introspect "$ROUTING_URL" > schema.graphql
+
+          rover subgraph publish "$APOLLO_GRAPH_REF" \
+            --name "$SUBGRAPH_NAME" \
+            --schema schema.graphql \
+            --routing-url "$ROUTING_URL"
