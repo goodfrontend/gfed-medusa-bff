@@ -1,128 +1,176 @@
+# NOTE: The env groups should be first created in the Render dashboard
+# Since they do not allow `sync: false` in env groups, this is seems to be the only way
+
 projects:
   - name: gfed-bff-project
     environments:
       - name: production
         services:
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: gateway-prod
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/gateway/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-prod-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: content-prod
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-prod-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: products-prod
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-prod-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: orders-prod
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-prod-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: customers-prod
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-prod-env-group
 
       - name: smoke
         services:
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: gateway-smoke
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/gateway/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-smoke-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: content-smoke
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-smoke-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: products-smoke
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-smoke-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: orders-smoke
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-smoke-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: customers-smoke
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-smoke-env-group
 
       - name: qa
         services:
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: gateway-qa
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/gateway/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-qa-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: content-qa
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/content/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-qa-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: products-qa
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/products/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-qa-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: orders-qa
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/orders/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-qa-env-group
 
           - type: web
-            runtime: docker
+            runtime: image
             plan: free
             name: customers-qa
             region: oregon
             autoDeployTrigger: off
-            dockerfilePath: ./apps/subgraphs/customers/Dockerfile
+            image:
+              url: traefik/whoami:v1.11
+            envVars:
+              - fromGroup: bff-qa-env-group

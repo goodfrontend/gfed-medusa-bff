@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   deployments: write
+  packages: write
 
 jobs:
   detect-changes:
@@ -54,50 +55,115 @@ jobs:
               - 'turbo.json'
               - 'pnpm-lock.yaml'
 
-  smoke-products:
+  build-gateway:
     needs: detect-changes
+    if: needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: gateway
+      dockerfile: ./apps/gateway/Dockerfile
+
+  build-products:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: products
+      dockerfile: ./apps/subgraphs/products/Dockerfile
+
+  build-orders:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: orders
+      dockerfile: ./apps/subgraphs/orders/Dockerfile
+
+  build-content:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: content
+      dockerfile: ./apps/subgraphs/content/Dockerfile
+
+  build-customers:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: customers
+      dockerfile: ./apps/subgraphs/customers/Dockerfile
+
+  smoke-products:
+    needs: [detect-changes, build-products]
     if: needs.detect-changes.outputs.products == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-smoke
+      image: ${{ needs.build-products.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   smoke-gateway:
-    needs: detect-changes
+    needs: [detect-changes, build-gateway]
     if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
+      image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
   smoke-orders:
-    needs: detect-changes
+    needs: [detect-changes, build-orders]
     if: needs.detect-changes.outputs.orders == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-smoke
+      image: ${{ needs.build-orders.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   smoke-content:
-    needs: detect-changes
+    needs: [detect-changes, build-content]
     if: needs.detect-changes.outputs.content == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-smoke
+      image: ${{ needs.build-content.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   smoke-customers:
-    needs: detect-changes
+    needs: [detect-changes, build-customers]
     if: needs.detect-changes.outputs.customers == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-smoke
+      image: ${{ needs.build-customers.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   qa-products:
     needs: [detect-changes, smoke-products]
@@ -105,8 +171,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-qa
+      image: ${{ needs.build-products.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   qa-gateway:
     needs: [detect-changes, smoke-gateway]
@@ -114,6 +186,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
+      image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
@@ -123,8 +196,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-qa
+      image: ${{ needs.build-orders.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   qa-content:
     needs: [detect-changes, smoke-content]
@@ -132,8 +211,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-qa
+      image: ${{ needs.build-content.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   qa-customers:
     needs: [detect-changes, smoke-customers]
@@ -141,8 +226,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-qa
+      image: ${{ needs.build-customers.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   prod-products:
     needs: [detect-changes, qa-products]
@@ -150,8 +241,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-prod
+      image: ${{ needs.build-products.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   prod-gateway:
     needs: [detect-changes, qa-gateway]
@@ -159,6 +256,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod
+      image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
@@ -168,8 +266,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-prod
+      image: ${{ needs.build-orders.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   prod-content:
     needs: [detect-changes, qa-content]
@@ -177,8 +281,14 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-prod
+      image: ${{ needs.build-content.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
 
   prod-customers:
     needs: [detect-changes, qa-customers]
@@ -186,5 +296,11 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-prod
+      image: ${{ needs.build-customers.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URl: ${{ secrets.APOLLO_ROUTING_URl }}
