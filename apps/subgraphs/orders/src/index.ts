@@ -2,6 +2,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import type { AddressInfo } from 'net';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -40,11 +41,13 @@ async function startServer() {
     })
   );
 
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4004 }, resolve)
-  );
+  const port = process.env.PORT || 4004;
+  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  console.log(`Orders subgraph server ready at http://localhost:4004/graphql`);
+  const { address } = httpServer.address() as AddressInfo;
+  const hostname = address === '' || address === '::' ? 'localhost' : address;
+
+  console.log(`Orders subgraph server ready at ${hostname}:${port}/graphql`);
 }
 
 startServer().catch((error) => {

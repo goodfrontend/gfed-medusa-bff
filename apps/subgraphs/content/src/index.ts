@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import http from 'http';
+import type { AddressInfo } from 'net';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -34,11 +35,13 @@ async function startServer() {
 
   app.use('/graphql', expressMiddleware(server));
 
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4003 }, resolve)
-  );
+  const port = process.env.PORT || 4003;
+  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  console.log(`Content subgraph server ready at http://localhost:4003/graphql`);
+  const { address } = httpServer.address() as AddressInfo;
+  const hostname = address === '' || address === '::' ? 'localhost' : address;
+
+  console.log(`Content subgraph server ready at ${hostname}:${port}/graphql`);
 }
 
 startServer().catch((error) => {

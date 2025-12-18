@@ -2,6 +2,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import type { AddressInfo } from 'net';
 
 import {
   ApolloGateway,
@@ -92,11 +93,13 @@ async function startServer() {
     })
   );
 
-  await new Promise<void>((resolve) =>
-    httpServer.listen({ port: 4000 }, resolve)
-  );
+  const port = process.env.PORT || 4000;
+  await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  console.log(`🚀 Gateway ready at http://localhost:4000/graphql`);
+  const { address } = httpServer.address() as AddressInfo;
+  const hostname = address === '' || address === '::' ? 'localhost' : address;
+
+  console.log(`🚀 Gateway ready at ${hostname}:${port}/graphql`);
 
   process.on('SIGTERM', () => {
     console.log('Shutting down...');
