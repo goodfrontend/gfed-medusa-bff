@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import { Session, SessionData } from 'express-session';
 import http from 'http';
+import type { AddressInfo } from 'net';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -109,9 +110,12 @@ async function startServer() {
 
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
+  const { address } = httpServer.address() as AddressInfo;
+  const hostname = address === '' || address === '::' ? 'localhost' : address;
+
   logger.info(
     { port, env: process.env.NODE_ENV },
-    `Products subgraph ready at http://localhost:${port}/graphql`
+    `Products subgraph ready at ${hostname}:${port}/graphql`
   );
 
   process.on('SIGTERM', () => {

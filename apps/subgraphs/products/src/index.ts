@@ -2,21 +2,22 @@ import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import type { AddressInfo } from 'net';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
-import { resolvers } from '@graphql/resolvers';
-import { typeDefs } from '@graphql/schemas';
-import { createContext } from '@services/index';
 import {
   HealthCheck,
   createErrorHandler,
   createLogger,
 } from '@gfed-medusa/bff-lib-common';
 import type { LogLevel } from '@gfed-medusa/bff-lib-common';
+import { resolvers } from '@graphql/resolvers';
+import { typeDefs } from '@graphql/schemas';
+import { createContext } from '@services/index';
 
 const logger = createLogger({
   serviceName: 'products-subgraph',
@@ -88,9 +89,12 @@ async function startServer() {
   const port = process.env.PORT || 4001;
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
+  const { address } = httpServer.address() as AddressInfo;
+  const hostname = address === '' || address === '::' ? 'localhost' : address;
+
   logger.info(
     { port },
-    `Products subgraph server ready at http://localhost:${port}/graphql`
+    `Products subgraph server ready at ${hostname}:${port}/graphql`
   );
 }
 
