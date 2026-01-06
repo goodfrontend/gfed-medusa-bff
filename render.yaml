@@ -13,7 +13,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/gateway:latest
             envVars:
               - fromGroup: bff-prod-env-group
 
@@ -24,7 +24,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/content:latest
             envVars:
               - fromGroup: bff-prod-env-group
 
@@ -35,7 +35,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/products:latest
             envVars:
               - fromGroup: bff-prod-env-group
 
@@ -46,7 +46,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/orders:latest
             envVars:
               - fromGroup: bff-prod-env-group
 
@@ -57,7 +57,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/customers:latest
             envVars:
               - fromGroup: bff-prod-env-group
 
@@ -70,7 +70,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/gateway:latest
             envVars:
               - fromGroup: bff-smoke-env-group
 
@@ -81,7 +81,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/content:latest
             envVars:
               - fromGroup: bff-smoke-env-group
 
@@ -92,7 +92,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/products:latest
             envVars:
               - fromGroup: bff-smoke-env-group
 
@@ -103,7 +103,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/orders:latest
             envVars:
               - fromGroup: bff-smoke-env-group
 
@@ -114,7 +114,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/customers:latest
             envVars:
               - fromGroup: bff-smoke-env-group
 
@@ -127,7 +127,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/gateway:latest
             envVars:
               - fromGroup: bff-qa-env-group
 
@@ -138,7 +138,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/content:latest
             envVars:
               - fromGroup: bff-qa-env-group
 
@@ -149,7 +149,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/products:latest
             envVars:
               - fromGroup: bff-qa-env-group
 
@@ -160,7 +160,7 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/orders:latest
             envVars:
               - fromGroup: bff-qa-env-group
 
@@ -171,6 +171,6 @@ projects:
             region: oregon
             autoDeployTrigger: off
             image:
-              url: traefik/whoami:v1.11
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/customers:latest
             envVars:
               - fromGroup: bff-qa-env-group
