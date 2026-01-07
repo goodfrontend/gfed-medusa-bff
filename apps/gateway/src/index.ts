@@ -17,53 +17,57 @@ import { sessionConfig } from './config/session';
 import { sessionUpdatePlugin } from './plugins/sessionUpdate';
 
 const isDev = process.env.NODE_ENV !== 'production';
+const useGraphOS = process.env.USE_GRAPHOS === 'true';
+
 const POLL_INTERVAL = 10000;
 
 async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
 
-  const gateway = new ApolloGateway({
-    supergraphSdl: new IntrospectAndCompose({
-      subgraphs: [
-        {
-          name: 'products',
-          url: process.env.PRODUCTS_URL || 'http://localhost:4001/graphql',
-        },
-        {
-          name: 'customers',
-          url: process.env.CUSTOMERS_URL || 'http://localhost:4002/graphql',
-        },
-        {
-          name: 'content',
-          url: process.env.CONTENT_URL || 'http://localhost:4003/graphql',
-        },
-        {
-          name: 'orders',
-          url: process.env.ORDERS_URL || 'http://localhost:4004/graphql',
-        },
-      ],
-      ...(isDev && { pollIntervalInMs: POLL_INTERVAL }),
-    }),
-    buildService({ name: _, url }) {
-      return new RemoteGraphQLDataSource({
-        url,
-        willSendRequest({ request, context }) {
-          // Pass cookie and session data to subgraphs
-          if (context.req?.headers.cookie) {
-            request.http?.headers.set('cookie', context.req.headers.cookie);
-          }
+  const gateway = useGraphOS
+    ? new ApolloGateway()
+    : new ApolloGateway({
+        supergraphSdl: new IntrospectAndCompose({
+          subgraphs: [
+            {
+              name: 'products',
+              url: process.env.PRODUCTS_URL || 'http://localhost:4001/graphql',
+            },
+            {
+              name: 'customers',
+              url: process.env.CUSTOMERS_URL || 'http://localhost:4002/graphql',
+            },
+            {
+              name: 'content',
+              url: process.env.CONTENT_URL || 'http://localhost:4003/graphql',
+            },
+            {
+              name: 'orders',
+              url: process.env.ORDERS_URL || 'http://localhost:4004/graphql',
+            },
+          ],
+          ...(isDev && { pollIntervalInMs: POLL_INTERVAL }),
+        }),
+        buildService({ name: _, url }) {
+          return new RemoteGraphQLDataSource({
+            url,
+            willSendRequest({ request, context }) {
+              // Pass cookie and session data to subgraphs
+              if (context.req?.headers.cookie) {
+                request.http?.headers.set('cookie', context.req.headers.cookie);
+              }
 
-          if (context.session) {
-            request.http?.headers.set(
-              'x-session-data',
-              JSON.stringify(context.session)
-            );
-          }
+              if (context.session) {
+                request.http?.headers.set(
+                  'x-session-data',
+                  JSON.stringify(context.session)
+                );
+              }
+            },
+          });
         },
       });
-    },
-  });
 
   const server = new ApolloServer({
     gateway,
