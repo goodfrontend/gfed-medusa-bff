@@ -12,47 +12,106 @@ This is a monorepo for a Backend-for-Frontend (BFF) using Apollo Federation to p
     - [`content`](./apps/subgraphs/content/): Content/cms subgraph (**port [4003](http://localhost:4003/graphql)**)
     - [`orders`](./apps/subgraphs/orders/): Order service subgraph (**port [4004](http://localhost:4004/graphql)**)
 
+## Using the Gateway with Apollo GraphOS Managed Federation (`USE_GRAPHOS`)
+
+The Gateway supports two operational modes:
+
+- **Local Development Mode:** Composes the supergraph from the local running subgraph services—great for local development and testing.
+- **GraphOS Managed Mode:** Composes the supergraph from the schema published in Apollo GraphOS, using the schema as managed and tracked by Apollo Studio.
+
+### Switching Modes
+
+Control which mode is active via the `USE_GRAPHOS` environment variable:
+
+- `USE_GRAPHOS=false` (default): Gateway fetches and composes subgraph schemas from the locally running subgraph services defined in your environment (ideal for local development).
+- `USE_GRAPHOS=true`: Gateway fetches the _published supergraph_ schema from Apollo GraphOS, using the `APOLLO_KEY` and `APOLLO_GRAPH_REF` environment variables for authentication and identification.
+
+### Example `.env` for Managed Federation (GraphOS)
+
+```env
+USE_GRAPHOS=true
+APOLLO_KEY=your-service-api-key     # Get this from Apollo Studio
+APOLLO_GRAPH_REF=your-graph@current # Format: graph-id@variant
+
+# When USING GraphOS managed mode, you do NOT need local subgraphs running, unless you want to run a subgraph locally and update GraphOS.
+```
+
+### How it works
+
+In GraphOS mode (`USE_GRAPHOS=true`):
+
+- The Gateway process does **not** require the local subgraphs to be running.
+- The Gateway will use the published supergraph schema from Apollo Studio. Updates there (via CI/CD or manual publish) will propagate automatically to the gateway.
+- This is ideal for preview environments, staging, and production.
+
+In local mode (`USE_GRAPHOS=false`):
+
+- The Gateway expects all subgraphs to be running at their configured URLs.
+- The supergraph is dynamically composed from these live subgraphs—ideal for debugging and rapid iteration.
+
+### Example Switching
+
+To run the gateway locally with the published schema (not requiring local subgraphs):
+
+```sh
+# .env
+USE_GRAPHOS=true
+APOLLO_KEY=service:prod:XXXXXXXXXXXXXX
+APOLLO_GRAPH_REF=my-graph@current
+```
+
+Then start the gateway:
+
+```sh
+pnpm --filter @gfed-medusa-bff/gateway run dev
+```
+
+To develop with local schema composition instead:
+
+```sh
+# .env
+USE_GRAPHOS=false
+```
+
+_(Start all subgraphs as usual for this mode.)_
+
 ## Getting Started
 
-1. Install dependencies (requires Node.js `>=18`, recommended to use pnpm):
+The gateway supports both Local Development mode and GraphOS managed mode.
+Before starting, read the [USE_GRAPHOS section above](#using-the-gateway-with-apollo-graphos-managed-federation-use_graphos) to determine which mode fits your needs and configure your `.env` accordingly.
 
-   ```sh
-   pnpm install
-   ```
+### 1. Install dependencies
 
-2. Running all services for local development:
+```sh
+pnpm install
+```
 
-   You can start all subgraphs and the gateway simultaneously by running the following script from the root directory:
+### 2. Start the services
 
-   ```sh
-   pnpm run dev
-   ```
+#### If developing locally (`USE_GRAPHOS=false`):
 
-   This will:
-   - Start all subgraph servers on their configured ports.
+- Ensure all subgraphs are running (see above for subgraph apps and ports).
+- Then start the gateway:
 
-   - Start the gateway on http://localhost:4000/graphql, which dynamically composes the supergraph from the running subgraphs.
+```sh
+pnpm run dev
+```
 
-3. Running services individually
+_(This will start all subgraphs and the gateway if run from the repo root; see Turbo setup for details.)_
 
-   You can also start any subgraph or the gateway separately:
+#### If using GraphOS-Managed mode (`USE_GRAPHOS=true`):
 
-   ```sh
-   # Start the gateway
-   cd apps/gateway && pnpm run dev
+- Only the gateway needs to be running! The gateway will fetch the latest published schema from Apollo GraphOS as described above.
 
-   # Start the Products subgraph
-   cd apps/subgraphs/products && pnpm run dev
+```sh
+pnpm --filter @gfed-medusa-bff/gateway run dev
+```
 
-   # Start the Orders subgraph
-   cd apps/subgraphs/orders && pnpm run dev
+_(No need to run individual subgraphs locally unless you want to update/publish new schemas.)_
 
-   ```
+---
 
-   **Note:** When running individually, make sure the subgraphs the gateway needs are running.
-   The gateway will only include subgraphs that are active; missing subgraphs will cause errors if queried.
-
-4. Each subgraph/server runs on its own port. The gateway aggregates them under `http://localhost:4000/graphql`.
+All other scripts and development tips remain unchanged; see above sections for schema generation, publishing, CI, and more.
 
 ## Scripts
 
