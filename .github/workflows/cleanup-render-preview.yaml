@@ -9,7 +9,7 @@ jobs:
     name: Delete Render preview
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    environment: smoke
+    environment: cleanup-render-preview
     permissions:
       actions: read
       contents: read
