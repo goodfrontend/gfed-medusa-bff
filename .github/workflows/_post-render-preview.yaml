@@ -1,0 +1,146 @@
+name: Post Render Preview
+
+on:
+  workflow_call:
+    inputs:
+      app_label:
+        required: true
+        type: string
+      app_slug:
+        required: true
+        type: string
+      preview_url:
+        required: false
+        type: string
+        default: ""
+      preview_service_id:
+        required: false
+        type: string
+        default: ""
+      render_result:
+        required: false
+        type: string
+        default: ""
+      pr_number:
+        required: true
+        type: number
+
+jobs:
+  comment-preview:
+    name: Comment preview URL
+    if: inputs.render_result == 'success' && inputs.preview_url != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ inputs.preview_url }}
+          APP_LABEL: ${{ inputs.app_label }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            const marker = '<!-- render-preview-url -->';
+            const header = '## Render previews';
+            const previewUrl = process.env.PREVIEW_URL;
+            const appLabel = process.env.APP_LABEL;
+            const entryPrefix = `- ✅ ${appLabel} Render preview:`;
+            const entryLine = `${entryPrefix} ${previewUrl}`;
+            const issue_number = Number(process.env.PR_NUMBER);
+
+            if (!issue_number) {
+              core.setFailed('PR number is missing; cannot comment.');
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            const existingLines = existing?.body ? existing.body.split('\n') : [];
+            const existingEntries = existingLines.filter(
+              (line) => line.startsWith('- ✅ ') && line.includes(' Render preview:')
+            );
+
+            const updatedEntries = [];
+            let replaced = false;
+            for (const line of existingEntries) {
+              if (line.startsWith(entryPrefix)) {
+                updatedEntries.push(entryLine);
+                replaced = true;
+              } else {
+                updatedEntries.push(line);
+              }
+            }
+            if (!replaced) {
+              updatedEntries.push(entryLine);
+            }
+
+            const body = [marker, '', header, ...updatedEntries].join('\n');
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
+
+  record-preview:
+    name: Record preview metadata
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Write preview metadata
+        id: write-preview
+        env:
+          PREVIEW_URL: ${{ inputs.preview_url }}
+          PREVIEW_SERVICE_ID: ${{ inputs.preview_service_id }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          APP_NAME: ${{ inputs.app_slug }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$PREVIEW_SERVICE_ID" ]; then
+            echo "No preview service id; skipping metadata upload."
+            echo "has_preview=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          jq -n \
+            --arg pr_number "$PR_NUMBER" \
+            --arg preview_service_id "$PREVIEW_SERVICE_ID" \
+            --arg preview_url "$PREVIEW_URL" \
+            --arg app "$APP_NAME" \
+            '{
+              pr_number: ($pr_number | tonumber),
+              preview_service_id: $preview_service_id,
+              preview_url: $preview_url,
+              app: $app
+            }' > render-preview.json
+
+          echo "has_preview=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload preview metadata
+        if: steps.write-preview.outputs.has_preview == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-preview-metadata-pr-${{ inputs.pr_number }}-${{ inputs.app_slug }}
+          path: render-preview.json

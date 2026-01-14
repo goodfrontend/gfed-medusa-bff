@@ -1,0 +1,143 @@
+name: Cleanup Render Preview
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Delete Render preview
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: smoke
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Locate preview metadata artifacts
+        id: find-artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const namePrefix = `render-preview-metadata-pr-${prNumber}-`;
+            const legacyNames = new Set([
+              `render-preview-metadata-pr-${prNumber}`,
+              "render-preview-metadata",
+            ]);
+
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const matches = artifacts.filter((artifact) => {
+              if (artifact.expired) {
+                return false;
+              }
+              if (artifact.name.startsWith(namePrefix)) {
+                return true;
+              }
+              return legacyNames.has(artifact.name);
+            });
+
+            if (matches.length === 0) {
+              core.notice("No preview metadata artifacts found; skipping cleanup.");
+              return;
+            }
+
+            core.setOutput("artifact_ids", matches.map((artifact) => artifact.id).join(","));
+
+      - name: Collect preview service ids
+        id: collect-ids
+        if: steps.find-artifacts.outputs.artifact_ids != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_IDS: ${{ steps.find-artifacts.outputs.artifact_ids }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          ids_file="$RUNNER_TEMP/preview-service-ids.txt"
+          : > "$ids_file"
+
+          IFS=',' read -r -a artifact_ids <<< "$ARTIFACT_IDS"
+
+          for artifact_id in "${artifact_ids[@]}"; do
+            if [ -z "$artifact_id" ]; then
+              continue
+            fi
+
+            zip_path="$RUNNER_TEMP/render-preview-${artifact_id}.zip"
+            json_path="$RUNNER_TEMP/render-preview-${artifact_id}.json"
+
+            curl -sS -L \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -o "$zip_path" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip"
+
+            if ! unzip -p "$zip_path" render-preview.json > "$json_path" 2>/dev/null; then
+              echo "::warning::Artifact $artifact_id missing render-preview.json; skipping."
+              continue
+            fi
+
+            metadata_pr_number=$(jq -r '.pr_number // empty' "$json_path")
+            if [ -n "$metadata_pr_number" ] && [ "$metadata_pr_number" != "$PR_NUMBER" ]; then
+              continue
+            fi
+
+            preview_service_id=$(jq -r '.preview_service_id // empty' "$json_path")
+            if [ -n "$preview_service_id" ]; then
+              echo "$preview_service_id" >> "$ids_file"
+            fi
+          done
+
+          if [ ! -s "$ids_file" ]; then
+            echo "No preview service ids found; skipping delete."
+            echo "service_ids=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          sort -u "$ids_file" > "$RUNNER_TEMP/preview-service-ids-unique.txt"
+          echo "service_ids=$(paste -sd, "$RUNNER_TEMP/preview-service-ids-unique.txt")" >> "$GITHUB_OUTPUT"
+
+      - name: Delete Render preview service
+        if: steps.collect-ids.outputs.service_ids != ''
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_IDS: ${{ steps.collect-ids.outputs.service_ids }}
+        run: |
+          set -euo pipefail
+
+          IFS=',' read -r -a ids <<< "$SERVICE_IDS"
+
+          for service_id in "${ids[@]}"; do
+            if [ -z "$service_id" ]; then
+              continue
+            fi
+
+            delete_resp=$(curl -s -w "\n%{http_code}" -X DELETE "https://api.render.com/v1/services/$service_id" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Accept: application/json" \
+              --max-time 60 \
+              --retry 3 \
+              --retry-delay 5)
+
+            delete_body=$(echo "$delete_resp" | head -n -1)
+            delete_status=$(echo "$delete_resp" | tail -n 1)
+
+            if [ "$delete_status" -eq 404 ]; then
+              echo "Preview service $service_id already deleted."
+              continue
+            fi
+
+            if [ "$delete_status" -ge 300 ]; then
+              echo "::error::Failed to delete preview $service_id ($delete_status): $delete_body"
+              exit 1
+            fi
+
+            echo "Preview service $service_id deleted."
+          done

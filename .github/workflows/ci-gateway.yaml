@@ -49,3 +49,44 @@ jobs:
 
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/gateway
+
+  build-preview-image:
+    name: Build preview image
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: verify
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: gateway
+      dockerfile: ./apps/gateway/Dockerfile
+
+  render-preview:
+    name: Render image preview
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: build-preview-image
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: gateway-smoke
+      image: ${{ needs.build-preview-image.outputs.image_tag }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  post-preview:
+    name: Post render preview
+    if: github.event.pull_request.head.repo.full_name == github.repository && always()
+    needs: render-preview
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Gateway
+      app_slug: gateway
+      preview_url: ${{ needs.render-preview.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview.result }}
+      pr_number: ${{ github.event.pull_request.number }}
