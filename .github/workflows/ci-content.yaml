@@ -91,7 +91,7 @@ jobs:
           script: |
             const marker = '<!-- render-preview-url -->';
             const previewUrl = process.env.PREVIEW_URL;
-            const body = `${marker}\n✅ Render preview: ${previewUrl}`;
+            const body = `${marker}\n✅ Content Render preview: ${previewUrl}`;
 
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
