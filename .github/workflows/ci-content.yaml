@@ -90,8 +90,11 @@ jobs:
         with:
           script: |
             const marker = '<!-- render-preview-url -->';
+            const header = '## Render previews';
             const previewUrl = process.env.PREVIEW_URL;
-            const body = `${marker}\n✅ Content Render preview: ${previewUrl}`;
+            const appLabel = 'Content';
+            const entryPrefix = `- ✅ ${appLabel} Render preview:`;
+            const entryLine = `${entryPrefix} ${previewUrl}`;
 
             const { owner, repo } = context.repo;
             const issue_number = context.payload.pull_request.number;
@@ -102,6 +105,27 @@ jobs:
               per_page: 100,
             });
             const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            const existingLines = existing?.body ? existing.body.split('\n') : [];
+            const existingEntries = existingLines.filter(
+              (line) => line.startsWith('- ✅ ') && line.includes(' Render preview:')
+            );
+
+            const updatedEntries = [];
+            let replaced = false;
+            for (const line of existingEntries) {
+              if (line.startsWith(entryPrefix)) {
+                updatedEntries.push(entryLine);
+                replaced = true;
+              } else {
+                updatedEntries.push(line);
+              }
+            }
+            if (!replaced) {
+              updatedEntries.push(entryLine);
+            }
+
+            const body = [marker, '', header, ...updatedEntries].join('\n');
 
             if (existing) {
               await github.rest.issues.updateComment({
