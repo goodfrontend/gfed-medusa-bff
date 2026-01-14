@@ -1,0 +1,135 @@
+name: Render Preview
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+    secrets:
+      RENDER_API_KEY:
+        required: true
+      RENDER_SERVICE_ID:
+        required: true
+    outputs:
+      preview_service_id:
+        description: "Render preview service id"
+        value: ${{ jobs.render-preview.outputs.preview_service_id }}
+      preview_url:
+        description: "Render preview url"
+        value: ${{ jobs.render-preview.outputs.preview_url }}
+
+jobs:
+  render-preview:
+    name: Deploy to ${{ inputs.environment_name }} preview
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    permissions:
+      contents: read
+    outputs:
+      preview_service_id: ${{ steps.create-preview.outputs.preview_service_id }}
+      preview_url: ${{ steps.create-preview.outputs.preview_url }}
+    steps:
+      - name: Create Render service preview
+        id: create-preview
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          IMAGE_TAG: ${{ inputs.image }}
+        run: |
+          set -euo pipefail
+
+          payload=$(jq -n --arg imagePath "$IMAGE_TAG" '{imagePath: $imagePath}')
+          create_resp=$(
+            curl -s -w "\n%{http_code}" -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/preview" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              --max-time 60 \
+              --retry 3 \
+              --retry-delay 5
+          )
+
+          create_body=$(echo "$create_resp" | head -n -1)
+          create_status=$(echo "$create_resp" | tail -n 1)
+
+          if [ "$create_status" -ge 300 ]; then
+            echo "::error::Render preview failed ($create_status): $create_body"
+            exit 1
+          fi
+
+          preview_service_id=$(echo "$create_body" | jq -r '.service.id // empty')
+          deploy_id=$(echo "$create_body" | jq -r '.deployId // empty')
+          preview_url=$(echo "$create_body" | jq -r '.service.serviceDetails.url // .service.url // empty')
+
+          if [ -z "$preview_service_id" ]; then
+            echo "::error::Preview service id missing from response: $create_body"
+            exit 1
+          fi
+
+          if [ -z "$deploy_id" ]; then
+            echo "::error::Deploy id missing from response: $create_body"
+            exit 1
+          fi
+
+          if [ -z "$preview_url" ]; then
+            echo "::warning::Preview URL missing from response; will retry later."
+          fi
+
+          echo "preview_service_id=$preview_service_id" >> "$GITHUB_OUTPUT"
+          echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
+
+          max_attempts=30
+          sleep_seconds=30
+          attempts=1
+
+          while [ "$attempts" -le "$max_attempts" ]; do
+            status_resp=$(
+              curl -s -w "\n%{http_code}" "https://api.render.com/v1/services/$preview_service_id/deploys/$deploy_id" \
+                -H "Authorization: Bearer $RENDER_API_KEY" \
+                -H "Accept: application/json" \
+                --max-time 60 \
+                --retry 3 \
+                --retry-delay 5
+            )
+            status_body=$(echo "$status_resp" | head -n -1)
+            status_code=$(echo "$status_resp" | tail -n 1)
+
+            if [ "$status_code" -ge 300 ]; then
+              echo "::error::Preview status lookup failed ($status_code): $status_body"
+              exit 1
+            fi
+
+            preview_status=$(echo "$status_body" | jq -r '.status // empty')
+
+            if [ -z "$preview_status" ]; then
+              echo "::warning::Preview status missing in response: $status_body"
+            fi
+
+            echo "Attempt $attempts/$max_attempts: Status is '$preview_status'"
+
+            case "$preview_status" in
+              "live"|"active"|"ready")
+                if [ -n "$preview_url" ]; then
+                  echo "Preview URL: $preview_url"
+                  echo "Preview URL: $preview_url" >> "$GITHUB_STEP_SUMMARY"
+                else
+                  echo "::warning::Preview is live but URL missing in response."
+                fi
+                exit 0
+                ;;
+              "build_failed"|"update_failed"|"canceled"|"pre_deploy_failed"|"deactivated"|"failed")
+                echo "::error::Preview failed: $preview_status"
+                exit 1
+                ;;
+            esac
+
+            attempts=$((attempts + 1))
+            sleep "$sleep_seconds"
+          done
+
+          echo "::error::Preview deployment timed out"
+          exit 1
