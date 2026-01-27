@@ -1,5 +1,6 @@
 {
   "name": "@gfed-medusa-bff/customers",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "pnpm run codegen && tsup && pnpm copy-schema",

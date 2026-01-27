@@ -172,7 +172,7 @@ jobs:
 
 
   qa-products:
-    needs: [detect-changes, smoke-products]
+    needs: [detect-changes, build-products, smoke-products]
     if: needs.detect-changes.outputs.products == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -187,7 +187,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   qa-orders:
-    needs: [detect-changes, smoke-orders]
+    needs: [detect-changes, build-orders, smoke-orders]
     if: needs.detect-changes.outputs.orders == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -202,7 +202,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   qa-content:
-    needs: [detect-changes, smoke-content]
+    needs: [detect-changes, build-content, smoke-content]
     if: needs.detect-changes.outputs.content == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -217,7 +217,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   qa-customers:
-    needs: [detect-changes, smoke-customers]
+    needs: [detect-changes, build-customers, smoke-customers]
     if: needs.detect-changes.outputs.customers == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -232,81 +232,11 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   qa-gateway:
-    needs: [detect-changes, smoke-gateway, qa-products, qa-content, qa-orders, qa-customers]
+    needs: [detect-changes, build-gateway, smoke-gateway, qa-products, qa-content, qa-orders, qa-customers]
     if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
-      image: ${{ needs.build-gateway.outputs.image_tag }}
-    secrets:
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-
-  prod-products:
-    needs: [detect-changes, qa-products]
-    if: needs.detect-changes.outputs.products == 'true'
-    uses: ./.github/workflows/_deploy-render.yaml
-    with:
-      app: products-prod
-      image: ${{ needs.build-products.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: products
-    secrets:
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
-
-  prod-orders:
-    needs: [detect-changes, qa-orders]
-    if: needs.detect-changes.outputs.orders == 'true'
-    uses: ./.github/workflows/_deploy-render.yaml
-    with:
-      app: orders-prod
-      image: ${{ needs.build-orders.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: orders
-    secrets:
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
-
-  prod-content:
-    needs: [detect-changes, qa-content]
-    if: needs.detect-changes.outputs.content == 'true'
-    uses: ./.github/workflows/_deploy-render.yaml
-    with:
-      app: content-prod
-      image: ${{ needs.build-content.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: content
-    secrets:
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
-
-  prod-customers:
-    needs: [detect-changes, qa-customers]
-    if: needs.detect-changes.outputs.customers == 'true'
-    uses: ./.github/workflows/_deploy-render.yaml
-    with:
-      app: customers-prod
-      image: ${{ needs.build-customers.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: customers
-    secrets:
-      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
-
-  prod-gateway:
-    needs: [detect-changes, qa-gateway, prod-products, prod-content, prod-customers, prod-orders]
-    if: needs.detect-changes.outputs.gateway == 'true'
-    uses: ./.github/workflows/_deploy-render.yaml
-    with:
-      app: gateway-prod
       image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
