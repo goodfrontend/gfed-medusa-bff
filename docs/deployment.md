@@ -7,8 +7,10 @@ This document outlines the Continuous Integration (CI), Continuous Deployment (C
 The project uses **GitHub Actions** for automation and **Render** for hosting the application services. It includes a Gateway and multiple Subgraphs (Federated GraphQL).
 
 - **CI (Continuous Integration):** Runs on Pull Requests to ensure code quality (Build, Lint, Type Check).
-- **CD (Continuous Deployment):** Triggered on pushes to the `main` branch. It builds Docker images, pushes them to GitHub Container Registry (GHCR), and promotes them through environments (`smoke` -> `qa`). It also handles **Apollo Federation Schema Publishing**.
-- **Service Versioning:** Uses semantic versioning for each service. Developers update versions in `package.json`, and production deployments create git tags.
+- **CD (Continuous Deployment):** Two deployment strategies available:
+  - **Automatic Cascade (Default):** Pushes to `main` automatically deploy through all environments (`smoke` -> `qa` -> `production`)
+  - **Selective Deployment (Override):** Manual deployment from release branches for selective feature inclusion (cherry-picking)
+- **Service Versioning:** Uses semantic versioning for each service. Developers update versions in `package.json`, and selective production deployments create git tags.
 - **Package Publishing:** Uses [Changesets](https://github.com/changesets/changesets) to version and publish packages to npm automatically.
 
 ## Infrastructure (Render)
@@ -55,22 +57,24 @@ All workflows are located in `.github/workflows/`.
     3.  Install dependencies.
     4.  Run `lint`, `check-types`, and `build` scripts for the specific scope.
 
-### 2. Deployment (CD)
+### 2. Automatic Deployment (CD)
 *   **File:** `deploy.yaml`.
 *   **Trigger:** Push to `main`.
+*   **Purpose:** Automatic deployment cascade for all commits merged to main.
 *   **Process:**
     1.  **Detect Changes:** Identifies which apps (`gateway`, `products`, `orders`, etc.) have changed using `dorny/paths-filter`.
     2.  **Build Docker Images:** Builds the modified apps and pushes images to **GitHub Container Registry (GHCR)** tagged with the commit SHA.
-    3.  **Deployment Chain:**
-        *   **Smoke:** Deploys the new image to the `smoke` environment (automatic).
-        *   **QA:** If `smoke` succeeds, deploys to `qa` environment (automatic).
-        *   **Production:** NOT deployed from `main`. See "Deploy to Production" workflow below.
+    3.  **Deployment Chain (Automatic Cascade):**
+        *   **Smoke:** Deploys the new image to the `smoke` environment.
+        *   **QA:** If `smoke` succeeds, deploys to `qa` environment.
+        *   **Production:** If `qa` succeeds, deploys to `production` environment.
     4.  **Schema Publishing:** During deployment of subgraphs, the workflow publishes the updated GraphQL schema to Apollo Studio using the `APOLLO_KEY` and `APOLLO_GRAPH_REF`.
+*   **Use When:** All commits in main are approved and production-ready.
 
-### 3. Deploy to Production (Release Branch)
+### 3. Selective Deployment (Override)
 *   **File:** `deploy-production.yaml`.
 *   **Trigger:** Manual workflow dispatch.
-*   **Purpose:** Deploy from release branches to production with version tagging.
+*   **Purpose:** Override automatic deployment with selective feature inclusion using cherry-picking.
 *   **Process:**
     1.  **Detect Changes:** Automatically identifies which services changed in the release branch.
     2.  **Build:** Builds Docker images for all changed services with semantic version tags.
@@ -80,6 +84,7 @@ All workflows are located in `.github/workflows/`.
 *   **Inputs:**
     - `release_branch`: Release branch name (e.g., `release/v1.0.0`)
     - `confirm`: Type "deploy" to confirm
+*   **Use When:** Need to exclude certain commits from production (e.g., client rejected features, incomplete work).
 
 ### 4. Rollback Deployments (Production Only)
 *   **File:** `rollback-production.yaml`.
@@ -156,8 +161,8 @@ brew install yamllint actionlint
 
 ### How to Deploy an Application
 
-#### To Smoke and QA (Automatic from main)
-Deployment is fully automated for smoke and QA. You do not need to manually trigger builds or deploys.
+#### Automatic Deployment
+Deployment is fully automated through all environments. You do not need to manually trigger builds or deploys.
 
 1.  **Make Changes:** Implement your features or fixes in the Gateway or Subgraphs.
 2.  **Create a PR:** Push your branch and open a Pull Request.
@@ -166,11 +171,13 @@ Deployment is fully automated for smoke and QA. You do not need to manually trig
 4.  **Automatic Deployment:**
     - Smoke environment deploys automatically
     - QA environment deploys automatically after smoke succeeds
-    - For subgraphs: GraphQL schemas are published to Apollo Studio
+    - Production environment deploys automatically after QA succeeds
+    - For subgraphs: GraphQL schemas are published to Apollo Studio at each stage
 
-#### To Production (Via Release Branch)
+#### Selective Deployment (Via Release Branch)
 
 Production deployments use release branches for version control and selective feature inclusion. This allows you to:
+- Exclude non-approved features from production
 - Maintain versioned releases with semantic versioning
 - Create git tags for each production deployment
 - Deploy specific versions independently per service
