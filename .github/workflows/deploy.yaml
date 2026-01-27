@@ -327,7 +327,13 @@ jobs:
       - prod-content
       - prod-customers
       - prod-gateway
-    if: always()
+    if: |
+      always() &&
+      (needs.prod-products.result == 'success' ||
+       needs.prod-orders.result == 'success' ||
+       needs.prod-content.result == 'success' ||
+       needs.prod-customers.result == 'success' ||
+       needs.prod-gateway.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write

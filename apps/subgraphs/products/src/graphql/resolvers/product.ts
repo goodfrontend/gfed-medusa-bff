@@ -5,6 +5,12 @@ import { GraphQLContext } from '../types/context';
 
 export const productResolvers = {
   Query: {
+    deploymentInfo: () => ({
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      message: 'Testing automatic production deployment with git tagging',
+      deployedAt: new Date().toISOString(),
+    }),
     products: async (
       _parent: unknown,
       args: HttpTypes.StoreProductParams & { id?: string },
