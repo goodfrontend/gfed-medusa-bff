@@ -317,3 +317,67 @@ jobs:
       image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
+
+  create-prod-tags:
+    name: Create git tags for production deployments
+    needs:
+      - detect-changes
+      - prod-products
+      - prod-orders
+      - prod-content
+      - prod-customers
+      - prod-gateway
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create git tags for deployed services
+        env:
+          PRODUCTS_RESULT: ${{ needs.prod-products.result }}
+          ORDERS_RESULT: ${{ needs.prod-orders.result }}
+          CONTENT_RESULT: ${{ needs.prod-content.result }}
+          CUSTOMERS_RESULT: ${{ needs.prod-customers.result }}
+          GATEWAY_RESULT: ${{ needs.prod-gateway.result }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+               "github-actions[bot]@users.noreply.github.com"
+
+          SERVICES=("products" "orders" "content" "customers" "gateway")
+
+          for SERVICE in "${SERVICES[@]}"; do
+            SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
+            RESULT_VAR="${SERVICE_UPPER}_RESULT"
+            RESULT="${!RESULT_VAR}"
+
+            if [ "$RESULT" = "success" ]; then
+              # Read version from package.json
+              if [ "$SERVICE" = "gateway" ]; then
+                PACKAGE_PATH="apps/gateway/package.json"
+              else
+                PACKAGE_PATH="apps/subgraphs/${SERVICE}/package.json"
+              fi
+
+              VERSION=$(jq -r '.version' "$PACKAGE_PATH")
+
+              if [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
+                TAG="@gfed-medusa-bff/${SERVICE}@${VERSION}"
+
+                if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+                  git tag -a "$TAG" \
+                    -m "Automatic production deployment of $TAG"
+                  git push origin "$TAG"
+                  echo "Created tag: $TAG"
+                else
+                  echo "Tag already exists: $TAG (skipping)"
+                fi
+              else
+                echo "Warning: Could not read version for $SERVICE"
+              fi
+            fi
+          done
