@@ -72,13 +72,12 @@ All workflows are located in `.github/workflows/`.
 *   **Trigger:** Manual workflow dispatch.
 *   **Purpose:** Deploy from release branches to production with version tagging.
 *   **Process:**
-    1.  **Validate:** Checks release branch exists and inputs are correct.
-    2.  **Build:** Builds Docker image from the specified release branch with semantic version tags.
-    3.  **Deploy:** Deploys to production environment.
-    4.  **Schema Publishing:** For subgraphs, publishes GraphQL schema to Apollo Studio.
-    5.  **Tag:** Creates git tag after successful deployment.
+    1.  **Detect Changes:** Automatically identifies which services changed in the release branch.
+    2.  **Build:** Builds Docker images for all changed services with semantic version tags.
+    3.  **Deploy:** Deploys changed services to production (subgraphs first, then gateway).
+    4.  **Schema Publishing:** For subgraphs, publishes GraphQL schemas to Apollo Studio.
+    5.  **Tag:** Creates git tags for all successfully deployed services.
 *   **Inputs:**
-    - `app`: Which service to deploy (gateway, products, orders, content, customers)
     - `release_branch`: Release branch name (e.g., `release/v1.0.0`)
     - `confirm`: Type "deploy" to confirm
 
@@ -179,27 +178,30 @@ Production deployments use release branches for version control and selective fe
 
 ##### Production Release Preparation
 
-1. **Create Release Branch:** Checkout main and pull the latest changes. Create a new release branch using service-specific naming (e.g., `release/products-v1.1.0`) and push it to remote.
+A release branch (e.g., `release/v1.1.0`) can contain changes for one or multiple services. Each service maintains its own version number in its `package.json`. When you run the deployment workflow, it automatically detects which services changed and deploys them all in a single workflow run. Subgraphs are deployed first (in parallel), then the gateway deploys after all subgraphs succeed, ensuring schema compatibility.
 
-2. **Update Service Version:** Open the service's `package.json` file and update the version field.
+1. **Create Release Branch:** Checkout main, pull the latest changes, and create a new release branch (e.g., `release/v1.1.0`). Push it to remote.
+
+2. **Cherry-pick Approved Commits:** Identify commits by ticket numbers (e.g., GFED-001, GFED-002) and cherry-pick only approved commits to the release branch. Use `git log --oneline --grep="GFED-"` to find commits. Cherry-pick in chronological order to avoid conflicts. If conflicts occur, resolve them and continue with `git cherry-pick --continue`.
+
+3. **Update Service Versions:** For each service being released, open its `package.json` and update the version field.
    - For subgraphs: Edit `apps/subgraphs/{service}/package.json`
    - For gateway: Edit `apps/gateway/package.json`
    - Follow [Semantic Versioning](https://semver.org/):
      - **MAJOR** (e.g., 1.0.0 → 2.0.0): Breaking changes, incompatible GraphQL schema changes
      - **MINOR** (e.g., 1.0.0 → 1.1.0): New features, backwards-compatible schema additions
      - **PATCH** (e.g., 1.0.0 → 1.0.1): Bug fixes, no schema changes
-   - Commit the version change with message: `chore: bump {service} to v{version}`
-   - Push the commit to the release branch
+   - Commit all version changes and push to the release branch
 
-3. **Deploy to Production:** Navigate to GitHub Actions and select "Deploy to Production (Release Branch)". Click "Run workflow" and fill in:
-   - **app**: Select the service (e.g., `products`)
-   - **release_branch**: Enter the release branch name (e.g., `release/products-v1.1.0`)
+4. **Deploy Services to Production:** Navigate to GitHub Actions and select "Deploy to Production (Release Branch)". Click "Run workflow" and fill in:
+   - **release_branch**: Enter the release branch name (e.g., `release/v1.1.0`)
    - **confirm**: Type `deploy` to confirm
-   - *The workflow will build the Docker image, tag with semantic versions, deploy to production, publish GraphQL schema (for subgraphs), and create a git tag.*
+   - *The workflow automatically detects which services changed, builds Docker images for all changed services, deploys them to production (subgraphs first, then gateway), and creates git tags*
+   - All changed services are deployed in a single workflow run
 
-4. **Verify Deployment:** Check the deployment status in GitHub Actions, verify the service is live on Render, and test production endpoints. For subgraphs, verify the schema was published in Apollo Studio.
+5. **Verify Deployment:** Check deployment status in GitHub Actions, verify services are live on Render, and test production endpoints. For subgraphs, verify schemas were published in Apollo Studio.
 
-**Important:** When deploying related (or multiple) services, always deploy subgraphs before the gateway to ensure schema compatibility.
+**Note:** The workflow automatically deploys subgraphs before the gateway to ensure schema compatibility.
 
 ### How to Publish a Package
 

@@ -3,16 +3,6 @@ name: Deploy to Production (Release Branch)
 on:
   workflow_dispatch:
     inputs:
-      app:
-        description: 'Service to deploy'
-        required: true
-        type: choice
-        options:
-          - gateway
-          - products
-          - orders
-          - content
-          - customers
       release_branch:
         description: 'Release branch name (e.g., release/v1.0.0)'
         required: true
@@ -31,11 +21,6 @@ jobs:
   validate:
     name: Validate inputs
     runs-on: ubuntu-latest
-    outputs:
-      app_path: ${{ steps.set-paths.outputs.app_path }}
-      dockerfile: ${{ steps.set-paths.outputs.dockerfile }}
-      is_subgraph: ${{ steps.set-paths.outputs.is_subgraph }}
-      package_name: ${{ steps.set-paths.outputs.package_name }}
     steps:
       - name: Validate confirmation
         if: inputs.confirm != 'deploy'
@@ -57,44 +42,60 @@ jobs:
             exit 1
           fi
 
-      - name: Set app paths
-        id: set-paths
-        run: |
-          APP="${{ inputs.app }}"
-
-          case "$APP" in
-            gateway)
-              APP_PATH="apps/gateway"
-              DOCKERFILE="./apps/gateway/Dockerfile"
-              IS_SUBGRAPH="false"
-              PACKAGE_NAME="@gfed-medusa-bff/gateway"
-              ;;
-            products|orders|content|customers)
-              APP_PATH="apps/subgraphs/$APP"
-              DOCKERFILE="./apps/subgraphs/$APP/Dockerfile"
-              IS_SUBGRAPH="true"
-              PACKAGE_NAME="@gfed-medusa-bff/$APP"
-              ;;
-            *)
-              echo "::error::Invalid app: $APP"
-              exit 1
-              ;;
-          esac
-
-          if [ ! -d "$APP_PATH" ]; then
-            echo "::error::Application directory '$APP_PATH'" \
-                 "does not exist"
-            exit 1
-          fi
-
-          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
-          echo "dockerfile=$DOCKERFILE" >> "$GITHUB_OUTPUT"
-          echo "is_subgraph=$IS_SUBGRAPH" >> "$GITHUB_OUTPUT"
-          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
-
-  build:
-    name: Build Docker image from release branch
+  detect-changes:
+    name: Detect changed services
     needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      products: ${{ steps.filter.outputs.products }}
+      orders: ${{ steps.filter.outputs.orders }}
+      content: ${{ steps.filter.outputs.content }}
+      customers: ${{ steps.filter.outputs.customers }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main:main
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: main
+          ref: ${{ inputs.release_branch }}
+          filters: |
+            products:
+              - "apps/subgraphs/products/**"
+              - "packages/**"
+            orders:
+              - "apps/subgraphs/orders/**"
+              - "packages/**"
+            content:
+              - "apps/subgraphs/content/**"
+              - "packages/**"
+            customers:
+              - "apps/subgraphs/customers/**"
+              - "packages/**"
+            gateway:
+              - "apps/gateway/**"
+              - "packages/**"
+
+      - name: Show detected changes
+        run: |
+          echo "Detected changes in release branch:"
+          echo "Products: ${{ steps.filter.outputs.products }}"
+          echo "Orders: ${{ steps.filter.outputs.orders }}"
+          echo "Content: ${{ steps.filter.outputs.content }}"
+          echo "Customers: ${{ steps.filter.outputs.customers }}"
+          echo "Gateway: ${{ steps.filter.outputs.gateway }}"
+
+  build-products:
+    name: Build products
+    needs: detect-changes
+    if: needs.detect-changes.outputs.products == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -110,20 +111,17 @@ jobs:
       - name: Read service version
         id: app-version
         run: |
-          APP_PATH="${{ needs.validate.outputs.app_path }}"
-          VERSION=$(jq -r '.version' "$APP_PATH/package.json")
-
+          VERSION=$(jq -r '.version' \
+            "apps/subgraphs/products/package.json")
           if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
             echo "::error::Failed to read version from" \
-                 "$APP_PATH/package.json"
+                 "apps/subgraphs/products/package.json"
             exit 1
           fi
-
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Service version: $VERSION"
+          echo "Products version: $VERSION"
 
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -136,7 +134,7 @@ jobs:
         env:
           VERSION: ${{ steps.app-version.outputs.version }}
         with:
-          images: ghcr.io/${{ github.repository }}/${{ inputs.app }}
+          images: ghcr.io/${{ github.repository }}/products
           tags: |
             type=sha,prefix=,format=long
             type=semver,pattern={{version}},value=${{ env.VERSION }}
@@ -146,7 +144,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ needs.validate.outputs.dockerfile }}
+          file: ./apps/subgraphs/products/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -157,30 +155,378 @@ jobs:
         id: image-tag
         env:
           REPO: ${{ github.repository }}
-          APP: ${{ inputs.app }}
           VERSION: ${{ steps.app-version.outputs.version }}
-        run: |
-          echo "tag=ghcr.io/$REPO/$APP:$VERSION" >> "$GITHUB_OUTPUT"
+        run: echo "tag=ghcr.io/$REPO/products:$VERSION" >> "$GITHUB_OUTPUT"
 
-  deploy-production:
-    name: Deploy to production
-    needs: [validate, build]
+  build-orders:
+    name: Build orders
+    needs: detect-changes
+    if: needs.detect-changes.outputs.orders == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      version: ${{ steps.app-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Read service version
+        id: app-version
+        run: |
+          VERSION=$(jq -r '.version' \
+            "apps/subgraphs/orders/package.json")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::Failed to read version from" \
+                 "apps/subgraphs/orders/package.json"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Orders version: $VERSION"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          VERSION: ${{ steps.app-version.outputs.version }}
+        with:
+          images: ghcr.io/${{ github.repository }}/orders
+          tags: |
+            type=sha,prefix=,format=long
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/subgraphs/orders/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image tag output
+        id: image-tag
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.app-version.outputs.version }}
+        run: echo "tag=ghcr.io/$REPO/orders:$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-content:
+    name: Build content
+    needs: detect-changes
+    if: needs.detect-changes.outputs.content == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      version: ${{ steps.app-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Read service version
+        id: app-version
+        run: |
+          VERSION=$(jq -r '.version' \
+            "apps/subgraphs/content/package.json")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::Failed to read version from" \
+                 "apps/subgraphs/content/package.json"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Content version: $VERSION"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          VERSION: ${{ steps.app-version.outputs.version }}
+        with:
+          images: ghcr.io/${{ github.repository }}/content
+          tags: |
+            type=sha,prefix=,format=long
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/subgraphs/content/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image tag output
+        id: image-tag
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.app-version.outputs.version }}
+        run: echo "tag=ghcr.io/$REPO/content:$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-customers:
+    name: Build customers
+    needs: detect-changes
+    if: needs.detect-changes.outputs.customers == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      version: ${{ steps.app-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Read service version
+        id: app-version
+        run: |
+          VERSION=$(jq -r '.version' \
+            "apps/subgraphs/customers/package.json")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::Failed to read version from" \
+                 "apps/subgraphs/customers/package.json"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Customers version: $VERSION"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          VERSION: ${{ steps.app-version.outputs.version }}
+        with:
+          images: ghcr.io/${{ github.repository }}/customers
+          tags: |
+            type=sha,prefix=,format=long
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/subgraphs/customers/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image tag output
+        id: image-tag
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.app-version.outputs.version }}
+        run: echo "tag=ghcr.io/$REPO/customers:$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-gateway:
+    name: Build gateway
+    needs: detect-changes
+    if: needs.detect-changes.outputs.gateway == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.tag }}
+      version: ${{ steps.app-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Read service version
+        id: app-version
+        run: |
+          VERSION=$(jq -r '.version' "apps/gateway/package.json")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::Failed to read version from" \
+                 "apps/gateway/package.json"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Gateway version: $VERSION"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          VERSION: ${{ steps.app-version.outputs.version }}
+        with:
+          images: ghcr.io/${{ github.repository }}/gateway
+          tags: |
+            type=sha,prefix=,format=long
+            type=semver,pattern={{version}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/gateway/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image tag output
+        id: image-tag
+        env:
+          REPO: ${{ github.repository }}
+          VERSION: ${{ steps.app-version.outputs.version }}
+        run: echo "tag=ghcr.io/$REPO/gateway:$VERSION" >> "$GITHUB_OUTPUT"
+
+  deploy-products:
+    name: Deploy products to production
+    needs: [detect-changes, build-products]
+    if: needs.detect-changes.outputs.products == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
-      app: ${{ inputs.app }}-prod
-      image: ${{ needs.build.outputs.image_tag }}
-      publish_schema: >-
-        ${{ needs.validate.outputs.is_subgraph == 'true' }}
-      subgraph_name: ${{ inputs.app }}
+      app: products-prod
+      image: ${{ needs.build-products.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
       APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
-  create-tag:
-    name: Create git tag
-    needs: [validate, build, deploy-production]
+  deploy-orders:
+    name: Deploy orders to production
+    needs: [detect-changes, build-orders]
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: orders-prod
+      image: ${{ needs.build-orders.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: orders
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  deploy-content:
+    name: Deploy content to production
+    needs: [detect-changes, build-content]
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: content-prod
+      image: ${{ needs.build-content.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: content
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  deploy-customers:
+    name: Deploy customers to production
+    needs: [detect-changes, build-customers]
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: customers-prod
+      image: ${{ needs.build-customers.outputs.image_tag }}
+      publish_schema: true
+      subgraph_name: customers
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  deploy-gateway:
+    name: Deploy gateway to production
+    needs:
+      - detect-changes
+      - build-gateway
+      - deploy-products
+      - deploy-orders
+      - deploy-content
+      - deploy-customers
+    if: |
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      (needs.deploy-products.result == 'success' ||
+       needs.deploy-products.result == 'skipped') &&
+      (needs.deploy-orders.result == 'success' ||
+       needs.deploy-orders.result == 'skipped') &&
+      (needs.deploy-content.result == 'success' ||
+       needs.deploy-content.result == 'skipped') &&
+      (needs.deploy-customers.result == 'success' ||
+       needs.deploy-customers.result == 'skipped')
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: gateway-prod
+      image: ${{ needs.build-gateway.outputs.image_tag }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+
+  create-tags:
+    name: Create git tags
+    needs:
+      - detect-changes
+      - build-products
+      - build-orders
+      - build-content
+      - build-customers
+      - build-gateway
+      - deploy-products
+      - deploy-orders
+      - deploy-content
+      - deploy-customers
+      - deploy-gateway
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -190,26 +536,42 @@ jobs:
           ref: ${{ inputs.release_branch }}
           fetch-depth: 0
 
-      - name: Create git tag
+      - name: Create git tags for deployed services
+        env:
+          PRODUCTS_RESULT: ${{ needs.deploy-products.result }}
+          PRODUCTS_VERSION: ${{ needs.build-products.outputs.version }}
+          ORDERS_RESULT: ${{ needs.deploy-orders.result }}
+          ORDERS_VERSION: ${{ needs.build-orders.outputs.version }}
+          CONTENT_RESULT: ${{ needs.deploy-content.result }}
+          CONTENT_VERSION: ${{ needs.build-content.outputs.version }}
+          CUSTOMERS_RESULT: ${{ needs.deploy-customers.result }}
+          CUSTOMERS_VERSION: ${{ needs.build-customers.outputs.version }}
+          GATEWAY_RESULT: ${{ needs.deploy-gateway.result }}
+          GATEWAY_VERSION: ${{ needs.build-gateway.outputs.version }}
         run: |
-          PACKAGE_NAME="${{ needs.validate.outputs.package_name }}"
-          VERSION="${{ needs.build.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email \
+               "github-actions[bot]@users.noreply.github.com"
 
-          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
-            echo "::error::Version is missing"
-            exit 1
-          fi
+          BRANCH="${{ inputs.release_branch }}"
+          SERVICES=("products" "orders" "content" "customers" "gateway")
 
-          TAG="$PACKAGE_NAME@$VERSION"
+          for SERVICE in "${SERVICES[@]}"; do
+            SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
+            RESULT_VAR="${SERVICE_UPPER}_RESULT"
+            VERSION_VAR="${SERVICE_UPPER}_VERSION"
 
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email \
-                   "github-actions[bot]@users.noreply.github.com"
-            BRANCH="${{ inputs.release_branch }}"
-            git tag -a "$TAG" -m "Release $TAG from $BRANCH"
-            git push origin "$TAG"
-            echo "Created and pushed tag: $TAG"
-          fi
+            RESULT="${!RESULT_VAR}"
+            VERSION="${!VERSION_VAR}"
+
+            if [ "$RESULT" = "success" ] && [ -n "$VERSION" ]; then
+              TAG="@gfed-medusa-bff/${SERVICE}@${VERSION}"
+              if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+                git tag -a "$TAG" -m "Release $TAG from $BRANCH"
+                git push origin "$TAG"
+                echo "Created tag: $TAG"
+              else
+                echo "Tag already exists: $TAG"
+              fi
+            fi
+          done
