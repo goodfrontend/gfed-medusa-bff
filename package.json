@@ -9,6 +9,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "lint:workflows": "yamllint .github/workflows/*.yaml && actionlint .github/workflows/*.yaml",
     "generate:all": "turbo run generate-schema",
     "publish:all": "turbo run publish-schema",
     "ci:publish": "pnpm build --filter=\"./packages/**\" && changeset publish --access public"

@@ -1,0 +1,247 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Which service to rollback'
+        required: true
+        type: choice
+        options:
+          - gateway
+          - products
+          - orders
+          - content
+          - customers
+      target_version:
+        description: >-
+          Version to rollback to (e.g., 1.2.3, or leave
+          empty to list available versions)
+        required: false
+        type: string
+      confirm:
+        description: 'Type "rollback" to confirm production rollback'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: write
+  packages: read
+
+concurrency:
+  group: rollback-${{ inputs.app }}-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate rollback request
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.determine-image.outputs.image_tag }}
+      service_name: ${{ steps.determine-image.outputs.service_name }}
+      version: ${{ steps.determine-image.outputs.version }}
+      is_subgraph: ${{ steps.determine-image.outputs.is_subgraph }}
+      package_name: ${{ steps.determine-image.outputs.package_name }}
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "rollback" ]; then
+            echo "::error::Confirmation failed." \
+                 "You must type 'rollback' to proceed."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch git tags
+        run: git fetch --tags
+
+      - name: Determine target version and service type
+        id: determine-image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APP="${{ inputs.app }}"
+          TARGET_VERSION="${{ inputs.target_version }}"
+
+          # Determine package name and if it's a subgraph
+          case "$APP" in
+            gateway)
+              PACKAGE_NAME="@gfed-medusa-bff/gateway"
+              IS_SUBGRAPH="false"
+              ;;
+            products|orders|content|customers)
+              PACKAGE_NAME="@gfed-medusa-bff/$APP"
+              IS_SUBGRAPH="true"
+              ;;
+            *)
+              echo "::error::Invalid app: $APP"
+              exit 1
+              ;;
+          esac
+
+          echo "Available versions for $PACKAGE_NAME:"
+          AVAILABLE_VERSIONS=$(git tag -l "$PACKAGE_NAME@*" | \
+            sed "s/$PACKAGE_NAME@//" | sort -V -r)
+          echo "$AVAILABLE_VERSIONS"
+
+          if [ -z "$TARGET_VERSION" ]; then
+            echo "::error::No version provided. Available versions:"
+            echo "$AVAILABLE_VERSIONS" | head -10
+            echo "::error::Please specify a version from the list above."
+            exit 1
+          fi
+
+          GIT_TAG="$PACKAGE_NAME@$TARGET_VERSION"
+          if ! git tag -l "$GIT_TAG" | grep -q .; then
+            echo "::error::Version $TARGET_VERSION does not exist for $APP"
+            echo "::error::Available versions:"
+            echo "$AVAILABLE_VERSIONS" | head -10
+            exit 1
+          fi
+          echo "✓ Git tag exists: $GIT_TAG"
+
+          TAG_COMMIT=$(git rev-list -n 1 "$GIT_TAG")
+          COMMIT_DATE=$(git show -s --format=%ci "$TAG_COMMIT")
+          COMMIT_TIMESTAMP=$(git show -s --format=%ct "$TAG_COMMIT")
+          CURRENT_TIMESTAMP=$(date +%s)
+          DAYS_OLD=$(( (CURRENT_TIMESTAMP - COMMIT_TIMESTAMP) / 86400 ))
+
+          echo "::notice::Version $TARGET_VERSION details:"
+          echo "::notice::• Committed: $COMMIT_DATE ($DAYS_OLD days ago)"
+          echo "::notice::• Git SHA: $TAG_COMMIT"
+
+          echo "::warning::⚠️  Rollback Safety Notices:"
+          echo "::warning::• Rolling back to version" \
+               "$TARGET_VERSION from $DAYS_OLD days ago"
+          echo "::warning::• Rollback affects the $APP service"
+          if [ "$IS_SUBGRAPH" = "true" ]; then
+            echo "::warning::• GraphQL schema will be" \
+                 "rolled back to match this version"
+          fi
+          echo "::warning::  Shared packages remain at" \
+               "current versions"
+
+          if [ "$DAYS_OLD" -gt 30 ]; then
+            echo "::warning::• ⚠️  HIGH RISK:" \
+                 "Version is >30 days old"
+            echo "::warning::  May have" \
+                 "database/infrastructure incompatibilities"
+            echo "::warning::• Test thoroughly after rollback"
+          fi
+
+          SERVICE_NAME="$APP-prod"
+          IMAGE_TAG="ghcr.io/${{ github.repository }}/$APP:$TARGET_VERSION"
+          {
+            echo "image_tag=$IMAGE_TAG"
+            echo "version=$TARGET_VERSION"
+            echo "service_name=$SERVICE_NAME"
+            echo "is_subgraph=$IS_SUBGRAPH"
+            echo "package_name=$PACKAGE_NAME"
+          } >> "$GITHUB_OUTPUT"
+          echo "Rolling back to: $IMAGE_TAG"
+
+      - name: Validate Docker image exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IMAGE="${{ steps.determine-image.outputs.image_tag }}"
+          APP="${{ inputs.app }}"
+          VERSION="${{ steps.determine-image.outputs.version }}"
+
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          PACKAGE_NAME="$REPO_NAME/$APP"
+          PACKAGE_NAME_ENCODED=$(echo "$PACKAGE_NAME" | sed 's/\//%2F/g')
+
+          echo "Checking if image exists: $IMAGE"
+          echo "Package: $PACKAGE_NAME"
+          echo "Version: $VERSION"
+
+          API_URL="https://api.github.com/users"
+          API_URL="$API_URL/${{ github.repository_owner }}"
+          API_URL="$API_URL/packages/container/$PACKAGE_NAME_ENCODED/versions"
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_URL")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Unable to verify image existence" \
+                 "via API (HTTP $HTTP_CODE)"
+            echo "::warning::Proceeding with deployment -" \
+                 "Render will fail if image doesn't exist"
+          else
+            TAG_EXISTS=$(echo "$BODY" | jq -r --arg tag "$VERSION" \
+              'any(.[]; .metadata.container.tags[]? == $tag)')
+
+            if [ "$TAG_EXISTS" = "true" ]; then
+              echo "✓ Docker image exists in GHCR"
+            else
+              echo "::error::Docker image not found: $IMAGE"
+              echo "::error::The image may not have been built" \
+                   "for this version."
+              echo "::error::This could happen if:"
+              echo "::error::  1. The version was created" \
+                   "before Docker tagging was implemented"
+              echo "::error::  2. The build failed for" \
+                   "this version"
+              echo "::error::  3. The image was deleted from GHCR"
+              echo "::error::Please verify the image exists or" \
+                   "choose a more recent version."
+              exit 1
+            fi
+          fi
+
+  rollback-deployment:
+    name: >-
+      Rollback ${{ inputs.app }} to v${{
+      needs.validate.outputs.version }} in production
+    needs: validate
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: ${{ needs.validate.outputs.service_name }}
+      image: ${{ needs.validate.outputs.image_tag }}
+      publish_schema: >-
+        ${{ needs.validate.outputs.is_subgraph == 'true' }}
+      subgraph_name: ${{ inputs.app }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
+      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  notify:
+    name: Notify rollback result
+    needs: [validate, rollback-deployment]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback successful
+        if: needs.rollback-deployment.result == 'success'
+        run: |
+          echo "::notice::✓ Rollback completed successfully"
+          echo "Service: ${{ needs.validate.outputs.service_name }}"
+          echo "Version: ${{ needs.validate.outputs.version }}"
+          echo "Image: ${{ needs.validate.outputs.image_tag }}"
+          IS_SUBGRAPH="${{ needs.validate.outputs.is_subgraph }}"
+          if [ "$IS_SUBGRAPH" = "true" ]; then
+            echo "GraphQL schema has been rolled back" \
+                 "to match this version"
+          fi
+
+      - name: Rollback failed
+        if: needs.rollback-deployment.result == 'failure'
+        run: |
+          echo "::error::✗ Rollback failed"
+          echo "Service: ${{ needs.validate.outputs.service_name }}"
+          echo "Version: ${{ needs.validate.outputs.version }}"
+          echo "Image: ${{ needs.validate.outputs.image_tag }}"
+          echo "Check the logs above for details"
+          exit 1
