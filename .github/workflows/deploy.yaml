@@ -106,7 +106,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-smoke
-      image: ${{ needs.build-products.outputs.image_tag }}
+      image: ${{ needs.build-products.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: products
     secrets:
@@ -121,7 +121,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-smoke
-      image: ${{ needs.build-orders.outputs.image_tag }}
+      image: ${{ needs.build-orders.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: orders
     secrets:
@@ -136,7 +136,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-smoke
-      image: ${{ needs.build-content.outputs.image_tag }}
+      image: ${{ needs.build-content.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: content
     secrets:
@@ -151,7 +151,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-smoke
-      image: ${{ needs.build-customers.outputs.image_tag }}
+      image: ${{ needs.build-customers.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: customers
     secrets:
@@ -161,15 +161,22 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   smoke-gateway:
-    needs: [detect-changes, build-gateway, smoke-products, smoke-content, smoke-orders, smoke-customers]
+    needs:
+      [
+        detect-changes,
+        build-gateway,
+        smoke-products,
+        smoke-content,
+        smoke-orders,
+        smoke-customers,
+      ]
     if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
-      image: ${{ needs.build-gateway.outputs.image_tag }}
+      image: ${{ needs.build-gateway.outputs.image_tag_sha }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-
 
   qa-products:
     needs: [detect-changes, build-products, smoke-products]
@@ -177,7 +184,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-qa
-      image: ${{ needs.build-products.outputs.image_tag }}
+      image: ${{ needs.build-products.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: products
     secrets:
@@ -192,7 +199,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-qa
-      image: ${{ needs.build-orders.outputs.image_tag }}
+      image: ${{ needs.build-orders.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: orders
     secrets:
@@ -207,7 +214,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-qa
-      image: ${{ needs.build-content.outputs.image_tag }}
+      image: ${{ needs.build-content.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: content
     secrets:
@@ -222,7 +229,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-qa
-      image: ${{ needs.build-customers.outputs.image_tag }}
+      image: ${{ needs.build-customers.outputs.image_tag_sha }}
       publish_schema: true
       subgraph_name: customers
     secrets:
@@ -232,12 +239,21 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   qa-gateway:
-    needs: [detect-changes, build-gateway, smoke-gateway, qa-products, qa-content, qa-orders, qa-customers]
+    needs:
+      [
+        detect-changes,
+        build-gateway,
+        smoke-gateway,
+        qa-products,
+        qa-content,
+        qa-orders,
+        qa-customers,
+      ]
     if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
-      image: ${{ needs.build-gateway.outputs.image_tag }}
+      image: ${{ needs.build-gateway.outputs.image_tag_sha }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
@@ -247,7 +263,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-prod
-      image: ${{ needs.build-products.outputs.image_tag }}
+      image: ${{ needs.build-products.outputs.image_tag_version }}
       publish_schema: true
       subgraph_name: products
     secrets:
@@ -262,7 +278,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-prod
-      image: ${{ needs.build-orders.outputs.image_tag }}
+      image: ${{ needs.build-orders.outputs.image_tag_version }}
       publish_schema: true
       subgraph_name: orders
     secrets:
@@ -277,7 +293,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-prod
-      image: ${{ needs.build-content.outputs.image_tag }}
+      image: ${{ needs.build-content.outputs.image_tag_version }}
       publish_schema: true
       subgraph_name: content
     secrets:
@@ -292,7 +308,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-prod
-      image: ${{ needs.build-customers.outputs.image_tag }}
+      image: ${{ needs.build-customers.outputs.image_tag_version }}
       publish_schema: true
       subgraph_name: customers
     secrets:
@@ -314,7 +330,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod
-      image: ${{ needs.build-gateway.outputs.image_tag }}
+      image: ${{ needs.build-gateway.outputs.image_tag_version }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
@@ -322,6 +338,11 @@ jobs:
     name: Create git tags for production deployments
     needs:
       - detect-changes
+      - build-products
+      - build-orders
+      - build-content
+      - build-customers
+      - build-gateway
       - prod-products
       - prod-orders
       - prod-content
@@ -345,10 +366,15 @@ jobs:
       - name: Create git tags for deployed services
         env:
           PRODUCTS_RESULT: ${{ needs.prod-products.result }}
+          PRODUCTS_VERSION: ${{ needs.build-products.outputs.version }}
           ORDERS_RESULT: ${{ needs.prod-orders.result }}
+          ORDERS_VERSION: ${{ needs.build-orders.outputs.version }}
           CONTENT_RESULT: ${{ needs.prod-content.result }}
+          CONTENT_VERSION: ${{ needs.build-content.outputs.version }}
           CUSTOMERS_RESULT: ${{ needs.prod-customers.result }}
+          CUSTOMERS_VERSION: ${{ needs.build-customers.outputs.version }}
           GATEWAY_RESULT: ${{ needs.prod-gateway.result }}
+          GATEWAY_VERSION: ${{ needs.build-gateway.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email \
@@ -359,31 +385,21 @@ jobs:
           for SERVICE in "${SERVICES[@]}"; do
             SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
             RESULT_VAR="${SERVICE_UPPER}_RESULT"
+            VERSION_VAR="${SERVICE_UPPER}_VERSION"
+
             RESULT="${!RESULT_VAR}"
+            VERSION="${!VERSION_VAR}"
 
-            if [ "$RESULT" = "success" ]; then
-              # Read version from package.json
-              if [ "$SERVICE" = "gateway" ]; then
-                PACKAGE_PATH="apps/gateway/package.json"
+            if [ "$RESULT" = "success" ] && [ -n "$VERSION" ]; then
+              TAG="@gfed-medusa-bff/${SERVICE}@${VERSION}"
+
+              if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+                git tag -a "$TAG" \
+                  -m "Automatic production deployment of $TAG"
+                git push origin "$TAG"
+                echo "Created tag: $TAG"
               else
-                PACKAGE_PATH="apps/subgraphs/${SERVICE}/package.json"
-              fi
-
-              VERSION=$(jq -r '.version' "$PACKAGE_PATH")
-
-              if [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
-                TAG="@gfed-medusa-bff/${SERVICE}@${VERSION}"
-
-                if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-                  git tag -a "$TAG" \
-                    -m "Automatic production deployment of $TAG"
-                  git push origin "$TAG"
-                  echo "Created tag: $TAG"
-                else
-                  echo "Tag already exists: $TAG (skipping)"
-                fi
-              else
-                echo "Warning: Could not read version for $SERVICE"
+                echo "Tag already exists: $TAG (skipping)"
               fi
             fi
           done
