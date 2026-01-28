@@ -7,4 +7,5 @@ type DeploymentInfo {
   environment: String!
   message: String!
   deployedAt: DateTime!
+  buildNumber: String!
 }
