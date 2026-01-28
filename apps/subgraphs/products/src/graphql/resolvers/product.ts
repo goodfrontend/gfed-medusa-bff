@@ -10,6 +10,7 @@ export const productResolvers = {
       environment: process.env.NODE_ENV || 'development',
       message: 'Products subgraph - Initial production release v1.0.0',
       deployedAt: new Date().toISOString(),
+      deployedBy: 'GitHub Actions',
     }),
     products: async (
       _parent: unknown,
