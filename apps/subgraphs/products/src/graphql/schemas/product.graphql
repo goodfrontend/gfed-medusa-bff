@@ -1,5 +1,5 @@
 type Query {
-  deploymentInfo: DeploymentInfo!
+  deploymentInfoProducts: DeploymentInfo!
   products(
     limit: Int
     offset: Int

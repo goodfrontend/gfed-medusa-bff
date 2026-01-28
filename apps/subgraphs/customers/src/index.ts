@@ -14,7 +14,7 @@ import { createErrorHandler } from '@gfed-medusa/bff-lib-common';
 import { healthCheck } from '@services/health-check';
 import { logger } from '@services/logger';
 
-import { customerResolvers } from './graphql/resolvers';
+import { resolvers } from './graphql/resolvers';
 import { typeDefs } from './graphql/schemas';
 import { createContext } from './services';
 
@@ -23,7 +23,7 @@ async function startServer() {
   const httpServer = http.createServer(app);
 
   const server = new ApolloServer({
-    schema: buildSubgraphSchema([{ typeDefs, resolvers: customerResolvers }]),
+    schema: buildSubgraphSchema([{ typeDefs, resolvers }]),
     plugins: [
       ...(process.env.NODE_ENV !== 'production'
         ? [ApolloServerPluginLandingPageLocalDefault()]

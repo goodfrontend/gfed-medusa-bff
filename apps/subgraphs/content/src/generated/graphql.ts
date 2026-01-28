@@ -38,6 +38,13 @@ export type Scalars = {
   };
 };
 
+export type DeploymentInfo = {
+  deployedAt: Scalars['DateTime']['output'];
+  environment: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
 export type Footer = {
   _id: Scalars['ID']['output'];
   _type: Scalars['String']['output'];
@@ -52,6 +59,7 @@ export type PartialRichText = {
 };
 
 export type Query = {
+  deploymentInfoContent: DeploymentInfo;
   footer?: Maybe<Footer>;
 };
 
@@ -181,6 +189,7 @@ export type DirectiveResolverFn<
 export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DeploymentInfo: ResolverTypeWrapper<DeploymentInfo>;
   Footer: ResolverTypeWrapper<Footer>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -194,6 +203,7 @@ export type ResolversTypes = {
 export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
+  DeploymentInfo: DeploymentInfo;
   Footer: Footer;
   ID: Scalars['ID']['output'];
   JSON: Scalars['JSON']['output'];
@@ -207,6 +217,17 @@ export interface DateTimeScalarConfig
   extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
+
+export type DeploymentInfoResolvers<
+  ContextType = any,
+  ParentType extends
+    ResolversParentTypes['DeploymentInfo'] = ResolversParentTypes['DeploymentInfo'],
+> = {
+  deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
 
 export type FooterResolvers<
   ContextType = any,
@@ -255,6 +276,11 @@ export type QueryResolvers<
   ParentType extends
     ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
 > = {
+  deploymentInfoContent?: Resolver<
+    ResolversTypes['DeploymentInfo'],
+    ParentType,
+    ContextType
+  >;
   footer?: Resolver<Maybe<ResolversTypes['Footer']>, ParentType, ContextType>;
 };
 
@@ -269,6 +295,7 @@ export type SocialLinkResolvers<
 
 export type Resolvers<ContextType = any> = {
   DateTime?: GraphQLScalarType;
+  DeploymentInfo?: DeploymentInfoResolvers<ContextType>;
   Footer?: FooterResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   PartialRichText?: PartialRichTextResolvers<ContextType>;
