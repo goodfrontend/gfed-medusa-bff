@@ -14,6 +14,7 @@ export const customerResolvers = {
       message: 'Customers subgraph - Initial production release v1.0.0',
       deployedAt: new Date().toISOString(),
       serviceName: 'customers-subgraph',
+      region: process.env.RENDER_REGION || 'oregon',
     }),
     me: async (
       _: unknown,
