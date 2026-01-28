@@ -13,6 +13,7 @@ export const customerResolvers = {
       environment: process.env.NODE_ENV || 'development',
       message: 'Customers subgraph - Initial production release v1.0.0',
       deployedAt: new Date().toISOString(),
+      serviceName: 'customers-subgraph',
     }),
     me: async (
       _: unknown,

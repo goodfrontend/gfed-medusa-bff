@@ -8,6 +8,7 @@ type DeploymentInfo {
   environment: String!
   message: String!
   deployedAt: DateTime!
+  serviceName: String!
 }
 
 type Mutation {
