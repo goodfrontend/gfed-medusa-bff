@@ -526,7 +526,13 @@ jobs:
       - deploy-content
       - deploy-customers
       - deploy-gateway
-    if: always()
+    if: |
+      always() &&
+      (needs.deploy-products.result == 'success' ||
+       needs.deploy-orders.result == 'success' ||
+       needs.deploy-content.result == 'success' ||
+       needs.deploy-customers.result == 'success' ||
+       needs.deploy-gateway.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write

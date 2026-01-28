@@ -241,6 +241,9 @@ importers:
       graphql:
         specifier: ^16.12.0
         version: 16.12.0
+      graphql-scalars:
+        specifier: ^1.24.2
+        version: 1.25.0(graphql@16.12.0)
       graphql-tag:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.12.0)

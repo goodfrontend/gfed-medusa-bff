@@ -149,6 +149,13 @@ export type CreateLineItemInput = {
   variantId: Scalars['String']['input'];
 };
 
+export type DeploymentInfo = {
+  deployedAt: Scalars['DateTime']['output'];
+  environment: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
 export type LineItem = {
   cart?: Maybe<Cart>;
   cartId?: Maybe<Scalars['String']['output']>;
@@ -304,6 +311,7 @@ export type Promotion = {
 
 export type Query = {
   cart?: Maybe<Cart>;
+  deploymentInfoOrders: DeploymentInfo;
 };
 
 export type QueryCartArgs = {
@@ -486,6 +494,7 @@ export type ResolversTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DeploymentInfo: ResolverTypeWrapper<DeploymentInfo>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -524,6 +533,7 @@ export type ResolversParentTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: Scalars['DateTime']['output'];
+  DeploymentInfo: DeploymentInfo;
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
@@ -722,6 +732,17 @@ export interface DateTimeScalarConfig
   extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
+
+export type DeploymentInfoResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes['DeploymentInfo'] = ResolversParentTypes['DeploymentInfo'],
+> = {
+  deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
 
 export interface JsonScalarConfig
   extends GraphQLScalarTypeConfig<ResolversTypes['JSON'], any> {
@@ -999,6 +1020,11 @@ export type QueryResolvers<
     ContextType,
     RequireFields<QueryCartArgs, 'id'>
   >;
+  deploymentInfoOrders?: Resolver<
+    ResolversTypes['DeploymentInfo'],
+    ParentType,
+    ContextType
+  >;
 };
 
 export type RegionResolvers<
@@ -1063,6 +1089,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   CompleteCartResponse?: CompleteCartResponseResolvers<ContextType>;
   Country?: CountryResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  DeploymentInfo?: DeploymentInfoResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   LineItem?: LineItemResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
