@@ -3,7 +3,7 @@ export const queryResolvers = {
     deploymentInfoContent: () => ({
       version: '1.0.0',
       environment: process.env.NODE_ENV || 'development',
-      message: 'Content subgraph - Production release v1.0.0',
+      message: 'Content subgraph deployed',
       deployedAt: new Date().toISOString(),
     }),
   },
