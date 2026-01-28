@@ -58,13 +58,28 @@ jobs:
           ref: ${{ inputs.release_branch }}
           fetch-depth: 0
 
-      - name: Fetch main branch
-        run: git fetch origin main:main
+      - name: Determine comparison base
+        id: base
+        run: |
+          # Find the most recent production tag
+          LAST_TAG=$(git tag -l '@gfed-medusa-bff/*@*' --sort=-version:refname | head -n1)
+
+          if [ -z "$LAST_TAG" ]; then
+            # No tags = initial release, compare against main
+            git fetch origin main:main
+            echo "base=main" >> "$GITHUB_OUTPUT"
+            echo "::notice::Initial release detected - comparing against main"
+          else
+            # Extract commit from last tag
+            LAST_COMMIT=$(git rev-list -n 1 "$LAST_TAG")
+            echo "base=$LAST_COMMIT" >> "$GITHUB_OUTPUT"
+            echo "::notice::Comparing against last production release: $LAST_TAG ($LAST_COMMIT)"
+          fi
 
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          base: main
+          base: ${{ steps.base.outputs.base }}
           ref: ${{ inputs.release_branch }}
           filters: |
             products:
@@ -85,6 +100,7 @@ jobs:
 
       - name: Show detected changes
         run: |
+          echo "Comparison base: ${{ steps.base.outputs.base }}"
           echo "Detected changes in release branch:"
           echo "Products: ${{ steps.filter.outputs.products }}"
           echo "Orders: ${{ steps.filter.outputs.orders }}"
