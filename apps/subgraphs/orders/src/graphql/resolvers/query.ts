@@ -6,6 +6,7 @@ export const queryResolvers = {
       message: 'Orders subgraph - Initial production release v1.0.0',
       deployedAt: new Date().toISOString(),
       buildNumber: process.env.BUILD_NUMBER || 'local',
+      nodeVersion: process.version,
     }),
   },
 };

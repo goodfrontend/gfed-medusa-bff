@@ -1,8 +1,8 @@
 extend type Query {
-  deploymentInfoContent: DeploymentInfo!
+  deploymentInfoContent: ContentDeploymentInfo!
 }
 
-type DeploymentInfo {
+type ContentDeploymentInfo {
   version: String!
   environment: String!
   message: String!
