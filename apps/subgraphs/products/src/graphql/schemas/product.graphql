@@ -1,5 +1,5 @@
 type Query {
-  deploymentInfoProducts: DeploymentInfo!
+  deploymentInfoProducts: ProductsDeploymentInfo!
   products(
     limit: Int
     offset: Int
@@ -36,7 +36,7 @@ type Query {
   ): SearchProducts!
 }
 
-type DeploymentInfo {
+type ProductsDeploymentInfo {
   version: String!
   environment: String!
   message: String!

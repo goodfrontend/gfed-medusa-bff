@@ -1,9 +1,9 @@
 type Query {
   me: Customer
-  deploymentInfoCustomers: DeploymentInfo!
+  deploymentInfoCustomers: CustomersDeploymentInfo!
 }
 
-type DeploymentInfo {
+type CustomersDeploymentInfo {
   version: String!
   environment: String!
   message: String!

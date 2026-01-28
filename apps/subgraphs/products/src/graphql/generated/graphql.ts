@@ -46,13 +46,6 @@ export type Collection = {
   title: Scalars['String']['output'];
 };
 
-export type DeploymentInfo = {
-  deployedAt: Scalars['DateTime']['output'];
-  environment: Scalars['String']['output'];
-  message: Scalars['String']['output'];
-  version: Scalars['String']['output'];
-};
-
 export type Price = {
   amount?: Maybe<Scalars['Float']['output']>;
   currencyCode?: Maybe<Scalars['String']['output']>;
@@ -148,10 +141,19 @@ export type ProductVariantOption = {
   value: Scalars['String']['output'];
 };
 
+export type ProductsDeploymentInfo = {
+  deployedAt: Scalars['DateTime']['output'];
+  deployedBy: Scalars['String']['output'];
+  environment: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  platform: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
 export type Query = {
   collection?: Maybe<Collection>;
   collections: Array<Collection>;
-  deploymentInfoProducts: DeploymentInfo;
+  deploymentInfoProducts: ProductsDeploymentInfo;
   product?: Maybe<Product>;
   productCategories: Array<ProductCategory>;
   productCategory?: Maybe<ProductCategory>;
@@ -343,7 +345,6 @@ export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Collection: ResolverTypeWrapper<Collection>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
-  DeploymentInfo: ResolverTypeWrapper<DeploymentInfo>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -359,6 +360,7 @@ export type ResolversTypes = {
   ProductTag: ResolverTypeWrapper<ProductTag>;
   ProductVariant: ResolverTypeWrapper<ProductVariant>;
   ProductVariantOption: ResolverTypeWrapper<ProductVariantOption>;
+  ProductsDeploymentInfo: ResolverTypeWrapper<ProductsDeploymentInfo>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SearchProducts: ResolverTypeWrapper<SearchProducts>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -369,7 +371,6 @@ export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   Collection: Collection;
   DateTime: Scalars['DateTime']['output'];
-  DeploymentInfo: DeploymentInfo;
   Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
@@ -385,6 +386,7 @@ export type ResolversParentTypes = {
   ProductTag: ProductTag;
   ProductVariant: ProductVariant;
   ProductVariantOption: ProductVariantOption;
+  ProductsDeploymentInfo: ProductsDeploymentInfo;
   Query: Record<PropertyKey, never>;
   SearchProducts: SearchProducts;
   String: Scalars['String']['output'];
@@ -409,17 +411,6 @@ export interface DateTimeScalarConfig
   extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
-
-export type DeploymentInfoResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['DeploymentInfo'] = ResolversParentTypes['DeploymentInfo'],
-> = {
-  deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-};
 
 export type PriceResolvers<
   ContextType = GraphQLContext,
@@ -664,6 +655,19 @@ export type ProductVariantOptionResolvers<
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
+export type ProductsDeploymentInfoResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends
+    ResolversParentTypes['ProductsDeploymentInfo'] = ResolversParentTypes['ProductsDeploymentInfo'],
+> = {
+  deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  deployedBy?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  platform?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type QueryResolvers<
   ContextType = GraphQLContext,
   ParentType extends
@@ -682,7 +686,7 @@ export type QueryResolvers<
     Partial<QueryCollectionsArgs>
   >;
   deploymentInfoProducts?: Resolver<
-    ResolversTypes['DeploymentInfo'],
+    ResolversTypes['ProductsDeploymentInfo'],
     ParentType,
     ContextType
   >;
@@ -739,7 +743,6 @@ export type SearchProductsResolvers<
 export type Resolvers<ContextType = GraphQLContext> = {
   Collection?: CollectionResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
-  DeploymentInfo?: DeploymentInfoResolvers<ContextType>;
   Price?: PriceResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   ProductCategory?: ProductCategoryResolvers<ContextType>;
@@ -752,6 +755,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   ProductTag?: ProductTagResolvers<ContextType>;
   ProductVariant?: ProductVariantResolvers<ContextType>;
   ProductVariantOption?: ProductVariantOptionResolvers<ContextType>;
+  ProductsDeploymentInfo?: ProductsDeploymentInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SearchProducts?: SearchProductsResolvers<ContextType>;
 };

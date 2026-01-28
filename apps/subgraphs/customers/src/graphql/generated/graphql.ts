@@ -69,10 +69,12 @@ export type CustomerAddress = {
   province?: Maybe<Scalars['String']['output']>;
 };
 
-export type DeploymentInfo = {
+export type CustomersDeploymentInfo = {
   deployedAt: Scalars['DateTime']['output'];
   environment: Scalars['String']['output'];
   message: Scalars['String']['output'];
+  region: Scalars['String']['output'];
+  serviceName: Scalars['String']['output'];
   version: Scalars['String']['output'];
 };
 
@@ -96,7 +98,7 @@ export type MutationLoginArgs = {
 };
 
 export type Query = {
-  deploymentInfoCustomers: DeploymentInfo;
+  deploymentInfoCustomers: CustomersDeploymentInfo;
   me?: Maybe<Customer>;
 };
 
@@ -222,8 +224,8 @@ export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Customer: ResolverTypeWrapper<Customer>;
   CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
+  CustomersDeploymentInfo: ResolverTypeWrapper<CustomersDeploymentInfo>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
-  DeploymentInfo: ResolverTypeWrapper<DeploymentInfo>;
   LoginResponse: ResolverTypeWrapper<LoginResponse>;
   LogoutResponse: ResolverTypeWrapper<LogoutResponse>;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
@@ -236,8 +238,8 @@ export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   Customer: Customer;
   CustomerAddress: CustomerAddress;
+  CustomersDeploymentInfo: CustomersDeploymentInfo;
   DateTime: Scalars['DateTime']['output'];
-  DeploymentInfo: DeploymentInfo;
   LoginResponse: LoginResponse;
   LogoutResponse: LogoutResponse;
   Mutation: Record<PropertyKey, never>;
@@ -331,21 +333,23 @@ export type CustomerAddressResolvers<
   province?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
-export interface DateTimeScalarConfig
-  extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
-  name: 'DateTime';
-}
-
-export type DeploymentInfoResolvers<
+export type CustomersDeploymentInfoResolvers<
   ContextType = GraphQLContext,
   ParentType extends
-    ResolversParentTypes['DeploymentInfo'] = ResolversParentTypes['DeploymentInfo'],
+    ResolversParentTypes['CustomersDeploymentInfo'] = ResolversParentTypes['CustomersDeploymentInfo'],
 > = {
   deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  region?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  serviceName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
+
+export interface DateTimeScalarConfig
+  extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
+  name: 'DateTime';
+}
 
 export type LoginResponseResolvers<
   ContextType = GraphQLContext,
@@ -392,7 +396,7 @@ export type QueryResolvers<
     ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
 > = {
   deploymentInfoCustomers?: Resolver<
-    ResolversTypes['DeploymentInfo'],
+    ResolversTypes['CustomersDeploymentInfo'],
     ParentType,
     ContextType
   >;
@@ -402,8 +406,8 @@ export type QueryResolvers<
 export type Resolvers<ContextType = GraphQLContext> = {
   Customer?: CustomerResolvers<ContextType>;
   CustomerAddress?: CustomerAddressResolvers<ContextType>;
+  CustomersDeploymentInfo?: CustomersDeploymentInfoResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
-  DeploymentInfo?: DeploymentInfoResolvers<ContextType>;
   LoginResponse?: LoginResponseResolvers<ContextType>;
   LogoutResponse?: LogoutResponseResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
