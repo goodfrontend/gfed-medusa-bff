@@ -67,6 +67,7 @@ jobs:
     with:
       app: gateway
       dockerfile: ./apps/gateway/Dockerfile
+      create_version_tags: true
 
   build-products:
     needs: detect-changes
@@ -75,6 +76,7 @@ jobs:
     with:
       app: products
       dockerfile: ./apps/subgraphs/products/Dockerfile
+      create_version_tags: true
 
   build-orders:
     needs: detect-changes
@@ -83,6 +85,7 @@ jobs:
     with:
       app: orders
       dockerfile: ./apps/subgraphs/orders/Dockerfile
+      create_version_tags: true
 
   build-content:
     needs: detect-changes
@@ -91,6 +94,7 @@ jobs:
     with:
       app: content
       dockerfile: ./apps/subgraphs/content/Dockerfile
+      create_version_tags: true
 
   build-customers:
     needs: detect-changes
@@ -99,6 +103,7 @@ jobs:
     with:
       app: customers
       dockerfile: ./apps/subgraphs/customers/Dockerfile
+      create_version_tags: true
 
   smoke-products:
     needs: [detect-changes, build-products]

@@ -8,6 +8,11 @@ on:
       dockerfile:
         required: true
         type: string
+      create_version_tags:
+        description: Whether to create semantic version tags (only for production)
+        required: false
+        type: boolean
+        default: false
     outputs:
       image_tag:
         value: ${{ jobs.build.outputs.image_tag }}
@@ -60,9 +65,9 @@ jobs:
           images: ghcr.io/${{ github.repository }}/${{ inputs.app }}
           tags: |
             type=sha,prefix=,format=long
-            type=semver,pattern={{version}},value=${{ env.VERSION }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }}
-            type=semver,pattern={{major}},value=${{ env.VERSION }}
+            type=semver,pattern={{version}},value=${{ env.VERSION }},enable=${{ inputs.create_version_tags }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.VERSION }},enable=${{ inputs.create_version_tags }}
+            type=semver,pattern={{major}},value=${{ env.VERSION }},enable=${{ inputs.create_version_tags }}
 
       - uses: docker/build-push-action@v5
         with:
