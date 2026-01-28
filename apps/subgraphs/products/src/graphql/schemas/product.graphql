@@ -41,6 +41,7 @@ type DeploymentInfo {
   environment: String!
   message: String!
   deployedAt: DateTime!
+  deployedBy: String!
 }
 
 type ProductListResponse {
