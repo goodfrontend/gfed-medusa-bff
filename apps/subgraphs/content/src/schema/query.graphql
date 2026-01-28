@@ -1,0 +1,10 @@
+extend type Query {
+  deploymentInfoContent: DeploymentInfo!
+}
+
+type DeploymentInfo {
+  version: String!
+  environment: String!
+  message: String!
+  deployedAt: DateTime!
+}
