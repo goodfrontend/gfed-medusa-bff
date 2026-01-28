@@ -11,6 +11,7 @@ export const productResolvers = {
       message: 'Products subgraph - Initial production release v1.0.0',
       deployedAt: new Date().toISOString(),
       deployedBy: 'GitHub Actions',
+      platform: 'Render',
     }),
     products: async (
       _parent: unknown,
