@@ -9,8 +9,8 @@ on:
         required: true
         type: string
     outputs:
-      image_tag_sha:
-        value: ${{ jobs.build.outputs.image_tag_sha }}
+      image_tag:
+        value: ${{ jobs.build.outputs.image_tag }}
       image_tag_version:
         value: ${{ jobs.build.outputs.image_tag_version }}
       version:
@@ -23,7 +23,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image_tag_sha: ${{ steps.set-outputs.outputs.image_tag_sha }}
+      image_tag: ${{ steps.set-outputs.outputs.image_tag }}
       image_tag_version: ${{ steps.set-outputs.outputs.image_tag_version }}
       version: ${{ steps.set-outputs.outputs.version }}
     steps:
@@ -82,7 +82,7 @@ jobs:
           IMAGE_TAG_VERSION="ghcr.io/${{ github.repository }}/${{ inputs.app }}:${VERSION}"
 
           {
-            echo "image_tag_sha=${IMAGE_TAG_SHA}"
+            echo "image_tag=${IMAGE_TAG_SHA}"
             echo "image_tag_version=${IMAGE_TAG_VERSION}"
             echo "version=${VERSION}"
           } >> "$GITHUB_OUTPUT"

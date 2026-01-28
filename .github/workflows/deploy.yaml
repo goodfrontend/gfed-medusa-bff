@@ -106,7 +106,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-smoke
-      image: ${{ needs.build-products.outputs.image_tag_sha }}
+      image: ${{ needs.build-products.outputs.image_tag }}
       publish_schema: true
       subgraph_name: products
     secrets:
@@ -121,7 +121,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-smoke
-      image: ${{ needs.build-orders.outputs.image_tag_sha }}
+      image: ${{ needs.build-orders.outputs.image_tag }}
       publish_schema: true
       subgraph_name: orders
     secrets:
@@ -136,7 +136,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-smoke
-      image: ${{ needs.build-content.outputs.image_tag_sha }}
+      image: ${{ needs.build-content.outputs.image_tag }}
       publish_schema: true
       subgraph_name: content
     secrets:
@@ -151,7 +151,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-smoke
-      image: ${{ needs.build-customers.outputs.image_tag_sha }}
+      image: ${{ needs.build-customers.outputs.image_tag }}
       publish_schema: true
       subgraph_name: customers
     secrets:
@@ -174,7 +174,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
-      image: ${{ needs.build-gateway.outputs.image_tag_sha }}
+      image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
@@ -184,7 +184,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: products-qa
-      image: ${{ needs.build-products.outputs.image_tag_sha }}
+      image: ${{ needs.build-products.outputs.image_tag }}
       publish_schema: true
       subgraph_name: products
     secrets:
@@ -199,7 +199,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: orders-qa
-      image: ${{ needs.build-orders.outputs.image_tag_sha }}
+      image: ${{ needs.build-orders.outputs.image_tag }}
       publish_schema: true
       subgraph_name: orders
     secrets:
@@ -214,7 +214,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: content-qa
-      image: ${{ needs.build-content.outputs.image_tag_sha }}
+      image: ${{ needs.build-content.outputs.image_tag }}
       publish_schema: true
       subgraph_name: content
     secrets:
@@ -229,7 +229,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: customers-qa
-      image: ${{ needs.build-customers.outputs.image_tag_sha }}
+      image: ${{ needs.build-customers.outputs.image_tag }}
       publish_schema: true
       subgraph_name: customers
     secrets:
@@ -253,7 +253,7 @@ jobs:
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
-      image: ${{ needs.build-gateway.outputs.image_tag_sha }}
+      image: ${{ needs.build-gateway.outputs.image_tag }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
 
