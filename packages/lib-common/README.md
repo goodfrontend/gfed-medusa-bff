@@ -594,3 +594,4 @@ Creates a simple health check endpoint that always returns healthy.
 #### `checkHttpEndpoint(url: string, timeout?: number): Promise<HealthCheckResult>`
 
 Helper to check if an HTTP endpoint is healthy.
+
