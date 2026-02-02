@@ -7,11 +7,13 @@ This document outlines the Continuous Integration (CI), Continuous Deployment (C
 The project uses **GitHub Actions** for automation and **Render** for hosting the application services. It includes a Gateway and multiple Subgraphs (Federated GraphQL).
 
 - **CI (Continuous Integration):** Runs on Pull Requests to ensure code quality (Build, Lint, Type Check).
-- **CD (Continuous Deployment):** Two deployment strategies available:
-  - **Automatic Cascade (Default):** Pushes to `main` automatically deploy through all environments (`smoke` -> `qa` -> `production`)
-  - **Selective Deployment (Override):** Manual deployment from release branches for selective feature inclusion (cherry-picking)
-- **Service Versioning:** Uses semantic versioning for each service. Developers update versions in `package.json`, and selective production deployments create git tags.
+- **CD (Continuous Deployment):** Fully automated deployment cascade:
+  - Pushes to `main` automatically deploy through all environments: `smoke` → `qa` → `production`
+  - Only changed services are deployed (per-service change detection)
+  - Production deployments automatically create git tags for rollback capability
+- **Service Versioning:** Uses semantic versioning for each service. Developers update versions in `package.json` before merging to main. Git tags are automatically created after successful production deployments.
 - **Package Publishing:** Uses [Changesets](https://github.com/changesets/changesets) to version and publish packages to npm automatically.
+- **Main Branch Policy:** The `main` branch should only contain production-ready code. All features must be approved before merging.
 
 ## Infrastructure (Render)
 
@@ -60,33 +62,19 @@ All workflows are located in `.github/workflows/`.
 ### 2. Automatic Deployment (CD)
 *   **File:** `deploy.yaml`.
 *   **Trigger:** Push to `main`.
-*   **Purpose:** Automatic deployment cascade for all commits merged to main.
+*   **Purpose:** Fully automated deployment cascade through all environments.
 *   **Process:**
-    1.  **Detect Changes:** Identifies which apps (`gateway`, `products`, `orders`, etc.) have changed using `dorny/paths-filter`.
+    1.  **Detect Changes:** Identifies which apps (`gateway`, `products`, `orders`, etc.) have changed using `dorny/paths-filter` (compares current commit vs previous).
     2.  **Build Docker Images:** Builds the modified apps and pushes images to **GitHub Container Registry (GHCR)** tagged with the commit SHA.
     3.  **Deployment Chain (Automatic Cascade):**
-        *   **Smoke:** Deploys the new image to the `smoke` environment.
-        *   **QA:** If `smoke` succeeds, deploys to `qa` environment.
-        *   **Production:** If `qa` succeeds, deploys to `production` environment.
+        *   **Smoke:** Deploys the new image to the `smoke` environment first.
+        *   **QA:** After `smoke` succeeds, deploys to `qa` environment.
+        *   **Production:** After `qa` succeeds, deploys to `production` environment.
     4.  **Schema Publishing:** During deployment of subgraphs, the workflow publishes the updated GraphQL schema to Apollo Studio using the `APOLLO_KEY` and `APOLLO_GRAPH_REF`.
-*   **Use When:** All commits in main are approved and production-ready.
+    5.  **Git Tagging:** After successful production deployment, automatically creates git tags for each deployed service (e.g., `@gfed-medusa-bff/products@1.2.0`). These tags enable rollback functionality.
+*   **Important:** Only merge production-ready code to `main`. All features should be approved before merging.
 
-### 3. Selective Deployment (Override)
-*   **File:** `deploy-production.yaml`.
-*   **Trigger:** Manual workflow dispatch.
-*   **Purpose:** Override automatic deployment with selective feature inclusion using cherry-picking.
-*   **Process:**
-    1.  **Detect Changes:** Automatically identifies which services changed in the release branch.
-    2.  **Build:** Builds Docker images for all changed services with semantic version tags.
-    3.  **Deploy:** Deploys changed services to production (subgraphs first, then gateway).
-    4.  **Schema Publishing:** For subgraphs, publishes GraphQL schemas to Apollo Studio.
-    5.  **Tag:** Creates git tags for all successfully deployed services.
-*   **Inputs:**
-    - `release_branch`: Release branch name (e.g., `release/v1.0.0`)
-    - `confirm`: Type "deploy" to confirm
-*   **Use When:** Need to exclude certain commits from production (e.g., client rejected features, incomplete work).
-
-### 4. Rollback Deployments (Production Only)
+### 3. Rollback Deployments (Production Only)
 *   **File:** `rollback-production.yaml`.
 *   **Trigger:** Manual workflow dispatch.
 *   **Purpose:** Quickly rollback a production service to a previous version using git tags.
@@ -96,7 +84,7 @@ All workflows are located in `.github/workflows/`.
 
 **See [How to Rollback a Deployment](#how-to-rollback-a-deployment) section below for complete guide.
 
-### 5. Preview Environment Cleanup
+### 4. Preview Environment Cleanup
 *   **File:** `cleanup-render-preview.yaml`.
 *   **Trigger:** When a Pull Request is closed.
 *   **Process:**
@@ -105,7 +93,7 @@ All workflows are located in `.github/workflows/`.
     3.  Deletes Render preview services via API.
     4.  Prevents accumulation of unused preview environments.
 
-### 6. Package Publishing
+### 5. Package Publishing
 *   **File:** `publish-packages.yaml`.
 *   **Trigger:** When a Pull Request is closed/merged into `main`.
 *   **Process:**
@@ -161,54 +149,48 @@ brew install yamllint actionlint
 
 ### How to Deploy an Application
 
-#### Automatic Deployment
-Deployment is fully automated through all environments. You do not need to manually trigger builds or deploys.
+Deployment is fully automated through all environments. The workflow ensures that only production-ready code reaches production.
 
-1.  **Make Changes:** Implement your features or fixes in the Gateway or Subgraphs.
-2.  **Create a PR:** Push your branch and open a Pull Request.
-    *   *The CI checks will run automatically to verify your code.*
-3.  **Merge to Main:** Once the PR is approved and checks pass, merge it into `main`.
-4.  **Automatic Deployment:**
-    - Smoke environment deploys automatically
-    - QA environment deploys automatically after smoke succeeds
-    - Production environment deploys automatically after QA succeeds
+#### Prerequisites
+
+**Important:** The `main` branch should only contain production-ready code. Before merging:
+- Get client/stakeholder approval for new features
+- Ensure all tests pass
+- Complete code review
+
+#### Deployment Process
+
+1.  **Update Service Versions (If Needed):**
+    - If you're releasing new features or fixes, update the version in `package.json` for affected services
+    - For subgraphs: Edit `apps/subgraphs/{service}/package.json`
+    - For gateway: Edit `apps/gateway/package.json`
+    - Follow [Semantic Versioning](https://semver.org/):
+      - **MAJOR** (e.g., 1.0.0 → 2.0.0): Breaking changes, incompatible GraphQL schema changes
+      - **MINOR** (e.g., 1.0.0 → 1.1.0): New features, backwards-compatible schema additions
+      - **PATCH** (e.g., 1.0.0 → 1.0.1): Bug fixes, no schema changes
+    - Include version bumps in your PR
+
+2.  **Make Changes:** Implement your features or fixes in the Gateway or Subgraphs.
+
+3.  **Create a PR:** Push your branch and open a Pull Request.
+    *   The CI checks will run automatically to verify your code.
+    *   Request review from team members.
+
+4.  **Merge to Main:** Once the PR is approved and checks pass, merge it into `main`.
+
+5.  **Automatic Deployment Cascade:**
+    - **Smoke:** Deploys automatically within minutes of merge
+    - **QA:** Deploys after smoke succeeds
+    - **Production:** Deploys after QA succeeds
+    - **Tagging:** Git tags are automatically created after production deployment (e.g., `@gfed-medusa-bff/products@1.2.0`)
     - For subgraphs: GraphQL schemas are published to Apollo Studio at each stage
+    - Only changed services are deployed (automatic change detection)
 
-#### Selective Deployment (Via Release Branch)
-
-Production deployments use release branches for version control and selective feature inclusion. This allows you to:
-- Exclude non-approved features from production
-- Maintain versioned releases with semantic versioning
-- Create git tags for each production deployment
-- Deploy specific versions independently per service
-- Rollback to any previous version if needed
-
-##### Production Release Preparation
-
-A release branch (e.g., `release/v1.1.0`) can contain changes for one or multiple services. Each service maintains its own version number in its `package.json`. When you run the deployment workflow, it automatically detects which services changed and deploys them all in a single workflow run. Subgraphs are deployed first (in parallel), then the gateway deploys after all subgraphs succeed, ensuring schema compatibility.
-
-1. **Create Release Branch:** Checkout main, pull the latest changes, and create a new release branch (e.g., `release/v1.1.0`). Push it to remote.
-
-2. **Cherry-pick Approved Commits:** Identify commits by ticket numbers (e.g., GFED-001, GFED-002) and cherry-pick only approved commits to the release branch. Use `git log --oneline --grep="GFED-"` to find commits. Cherry-pick in chronological order to avoid conflicts. If conflicts occur, resolve them and continue with `git cherry-pick --continue`.
-
-3. **Update Service Versions:** For each service being released, open its `package.json` and update the version field.
-   - For subgraphs: Edit `apps/subgraphs/{service}/package.json`
-   - For gateway: Edit `apps/gateway/package.json`
-   - Follow [Semantic Versioning](https://semver.org/):
-     - **MAJOR** (e.g., 1.0.0 → 2.0.0): Breaking changes, incompatible GraphQL schema changes
-     - **MINOR** (e.g., 1.0.0 → 1.1.0): New features, backwards-compatible schema additions
-     - **PATCH** (e.g., 1.0.0 → 1.0.1): Bug fixes, no schema changes
-   - Commit all version changes and push to the release branch
-
-4. **Deploy Services to Production:** Navigate to GitHub Actions and select "Deploy to Production (Release Branch)". Click "Run workflow" and fill in:
-   - **release_branch**: Enter the release branch name (e.g., `release/v1.1.0`)
-   - **confirm**: Type `deploy` to confirm
-   - *The workflow automatically detects which services changed, builds Docker images for all changed services, deploys them to production (subgraphs first, then gateway), and creates git tags*
-   - All changed services are deployed in a single workflow run
-
-5. **Verify Deployment:** Check deployment status in GitHub Actions, verify services are live on Render, and test production endpoints. For subgraphs, verify schemas were published in Apollo Studio.
-
-**Note:** The workflow automatically deploys subgraphs before the gateway to ensure schema compatibility.
+6.  **Verify Deployment:**
+    - Monitor the workflow in GitHub Actions
+    - Verify services are live on Render
+    - Test production endpoints
+    - For subgraphs, verify schemas were published in Apollo Studio
 
 ### How to Publish a Package
 
@@ -243,7 +225,7 @@ If a deployment introduces a critical bug, you can quickly rollback to a previou
 # List all versions for a service
 git tag -l "@gfed-medusa-bff/products@*"
 
-# Output example:
+# Example output:
 # @gfed-medusa-bff/products@1.0.0
 # @gfed-medusa-bff/products@1.1.0
 # @gfed-medusa-bff/products@1.2.0
@@ -253,11 +235,6 @@ git tag -l "@gfed-medusa-bff/products@*"
 1. Go to repository → Tags: `https://github.com/your-org/gfed-medusa-bff/tags`
 2. Look for the service you want to rollback
 3. Note the version number
-
-**Option 3 - Docker Images:**
-1. Go to Packages: `https://github.com/your-org/gfed-medusa-bff/pkgs/container/gfed-medusa-bff%2Fproducts/versions`
-2. Find the exact version of the Docker image
-3. Use this version for rollback
 
 #### Execute Rollback
 

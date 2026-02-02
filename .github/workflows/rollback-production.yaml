@@ -68,7 +68,6 @@ jobs:
           APP="${{ inputs.app }}"
           TARGET_VERSION="${{ inputs.target_version }}"
 
-          # Determine package name and if it's a subgraph
           case "$APP" in
             gateway)
               PACKAGE_NAME="@gfed-medusa-bff/gateway"
@@ -134,8 +133,10 @@ jobs:
             echo "::warning::• Test thoroughly after rollback"
           fi
 
+          TAG_SHA=$(git rev-list -n 1 "$GIT_TAG")
+
           SERVICE_NAME="$APP-prod"
-          IMAGE_TAG="ghcr.io/${{ github.repository }}/$APP:$TARGET_VERSION"
+          IMAGE_TAG="ghcr.io/${{ github.repository }}/$APP:$TAG_SHA"
           {
             echo "image_tag=$IMAGE_TAG"
             echo "version=$TARGET_VERSION"
@@ -143,7 +144,8 @@ jobs:
             echo "is_subgraph=$IS_SUBGRAPH"
             echo "package_name=$PACKAGE_NAME"
           } >> "$GITHUB_OUTPUT"
-          echo "Rolling back to: $IMAGE_TAG"
+          echo "Rolling back to version: $TARGET_VERSION"
+          echo "Using Docker image: $IMAGE_TAG"
 
       - name: Validate Docker image exists
         env:
@@ -153,13 +155,16 @@ jobs:
           APP="${{ inputs.app }}"
           VERSION="${{ steps.determine-image.outputs.version }}"
 
+          SHA="${IMAGE##*:}"
+
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
           PACKAGE_NAME="$REPO_NAME/$APP"
-          PACKAGE_NAME_ENCODED=$(echo "$PACKAGE_NAME" | sed 's/\//%2F/g')
+          PACKAGE_NAME_ENCODED="${PACKAGE_NAME//\//%2F}"
 
           echo "Checking if image exists: $IMAGE"
           echo "Package: $PACKAGE_NAME"
           echo "Version: $VERSION"
+          echo "SHA: $SHA"
 
           API_URL="https://api.github.com/users"
           API_URL="$API_URL/${{ github.repository_owner }}"
@@ -178,21 +183,19 @@ jobs:
             echo "::warning::Proceeding with deployment -" \
                  "Render will fail if image doesn't exist"
           else
-            TAG_EXISTS=$(echo "$BODY" | jq -r --arg tag "$VERSION" \
+            TAG_EXISTS=$(echo "$BODY" | jq -r --arg tag "$SHA" \
               'any(.[]; .metadata.container.tags[]? == $tag)')
 
             if [ "$TAG_EXISTS" = "true" ]; then
-              echo "✓ Docker image exists in GHCR"
+              echo "✓ Docker image exists in GHCR (SHA: $SHA)"
             else
               echo "::error::Docker image not found: $IMAGE"
-              echo "::error::The image may not have been built" \
-                   "for this version."
+              echo "::error::The image with SHA $SHA may not exist."
               echo "::error::This could happen if:"
-              echo "::error::  1. The version was created" \
-                   "before Docker tagging was implemented"
-              echo "::error::  2. The build failed for" \
-                   "this version"
-              echo "::error::  3. The image was deleted from GHCR"
+              echo "::error::  1. The build failed for this commit"
+              echo "::error::  2. The image was deleted from GHCR"
+              echo "::error::  3. The git tag points to a commit" \
+                   "that was never deployed"
               echo "::error::Please verify the image exists or" \
                    "choose a more recent version."
               exit 1
