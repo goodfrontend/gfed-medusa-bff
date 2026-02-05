@@ -15,6 +15,7 @@ export const customerResolvers = {
       deployedAt: new Date().toISOString(),
       serviceName: 'customers-subgraph',
       region: process.env.RENDER_REGION || 'oregon',
+      securityScanEnabled: true,
     }),
     me: async (
       _: unknown,

@@ -7,6 +7,7 @@ export const queryResolvers = {
       deployedAt: new Date().toISOString(),
       buildNumber: process.env.BUILD_NUMBER || 'local',
       nodeVersion: process.version,
+      securityScanEnabled: true,
     }),
   },
 };
