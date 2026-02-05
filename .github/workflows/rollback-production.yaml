@@ -45,8 +45,10 @@ jobs:
       package_name: ${{ steps.determine-image.outputs.package_name }}
     steps:
       - name: Validate confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
         run: |
-          if [ "${{ inputs.confirm }}" != "rollback" ]; then
+          if [ "$CONFIRM" != "rollback" ]; then
             echo "::error::Confirmation failed." \
                  "You must type 'rollback' to proceed."
             exit 1
@@ -64,9 +66,11 @@ jobs:
         id: determine-image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP: ${{ inputs.app }}
+          TARGET_VERSION: ${{ inputs.target_version }}
         run: |
-          APP="${{ inputs.app }}"
-          TARGET_VERSION="${{ inputs.target_version }}"
+          APP="$APP"
+          TARGET_VERSION="$TARGET_VERSION"
 
           case "$APP" in
             gateway)
@@ -150,14 +154,19 @@ jobs:
       - name: Validate Docker image exists
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ steps.determine-image.outputs.image_tag }}
+          APP: ${{ inputs.app }}
+          VERSION: ${{ steps.determine-image.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          IMAGE="${{ steps.determine-image.outputs.image_tag }}"
-          APP="${{ inputs.app }}"
-          VERSION="${{ steps.determine-image.outputs.version }}"
+          IMAGE="$IMAGE_TAG"
+          APP="$APP"
+          VERSION="$VERSION"
 
           SHA="${IMAGE##*:}"
 
-          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          REPO_NAME=$(echo "$REPOSITORY" | cut -d'/' -f2)
           PACKAGE_NAME="$REPO_NAME/$APP"
           PACKAGE_NAME_ENCODED="${PACKAGE_NAME//\//%2F}"
 
@@ -167,7 +176,7 @@ jobs:
           echo "SHA: $SHA"
 
           API_URL="https://api.github.com/users"
-          API_URL="$API_URL/${{ github.repository_owner }}"
+          API_URL="$API_URL/$REPOSITORY_OWNER"
           API_URL="$API_URL/packages/container/$PACKAGE_NAME_ENCODED/versions"
           RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
