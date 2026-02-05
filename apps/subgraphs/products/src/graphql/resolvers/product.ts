@@ -12,6 +12,7 @@ export const productResolvers = {
       deployedAt: new Date().toISOString(),
       deployedBy: 'GitHub Actions',
       platform: 'Render',
+      securityScanEnabled: true,
     }),
     products: async (
       _parent: unknown,
@@ -42,7 +43,10 @@ export const productResolvers = {
       params: HttpTypes.StoreProductCategoryParams & { id: string },
       context: GraphQLContext
     ) => {
-      context.logger.info({ categoryId: params.id }, 'Fetching product category by ID');
+      context.logger.info(
+        { categoryId: params.id },
+        'Fetching product category by ID'
+      );
       return await context.categoryService.getCategory(params.id);
     },
     collections: async (
@@ -58,7 +62,10 @@ export const productResolvers = {
       params: { id: string },
       context: GraphQLContext
     ) => {
-      context.logger.info({ collectionId: params.id }, 'Fetching collection by ID');
+      context.logger.info(
+        { collectionId: params.id },
+        'Fetching collection by ID'
+      );
       return await context.collectionService.getCollection(params.id);
     },
     searchProducts: async (

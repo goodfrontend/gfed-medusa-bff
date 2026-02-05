@@ -5,6 +5,7 @@ export const queryResolvers = {
       environment: process.env.NODE_ENV || 'development',
       message: 'Content subgraph deployed',
       deployedAt: new Date().toISOString(),
+      securityScanEnabled: true,
     }),
   },
 };
