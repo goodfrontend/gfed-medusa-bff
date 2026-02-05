@@ -37,7 +37,7 @@ jobs:
             --config=auto \
             --error \
             --baseline-commit=${{ github.event.pull_request.base.sha }} \
-            --sarif-output \
+            --sarif \
             --output=semgrep-results.sarif \
             .
 
@@ -47,7 +47,7 @@ jobs:
           semgrep \
             --config=auto \
             --error \
-            --sarif-output \
+            --sarif \
             --output=semgrep-results.sarif \
             .
 
