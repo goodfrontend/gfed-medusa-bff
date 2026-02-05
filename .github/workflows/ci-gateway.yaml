@@ -3,13 +3,13 @@ name: CI - Gateway
 on:
   pull_request:
     paths:
-      - "apps/gateway/**"
-      - "packages/**"
-      - "turbo.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "package.json"
-      - ".github/workflows/**"
+      - 'apps/gateway/**'
+      - 'packages/**'
+      - 'turbo.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -40,6 +40,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
 
       - name: Lint
         run: pnpm lint --filter=@gfed-medusa-bff/gateway
