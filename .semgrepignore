@@ -1,0 +1,47 @@
+# Semgrep Ignore Patterns
+# Files and directories to exclude from security scanning
+
+# Test files
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
+*.spec.ts
+*.spec.tsx
+*.spec.js
+*.spec.jsx
+**/__tests__/**
+**/__mocks__/**
+**/*.snap
+
+# Build outputs
+**/dist/**
+**/build/**
+**/out/**
+
+# Dependencies
+**/node_modules/**
+
+# Generated code
+**/generated/**
+**/codegen/**
+**/*.generated.ts
+**/*.generated.tsx
+
+# Coverage reports
+**/coverage/**
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
