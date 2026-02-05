@@ -100,8 +100,48 @@ jobs:
       app: customers
       dockerfile: ./apps/subgraphs/customers/Dockerfile
 
-  smoke-products:
+  scan-products:
     needs: [detect-changes, build-products]
+    if: needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_trivy-scan.yaml
+    with:
+      app: products
+      image_tag: ${{ needs.build-products.outputs.image_tag }}
+
+  scan-orders:
+    needs: [detect-changes, build-orders]
+    if: needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_trivy-scan.yaml
+    with:
+      app: orders
+      image_tag: ${{ needs.build-orders.outputs.image_tag }}
+
+  scan-content:
+    needs: [detect-changes, build-content]
+    if: needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_trivy-scan.yaml
+    with:
+      app: content
+      image_tag: ${{ needs.build-content.outputs.image_tag }}
+
+  scan-customers:
+    needs: [detect-changes, build-customers]
+    if: needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_trivy-scan.yaml
+    with:
+      app: customers
+      image_tag: ${{ needs.build-customers.outputs.image_tag }}
+
+  scan-gateway:
+    needs: [detect-changes, build-gateway]
+    if: needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_trivy-scan.yaml
+    with:
+      app: gateway
+      image_tag: ${{ needs.build-gateway.outputs.image_tag }}
+
+  smoke-products:
+    needs: [detect-changes, scan-products]
     if: needs.detect-changes.outputs.products == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -116,7 +156,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   smoke-orders:
-    needs: [detect-changes, build-orders]
+    needs: [detect-changes, scan-orders]
     if: needs.detect-changes.outputs.orders == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -131,7 +171,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   smoke-content:
-    needs: [detect-changes, build-content]
+    needs: [detect-changes, scan-content]
     if: needs.detect-changes.outputs.content == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -146,7 +186,7 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   smoke-customers:
-    needs: [detect-changes, build-customers]
+    needs: [detect-changes, scan-customers]
     if: needs.detect-changes.outputs.customers == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -164,7 +204,7 @@ jobs:
     needs:
       [
         detect-changes,
-        build-gateway,
+        scan-gateway,
         smoke-products,
         smoke-content,
         smoke-orders,
@@ -318,7 +358,16 @@ jobs:
       APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
 
   prod-gateway:
-    needs: [detect-changes, build-gateway, qa-gateway, prod-products, prod-content, prod-customers, prod-orders]
+    needs:
+      [
+        detect-changes,
+        build-gateway,
+        qa-gateway,
+        prod-products,
+        prod-content,
+        prod-customers,
+        prod-orders,
+      ]
     if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:

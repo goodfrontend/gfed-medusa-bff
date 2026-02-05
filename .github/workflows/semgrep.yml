@@ -1,0 +1,59 @@
+name: Semgrep SAST
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Scan Code
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Semgrep Scan (Diff-Aware)
+        if: github.event_name == 'pull_request'
+        run: |
+          semgrep \
+            --config=auto \
+            --error \
+            --baseline-commit=${{ github.event.pull_request.base.sha }} \
+            --sarif \
+            --output=semgrep-results.sarif \
+            .
+
+      - name: Run Semgrep Scan (Full)
+        if: github.event_name != 'pull_request'
+        run: |
+          semgrep \
+            --config=auto \
+            --error \
+            --sarif \
+            --output=semgrep-results.sarif \
+            .
+
+      - name: Upload SARIF to GitHub Security Dashboard
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep
