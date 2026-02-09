@@ -1,0 +1,127 @@
+name: Publish Subgraph Schema
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      subgraph_name:
+        required: true
+        type: string
+      registry_branch:
+        required: false
+        type: string
+        default: main
+    secrets:
+      REGISTRY_REPO:
+        required: true
+      REGISTRY_TOKEN:
+        required: true
+      SUBGRAPH_URL:
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to publish (smoke/qa/prod)
+        required: true
+        type: choice
+        options:
+          - smoke
+          - qa
+          - prod
+      subgraph_name:
+        description: Subgraph name
+        required: true
+        type: choice
+        options:
+          - products
+          - customers
+          - content
+          - orders
+      registry_branch:
+        description: Registry branch
+        required: false
+        default: main
+
+concurrency:
+  group: schema-registry-${{ inputs.registry_branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.subgraph_name }} schema (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    env:
+      APOLLO_ELV2_LICENSE_ACCEPT: accept
+    steps:
+      - name: Install Apollo Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> "$GITHUB_PATH"
+
+      - name: Introspect subgraph
+        env:
+          APOLLO_ELV2_LICENSE_ACCEPT: accept
+          SUBGRAPH_URL: ${{ secrets.SUBGRAPH_URL }}
+        run: |
+          set -euo pipefail
+          max_attempts=8
+          sleep_seconds=15
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Introspection attempt $attempt/$max_attempts..."
+            if rover subgraph introspect "$SUBGRAPH_URL" --client-timeout 300 > subgraph.graphql; then
+              echo "Introspection succeeded."
+              break
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "::error::Introspection failed after $max_attempts attempts."
+              exit 1
+            fi
+
+            attempt=$((attempt + 1))
+            sleep "$sleep_seconds"
+          done
+
+      - name: Checkout schema registry
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.REGISTRY_REPO }}
+          ref: ${{ inputs.registry_branch }}
+          token: ${{ secrets.REGISTRY_TOKEN }}
+          path: schema-registry
+
+      - name: Publish subgraph to registry
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          SUBGRAPH_NAME: ${{ inputs.subgraph_name }}
+          REGISTRY_BRANCH: ${{ inputs.registry_branch }}
+        run: |
+          set -euo pipefail
+
+          cd schema-registry
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$REGISTRY_BRANCH"
+          git rebase "origin/$REGISTRY_BRANCH"
+
+          target_dir="subgraphs/$TARGET_ENV/$SUBGRAPH_NAME"
+          mkdir -p "$target_dir"
+
+          cp ../subgraph.graphql "$target_dir/latest.graphql"
+          cp ../subgraph.graphql "$target_dir/${GITHUB_SHA}.graphql"
+          git add "subgraphs/$TARGET_ENV/$SUBGRAPH_NAME/latest.graphql" "subgraphs/$TARGET_ENV/$SUBGRAPH_NAME/${GITHUB_SHA}.graphql"
+
+          if git diff --cached --quiet; then
+            echo "No subgraph changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Publish ${TARGET_ENV} ${SUBGRAPH_NAME} subgraph (${GITHUB_SHA})"
+          git push origin "HEAD:$REGISTRY_BRANCH"

@@ -1,0 +1,146 @@
+name: Publish Supergraph
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      registry_branch:
+        required: false
+        type: string
+        default: main
+    secrets:
+      REGISTRY_REPO:
+        required: true
+      REGISTRY_TOKEN:
+        required: true
+      PRODUCTS_URL:
+        required: true
+      CUSTOMERS_URL:
+        required: true
+      CONTENT_URL:
+        required: true
+      ORDERS_URL:
+        required: true
+      SUPERGRAPH_RELOAD_URL:
+        required: true
+      SUPERGRAPH_RELOAD_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to publish (smoke/qa/prod)
+        required: true
+        type: choice
+        options:
+          - smoke
+          - qa
+          - prod
+      registry_branch:
+        description: Registry branch
+        required: false
+        default: main
+
+concurrency:
+  group: schema-registry-${{ inputs.registry_branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.environment }} supergraph
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    env:
+      APOLLO_ELV2_LICENSE_ACCEPT: accept
+    steps:
+      - name: Checkout schema registry
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.REGISTRY_REPO }}
+          ref: ${{ inputs.registry_branch }}
+          token: ${{ secrets.REGISTRY_TOKEN }}
+          path: schema-registry
+
+      - name: Install Apollo Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> "$GITHUB_PATH"
+
+      - name: Compose supergraph from registry
+        env:
+          APOLLO_ELV2_LICENSE_ACCEPT: accept
+          PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
+          CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
+          CONTENT_URL: ${{ secrets.CONTENT_URL }}
+          ORDERS_URL: ${{ secrets.ORDERS_URL }}
+          TARGET_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+
+          cat <<EOF > supergraph.yaml
+          federation_version: 2
+          subgraphs:
+            products:
+              routing_url: ${PRODUCTS_URL}
+              schema:
+                file: schema-registry/subgraphs/${TARGET_ENV}/products/latest.graphql
+            customers:
+              routing_url: ${CUSTOMERS_URL}
+              schema:
+                file: schema-registry/subgraphs/${TARGET_ENV}/customers/latest.graphql
+            content:
+              routing_url: ${CONTENT_URL}
+              schema:
+                file: schema-registry/subgraphs/${TARGET_ENV}/content/latest.graphql
+            orders:
+              routing_url: ${ORDERS_URL}
+              schema:
+                file: schema-registry/subgraphs/${TARGET_ENV}/orders/latest.graphql
+          EOF
+
+          rover supergraph compose --config supergraph.yaml --elv2-license accept > supergraph.graphql
+
+      - name: Publish supergraph to registry
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          REGISTRY_BRANCH: ${{ inputs.registry_branch }}
+        run: |
+          set -euo pipefail
+
+          cd schema-registry
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$REGISTRY_BRANCH"
+          git rebase "origin/$REGISTRY_BRANCH"
+
+          target_dir="supergraph/$TARGET_ENV"
+          mkdir -p "$target_dir"
+
+          cp ../supergraph.graphql "$target_dir/latest.graphql"
+          cp ../supergraph.graphql "$target_dir/${GITHUB_SHA}.graphql"
+          git add "supergraph/$TARGET_ENV/latest.graphql" "supergraph/$TARGET_ENV/${GITHUB_SHA}.graphql"
+
+          if git diff --cached --quiet; then
+            echo "No supergraph changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Publish ${TARGET_ENV} supergraph (${GITHUB_SHA})"
+          git push origin "HEAD:$REGISTRY_BRANCH"
+
+      - name: Trigger gateway reload
+        env:
+          RELOAD_URL: ${{ secrets.SUPERGRAPH_RELOAD_URL }}
+          RELOAD_TOKEN: ${{ secrets.SUPERGRAPH_RELOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          headers=(-H "Content-Type: application/json")
+          if [ -n "${RELOAD_TOKEN:-}" ]; then
+            headers+=(-H "x-supergraph-reload-token: $RELOAD_TOKEN")
+          fi
+
+          curl -sS -X POST "$RELOAD_URL" "${headers[@]}" --max-time 20 --retry 3 --retry-delay 5
