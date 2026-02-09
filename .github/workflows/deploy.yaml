@@ -35,30 +35,35 @@ jobs:
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
+              - '.github/workflows/**'
             products:
               - 'apps/subgraphs/products/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
+              - '.github/workflows/**'
             orders:
               - 'apps/subgraphs/orders/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
+              - '.github/workflows/**'
             content:
               - 'apps/subgraphs/content/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
+              - '.github/workflows/**'
             customers:
               - 'apps/subgraphs/customers/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
+              - '.github/workflows/**'
 
   build-gateway:
     needs: detect-changes
