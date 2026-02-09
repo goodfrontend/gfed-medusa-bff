@@ -107,13 +107,20 @@ jobs:
     with:
       app: products-smoke
       image: ${{ needs.build-products.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-smoke-products:
+    needs: [detect-changes, smoke-products]
+    if: needs.detect-changes.outputs.products == 'true' && needs.smoke-products.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: smoke
+      subgraph_name: products
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   smoke-orders:
     needs: [detect-changes, build-orders]
@@ -122,13 +129,20 @@ jobs:
     with:
       app: orders-smoke
       image: ${{ needs.build-orders.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-smoke-orders:
+    needs: [detect-changes, smoke-orders]
+    if: needs.detect-changes.outputs.orders == 'true' && needs.smoke-orders.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: smoke
+      subgraph_name: orders
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   smoke-content:
     needs: [detect-changes, build-content]
@@ -137,13 +151,20 @@ jobs:
     with:
       app: content-smoke
       image: ${{ needs.build-content.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-smoke-content:
+    needs: [detect-changes, smoke-content]
+    if: needs.detect-changes.outputs.content == 'true' && needs.smoke-content.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: smoke
+      subgraph_name: content
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   smoke-customers:
     needs: [detect-changes, build-customers]
@@ -152,13 +173,52 @@ jobs:
     with:
       app: customers-smoke
       image: ${{ needs.build-customers.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-smoke-customers:
+    needs: [detect-changes, smoke-customers]
+    if: needs.detect-changes.outputs.customers == 'true' && needs.smoke-customers.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: smoke
+      subgraph_name: customers
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
+
+  publish-supergraph-smoke:
+    needs:
+      [
+        detect-changes,
+        publish-subgraph-smoke-products,
+        publish-subgraph-smoke-content,
+        publish-subgraph-smoke-orders,
+        publish-subgraph-smoke-customers,
+      ]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.products == 'true' ||
+       needs.detect-changes.outputs.content == 'true' ||
+       needs.detect-changes.outputs.orders == 'true' ||
+       needs.detect-changes.outputs.customers == 'true') &&
+      (needs.detect-changes.outputs.products != 'true' || needs.publish-subgraph-smoke-products.result == 'success') &&
+      (needs.detect-changes.outputs.content != 'true' || needs.publish-subgraph-smoke-content.result == 'success') &&
+      (needs.detect-changes.outputs.orders != 'true' || needs.publish-subgraph-smoke-orders.result == 'success') &&
+      (needs.detect-changes.outputs.customers != 'true' || needs.publish-subgraph-smoke-customers.result == 'success')
+    uses: ./.github/workflows/_publish-supergraph.yaml
+    with:
+      environment: smoke
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
+      CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
+      CONTENT_URL: ${{ secrets.CONTENT_URL }}
+      ORDERS_URL: ${{ secrets.ORDERS_URL }}
+      SUPERGRAPH_RELOAD_URL: ${{ secrets.SUPERGRAPH_RELOAD_URL }}
+      SUPERGRAPH_RELOAD_TOKEN: ${{ secrets.SUPERGRAPH_RELOAD_TOKEN }}
 
   smoke-gateway:
     needs:
@@ -185,13 +245,20 @@ jobs:
     with:
       app: products-qa
       image: ${{ needs.build-products.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-qa-products:
+    needs: [detect-changes, qa-products]
+    if: needs.detect-changes.outputs.products == 'true' && needs.qa-products.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: qa
+      subgraph_name: products
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   qa-orders:
     needs: [detect-changes, build-orders, smoke-orders]
@@ -200,13 +267,20 @@ jobs:
     with:
       app: orders-qa
       image: ${{ needs.build-orders.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-qa-orders:
+    needs: [detect-changes, qa-orders]
+    if: needs.detect-changes.outputs.orders == 'true' && needs.qa-orders.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: qa
+      subgraph_name: orders
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   qa-content:
     needs: [detect-changes, build-content, smoke-content]
@@ -215,13 +289,20 @@ jobs:
     with:
       app: content-qa
       image: ${{ needs.build-content.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-qa-content:
+    needs: [detect-changes, qa-content]
+    if: needs.detect-changes.outputs.content == 'true' && needs.qa-content.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: qa
+      subgraph_name: content
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   qa-customers:
     needs: [detect-changes, build-customers, smoke-customers]
@@ -230,13 +311,52 @@ jobs:
     with:
       app: customers-qa
       image: ${{ needs.build-customers.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-qa-customers:
+    needs: [detect-changes, qa-customers]
+    if: needs.detect-changes.outputs.customers == 'true' && needs.qa-customers.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: qa
+      subgraph_name: customers
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
+
+  publish-supergraph-qa:
+    needs:
+      [
+        detect-changes,
+        publish-subgraph-qa-products,
+        publish-subgraph-qa-content,
+        publish-subgraph-qa-orders,
+        publish-subgraph-qa-customers,
+      ]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.products == 'true' ||
+       needs.detect-changes.outputs.content == 'true' ||
+       needs.detect-changes.outputs.orders == 'true' ||
+       needs.detect-changes.outputs.customers == 'true') &&
+      (needs.detect-changes.outputs.products != 'true' || needs.publish-subgraph-qa-products.result == 'success') &&
+      (needs.detect-changes.outputs.content != 'true' || needs.publish-subgraph-qa-content.result == 'success') &&
+      (needs.detect-changes.outputs.orders != 'true' || needs.publish-subgraph-qa-orders.result == 'success') &&
+      (needs.detect-changes.outputs.customers != 'true' || needs.publish-subgraph-qa-customers.result == 'success')
+    uses: ./.github/workflows/_publish-supergraph.yaml
+    with:
+      environment: qa
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
+      CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
+      CONTENT_URL: ${{ secrets.CONTENT_URL }}
+      ORDERS_URL: ${{ secrets.ORDERS_URL }}
+      SUPERGRAPH_RELOAD_URL: ${{ secrets.SUPERGRAPH_RELOAD_URL }}
+      SUPERGRAPH_RELOAD_TOKEN: ${{ secrets.SUPERGRAPH_RELOAD_TOKEN }}
 
   qa-gateway:
     needs:
@@ -264,13 +384,20 @@ jobs:
     with:
       app: products-prod
       image: ${{ needs.build-products.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: products
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-prod-products:
+    needs: [detect-changes, prod-products]
+    if: needs.detect-changes.outputs.products == 'true' && needs.prod-products.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: prod
+      subgraph_name: products
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   prod-orders:
     needs: [detect-changes, build-orders, qa-orders]
@@ -279,13 +406,20 @@ jobs:
     with:
       app: orders-prod
       image: ${{ needs.build-orders.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: orders
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-prod-orders:
+    needs: [detect-changes, prod-orders]
+    if: needs.detect-changes.outputs.orders == 'true' && needs.prod-orders.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: prod
+      subgraph_name: orders
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   prod-content:
     needs: [detect-changes, build-content, qa-content]
@@ -294,13 +428,20 @@ jobs:
     with:
       app: content-prod
       image: ${{ needs.build-content.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: content
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-prod-content:
+    needs: [detect-changes, prod-content]
+    if: needs.detect-changes.outputs.content == 'true' && needs.prod-content.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: prod
+      subgraph_name: content
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   prod-customers:
     needs: [detect-changes, build-customers, qa-customers]
@@ -309,13 +450,52 @@ jobs:
     with:
       app: customers-prod
       image: ${{ needs.build-customers.outputs.image_tag }}
-      publish_schema: true
-      subgraph_name: customers
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY}}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph-prod-customers:
+    needs: [detect-changes, prod-customers]
+    if: needs.detect-changes.outputs.customers == 'true' && needs.prod-customers.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: prod
+      subgraph_name: customers
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
+
+  publish-supergraph-prod:
+    needs:
+      [
+        detect-changes,
+        publish-subgraph-prod-products,
+        publish-subgraph-prod-content,
+        publish-subgraph-prod-orders,
+        publish-subgraph-prod-customers,
+      ]
+    if: |
+      always() &&
+      (needs.detect-changes.outputs.products == 'true' ||
+       needs.detect-changes.outputs.content == 'true' ||
+       needs.detect-changes.outputs.orders == 'true' ||
+       needs.detect-changes.outputs.customers == 'true') &&
+      (needs.detect-changes.outputs.products != 'true' || needs.publish-subgraph-prod-products.result == 'success') &&
+      (needs.detect-changes.outputs.content != 'true' || needs.publish-subgraph-prod-content.result == 'success') &&
+      (needs.detect-changes.outputs.orders != 'true' || needs.publish-subgraph-prod-orders.result == 'success') &&
+      (needs.detect-changes.outputs.customers != 'true' || needs.publish-subgraph-prod-customers.result == 'success')
+    uses: ./.github/workflows/_publish-supergraph.yaml
+    with:
+      environment: prod
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
+      CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
+      CONTENT_URL: ${{ secrets.CONTENT_URL }}
+      ORDERS_URL: ${{ secrets.ORDERS_URL }}
+      SUPERGRAPH_RELOAD_URL: ${{ secrets.SUPERGRAPH_RELOAD_URL }}
+      SUPERGRAPH_RELOAD_TOKEN: ${{ secrets.SUPERGRAPH_RELOAD_TOKEN }}
 
   prod-gateway:
     needs: [detect-changes, build-gateway, qa-gateway, prod-products, prod-content, prod-customers, prod-orders]

@@ -211,18 +211,46 @@ jobs:
     with:
       app: ${{ needs.validate.outputs.service_name }}
       image: ${{ needs.validate.outputs.image_tag }}
-      publish_schema: >-
-        ${{ needs.validate.outputs.is_subgraph == 'true' }}
-      subgraph_name: ${{ inputs.app }}
     secrets:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-      APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
-      APOLLO_GRAPH_REF: ${{ secrets.APOLLO_GRAPH_REF }}
-      APOLLO_ROUTING_URL: ${{ secrets.APOLLO_ROUTING_URL }}
+
+  publish-subgraph:
+    name: Publish rolled-back subgraph schema
+    needs: [validate, rollback-deployment]
+    if: needs.validate.outputs.is_subgraph == 'true' && needs.rollback-deployment.result == 'success'
+    uses: ./.github/workflows/_publish-subgraph.yaml
+    with:
+      environment: prod
+      subgraph_name: ${{ inputs.app }}
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SUBGRAPH_URL: >-
+        ${{ inputs.app == 'products' && secrets.PRODUCTS_URL ||
+            inputs.app == 'orders' && secrets.ORDERS_URL ||
+            inputs.app == 'content' && secrets.CONTENT_URL ||
+            inputs.app == 'customers' && secrets.CUSTOMERS_URL }}
+
+  publish-supergraph:
+    name: Publish supergraph after rollback
+    needs: [validate, rollback-deployment, publish-subgraph]
+    if: needs.validate.outputs.is_subgraph == 'true' && needs.rollback-deployment.result == 'success' && needs.publish-subgraph.result == 'success'
+    uses: ./.github/workflows/_publish-supergraph.yaml
+    with:
+      environment: prod
+    secrets:
+      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
+      CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
+      CONTENT_URL: ${{ secrets.CONTENT_URL }}
+      ORDERS_URL: ${{ secrets.ORDERS_URL }}
+      SUPERGRAPH_RELOAD_URL: ${{ secrets.SUPERGRAPH_RELOAD_URL }}
+      SUPERGRAPH_RELOAD_TOKEN: ${{ secrets.SUPERGRAPH_RELOAD_TOKEN }}
 
   notify:
     name: Notify rollback result
-    needs: [validate, rollback-deployment]
+    needs: [validate, rollback-deployment, publish-subgraph, publish-supergraph]
     if: always()
     runs-on: ubuntu-latest
     steps:

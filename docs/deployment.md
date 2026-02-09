@@ -70,7 +70,7 @@ All workflows are located in `.github/workflows/`.
         *   **Smoke:** Deploys the new image to the `smoke` environment first.
         *   **QA:** After `smoke` succeeds, deploys to `qa` environment.
         *   **Production:** After `qa` succeeds, deploys to `production` environment.
-    4.  **Schema Publishing:** During deployment of subgraphs, the workflow publishes the updated GraphQL schema to Apollo Studio using the `APOLLO_KEY` and `APOLLO_GRAPH_REF`.
+    4.  **Schema Publishing:** Each subgraph deployment publishes its own SDL to the registry. A follow-up job composes the supergraph SDL from the registry, publishes it, and triggers the gateway reload endpoint.
     5.  **Git Tagging:** After successful production deployment, automatically creates git tags for each deployed service (e.g., `@gfed-medusa-bff/products@1.2.0`). These tags enable rollback functionality.
 *   **Important:** Only merge production-ready code to `main`. All features should be approved before merging.
 
@@ -80,7 +80,7 @@ All workflows are located in `.github/workflows/`.
 *   **Purpose:** Quickly rollback a production service to a previous version using git tags.
 *   **Environment:** Production only (git tags only exist for production deployments).
 *   **Safety Features:** Confirmation required, version validation, Docker image verification, concurrency control, age warnings.
-*   **Schema Rollback:** For subgraphs, automatically re-publishes the old schema to Apollo Studio to maintain schema-code consistency.
+*   **Schema Rollback:** For subgraphs, the rollback flow republishes the subgraph SDL, re-composes the supergraph from the registry, and triggers a gateway reload to keep schema-code consistency.
 
 **See [How to Rollback a Deployment](#how-to-rollback-a-deployment) section below for complete guide.
 
@@ -111,13 +111,17 @@ To enable these workflows, the following **GH Secrets** must be configured in th
     - This must be configured to each environment
 - `GITHUB_TOKEN`: Automatically provided by GitHub (used for GHCR login).
 
-### Apollo Federation
+### Schema Registry
 
-This must be configured to each subgraph's environment
+These should be configured as environment or repository secrets:
 
-- `APOLLO_KEY`: The API key for Apollo Studio.
-- `APOLLO_GRAPH_REF`: The graph reference.
-- `APOLLO_ROUTING_URL`: The URL where the subgraph can be reached.
+- `SCHEMA_REGISTRY_REPO`: The GitHub repo (`owner/repo`) for the schema registry.
+- `SCHEMA_REGISTRY_TOKEN`: Token with write access to the registry repo.
+- `PRODUCTS_URL`, `CUSTOMERS_URL`, `CONTENT_URL`, `ORDERS_URL`: Deployed subgraph URLs per environment.
+- `SUPERGRAPH_RELOAD_URL`: Gateway reload endpoint (e.g., `https://gateway-smoke/.../admin/reload-supergraph`).
+- `SUPERGRAPH_RELOAD_TOKEN`: Shared token for reload authorization.
+
+Recommended: create GitHub Environments named `smoke`, `qa`, and `prod` and store the above values per environment so URLs and tokens can differ safely.
 
 ### Publishing
 - `NPM_TOKEN`: Automation token for publishing to npm.
@@ -183,14 +187,14 @@ Deployment is fully automated through all environments. The workflow ensures tha
     - **QA:** Deploys after smoke succeeds
     - **Production:** Deploys after QA succeeds
     - **Tagging:** Git tags are automatically created after production deployment (e.g., `@gfed-medusa-bff/products@1.2.0`)
-    - For subgraphs: GraphQL schemas are published to Apollo Studio at each stage
+    - For subgraphs: Supergraph SDL is composed and published to the schema registry at each stage
     - Only changed services are deployed (automatic change detection)
 
 6.  **Verify Deployment:**
     - Monitor the workflow in GitHub Actions
     - Verify services are live on Render
     - Test production endpoints
-    - For subgraphs, verify schemas were published in Apollo Studio
+    - For subgraphs, verify the registry was updated and the gateway reloaded
 
 ### How to Publish a Package
 
