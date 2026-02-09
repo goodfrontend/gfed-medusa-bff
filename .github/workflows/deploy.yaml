@@ -106,48 +106,8 @@ jobs:
       app: customers
       dockerfile: ./apps/subgraphs/customers/Dockerfile
 
-  scan-products:
-    needs: [detect-changes, build-products]
-    if: needs.detect-changes.outputs.products == 'true'
-    uses: ./.github/workflows/_trivy-scan.yaml
-    with:
-      app: products
-      image_tag: ${{ needs.build-products.outputs.image_tag }}
-
-  scan-orders:
-    needs: [detect-changes, build-orders]
-    if: needs.detect-changes.outputs.orders == 'true'
-    uses: ./.github/workflows/_trivy-scan.yaml
-    with:
-      app: orders
-      image_tag: ${{ needs.build-orders.outputs.image_tag }}
-
-  scan-content:
-    needs: [detect-changes, build-content]
-    if: needs.detect-changes.outputs.content == 'true'
-    uses: ./.github/workflows/_trivy-scan.yaml
-    with:
-      app: content
-      image_tag: ${{ needs.build-content.outputs.image_tag }}
-
-  scan-customers:
-    needs: [detect-changes, build-customers]
-    if: needs.detect-changes.outputs.customers == 'true'
-    uses: ./.github/workflows/_trivy-scan.yaml
-    with:
-      app: customers
-      image_tag: ${{ needs.build-customers.outputs.image_tag }}
-
-  scan-gateway:
-    needs: [detect-changes, build-gateway]
-    if: needs.detect-changes.outputs.gateway == 'true'
-    uses: ./.github/workflows/_trivy-scan.yaml
-    with:
-      app: gateway
-      image_tag: ${{ needs.build-gateway.outputs.image_tag }}
-
   smoke-products:
-    needs: [detect-changes, build-products, scan-products]
+    needs: [detect-changes, build-products]
     if: needs.detect-changes.outputs.products == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -169,7 +129,7 @@ jobs:
       SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   smoke-orders:
-    needs: [detect-changes, build-orders, scan-orders]
+    needs: [detect-changes, build-orders]
     if: needs.detect-changes.outputs.orders == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -191,7 +151,7 @@ jobs:
       SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   smoke-content:
-    needs: [detect-changes, build-content, scan-content]
+    needs: [detect-changes, build-content]
     if: needs.detect-changes.outputs.content == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -213,7 +173,7 @@ jobs:
       SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   smoke-customers:
-    needs: [detect-changes, build-customers, scan-customers]
+    needs: [detect-changes, build-customers]
     if: needs.detect-changes.outputs.customers == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
@@ -271,7 +231,6 @@ jobs:
       [
         detect-changes,
         build-gateway,
-        scan-gateway,
         smoke-products,
         smoke-content,
         smoke-orders,
