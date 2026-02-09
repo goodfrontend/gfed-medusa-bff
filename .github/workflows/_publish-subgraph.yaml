@@ -73,9 +73,11 @@ jobs:
           sleep_seconds=15
           attempt=1
 
+          header_args=(--header "content-type: application/json")
+
           while [ "$attempt" -le "$max_attempts" ]; do
             echo "Introspection attempt $attempt/$max_attempts..."
-            if rover subgraph introspect "$SUBGRAPH_URL" --client-timeout 300 > subgraph.graphql; then
+            if rover subgraph introspect "$SUBGRAPH_URL" --client-timeout 300 "${header_args[@]}" > subgraph.graphql; then
               echo "Introspection succeeded."
               break
             fi

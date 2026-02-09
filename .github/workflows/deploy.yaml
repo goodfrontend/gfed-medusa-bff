@@ -235,8 +235,9 @@ jobs:
         smoke-content,
         smoke-orders,
         smoke-customers,
+        publish-supergraph-smoke,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-smoke.result == 'success' || needs.publish-supergraph-smoke.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
@@ -374,8 +375,9 @@ jobs:
         qa-content,
         qa-orders,
         qa-customers,
+        publish-supergraph-qa,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-qa.result == 'success' || needs.publish-supergraph-qa.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
@@ -513,8 +515,9 @@ jobs:
         prod-content,
         prod-customers,
         prod-orders,
+        publish-supergraph-prod,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-prod.result == 'success' || needs.publish-supergraph-prod.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod
