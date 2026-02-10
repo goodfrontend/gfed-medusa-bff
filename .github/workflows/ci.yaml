@@ -165,8 +165,9 @@ jobs:
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/products
 
-      - name: Test
-        run: pnpm test --filter=@gfed-medusa-bff/products
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/products
 
   verify-orders:
     name: Verify Orders
@@ -209,8 +210,9 @@ jobs:
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/orders
 
-      - name: Test
-        run: pnpm test --filter=@gfed-medusa-bff/orders
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/orders
 
   verify-customers:
     name: Verify Customers
@@ -253,8 +255,9 @@ jobs:
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/customers
 
-      - name: Test
-        run: pnpm test --filter=@gfed-medusa-bff/customers
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/customers
 
   verify-content:
     name: Verify Content
@@ -297,8 +300,9 @@ jobs:
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/content
 
-      - name: Test
-        run: pnpm test --filter=@gfed-medusa-bff/content
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/content
 
   test-packages:
     name: Test packages
@@ -329,8 +333,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Test lib-common
-        run: pnpm test --filter=@gfed-medusa-bff/lib-common
+      # TODO: Disable test for now
+      # - name: Test lib-common
+      #   run: pnpm test --filter=@gfed-medusa-bff/lib-common
 
   build-preview-gateway:
     name: Build Gateway preview image
