@@ -1,9 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
-  "remoteCache": {
-    "signature": true
-  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
