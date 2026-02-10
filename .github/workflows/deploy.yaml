@@ -36,35 +36,30 @@ jobs:
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
-              - '.github/workflows/**'
             products:
               - 'apps/subgraphs/products/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
-              - '.github/workflows/**'
             orders:
               - 'apps/subgraphs/orders/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
-              - '.github/workflows/**'
             content:
               - 'apps/subgraphs/content/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
-              - '.github/workflows/**'
             customers:
               - 'apps/subgraphs/customers/**'
               - 'packages/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
-              - '.github/workflows/**'
 
   build-gateway:
     needs: detect-changes
@@ -237,10 +232,7 @@ jobs:
         smoke-customers,
         publish-supergraph-smoke,
       ]
-    if: >
-      always() &&
-      needs.detect-changes.outputs.gateway == 'true' &&
-      (needs.publish-supergraph-smoke.result == 'success' || needs.publish-supergraph-smoke.result == 'skipped')
+    if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
@@ -380,10 +372,7 @@ jobs:
         qa-customers,
         publish-supergraph-qa,
       ]
-    if: >
-      always() &&
-      needs.detect-changes.outputs.gateway == 'true' &&
-      (needs.publish-supergraph-qa.result == 'success' || needs.publish-supergraph-qa.result == 'skipped')
+    if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
@@ -523,10 +512,7 @@ jobs:
         prod-orders,
         publish-supergraph-prod,
       ]
-    if: >
-      always() &&
-      needs.detect-changes.outputs.gateway == 'true' &&
-      (needs.publish-supergraph-prod.result == 'success' || needs.publish-supergraph-prod.result == 'skipped')
+    if: needs.detect-changes.outputs.gateway == 'true'
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod
