@@ -124,8 +124,8 @@ jobs:
       environment: smoke
       subgraph_name: products
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   smoke-orders:
@@ -146,8 +146,8 @@ jobs:
       environment: smoke
       subgraph_name: orders
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   smoke-content:
@@ -168,8 +168,8 @@ jobs:
       environment: smoke
       subgraph_name: content
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   smoke-customers:
@@ -190,8 +190,8 @@ jobs:
       environment: smoke
       subgraph_name: customers
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
 
   publish-supergraph-smoke:
@@ -217,8 +217,8 @@ jobs:
     with:
       environment: smoke
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
       CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
       CONTENT_URL: ${{ secrets.CONTENT_URL }}
@@ -237,7 +237,10 @@ jobs:
         smoke-customers,
         publish-supergraph-smoke,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-smoke.result == 'success' || needs.publish-supergraph-smoke.result == 'skipped')
+    if: >
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      (needs.publish-supergraph-smoke.result == 'success' || needs.publish-supergraph-smoke.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
@@ -263,8 +266,8 @@ jobs:
       environment: qa
       subgraph_name: products
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   qa-orders:
@@ -285,8 +288,8 @@ jobs:
       environment: qa
       subgraph_name: orders
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   qa-content:
@@ -307,8 +310,8 @@ jobs:
       environment: qa
       subgraph_name: content
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   qa-customers:
@@ -329,8 +332,8 @@ jobs:
       environment: qa
       subgraph_name: customers
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
 
   publish-supergraph-qa:
@@ -356,8 +359,8 @@ jobs:
     with:
       environment: qa
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
       CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
       CONTENT_URL: ${{ secrets.CONTENT_URL }}
@@ -377,7 +380,10 @@ jobs:
         qa-customers,
         publish-supergraph-qa,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-qa.result == 'success' || needs.publish-supergraph-qa.result == 'skipped')
+    if: >
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      (needs.publish-supergraph-qa.result == 'success' || needs.publish-supergraph-qa.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
@@ -517,7 +523,10 @@ jobs:
         prod-orders,
         publish-supergraph-prod,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true' && (needs.publish-supergraph-prod.result == 'success' || needs.publish-supergraph-prod.result == 'skipped')
+    if: >
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      (needs.publish-supergraph-prod.result == 'success' || needs.publish-supergraph-prod.result == 'skipped')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod

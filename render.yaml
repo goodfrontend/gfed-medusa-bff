@@ -73,6 +73,9 @@ projects:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/gateway:latest
             envVars:
               - fromGroup: bff-smoke-env-group
+              - key: SUPERGRAPH_SDL_URL
+                value: https://api.github.com/repos/goodfrontend/gfed-medusa-schema-registry/contents/supergraph/smoke/latest.graphql
+                previewValue: ""
 
           - type: web
             runtime: image
