@@ -301,6 +301,16 @@ jobs:
       - name: Build
         run: pnpm build --filter=@gfed-medusa-bff/content
 
+      - name: Debug Turbo cache server logs
+        if: always()
+        run: |
+          echo "=== Turbo cache server logs ==="
+          if [ -f /home/runner/work/_temp/turbogha.log ]; then
+            cat /home/runner/work/_temp/turbogha.log
+          else
+            echo "Log file not found"
+          fi
+
       # TODO: Disable test for now
       # - name: Test
       #   run: pnpm test --filter=@gfed-medusa-bff/content
