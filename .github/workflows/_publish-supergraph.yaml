@@ -11,9 +11,9 @@ on:
         type: string
         default: main
     secrets:
-      REGISTRY_REPO:
+      SCHEMA_REGISTRY_REPO:
         required: true
-      REGISTRY_TOKEN:
+      SCHEMA_REGISTRY_TOKEN:
         required: true
       PRODUCTS_URL:
         required: true
@@ -59,9 +59,9 @@ jobs:
       - name: Checkout schema registry
         uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.REGISTRY_REPO }}
+          repository: ${{ secrets.SCHEMA_REGISTRY_REPO }}
           ref: ${{ inputs.registry_branch }}
-          token: ${{ secrets.REGISTRY_TOKEN }}
+          token: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
           path: schema-registry
 
       - name: Install Apollo Rover
