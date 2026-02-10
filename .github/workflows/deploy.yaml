@@ -409,8 +409,8 @@ jobs:
       environment: prod
       subgraph_name: products
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.PRODUCTS_URL }}
 
   prod-orders:
@@ -431,8 +431,8 @@ jobs:
       environment: prod
       subgraph_name: orders
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.ORDERS_URL }}
 
   prod-content:
@@ -453,8 +453,8 @@ jobs:
       environment: prod
       subgraph_name: content
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CONTENT_URL }}
 
   prod-customers:
@@ -475,8 +475,8 @@ jobs:
       environment: prod
       subgraph_name: customers
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       SUBGRAPH_URL: ${{ secrets.CUSTOMERS_URL }}
 
   publish-supergraph-prod:
@@ -502,8 +502,8 @@ jobs:
     with:
       environment: prod
     secrets:
-      REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
-      REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
+      SCHEMA_REGISTRY_REPO: ${{ secrets.SCHEMA_REGISTRY_REPO }}
+      SCHEMA_REGISTRY_TOKEN: ${{ secrets.SCHEMA_REGISTRY_TOKEN }}
       PRODUCTS_URL: ${{ secrets.PRODUCTS_URL }}
       CUSTOMERS_URL: ${{ secrets.CUSTOMERS_URL }}
       CONTENT_URL: ${{ secrets.CONTENT_URL }}
