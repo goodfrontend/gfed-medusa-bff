@@ -12,6 +12,7 @@ on:
       - '.github/workflows/**'
 
 permissions:
+  actions: write
   contents: read
 
 defaults:
