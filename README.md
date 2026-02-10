@@ -173,4 +173,3 @@ This ensures Turbo runs the gateway together with all subgraphs when you execute
 ```sh
 turbo run dev
 ```
-# test no caching
