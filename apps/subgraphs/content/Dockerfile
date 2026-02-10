@@ -21,15 +21,7 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Build args for optional concurrency limits (needed for Render free tier)
-ARG PNPM_NETWORK_CONCURRENCY=""
-ARG PNPM_CHILD_CONCURRENCY=""
-
-RUN pnpm install \
-    --frozen-lockfile \
-    --shamefully-hoist \
-    ${PNPM_NETWORK_CONCURRENCY:+--network-concurrency=$PNPM_NETWORK_CONCURRENCY} \
-    ${PNPM_CHILD_CONCURRENCY:+--child-concurrency=$PNPM_CHILD_CONCURRENCY} 
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
