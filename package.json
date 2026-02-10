@@ -2,7 +2,7 @@
   "name": "gfed-medusa-bff",
   "private": true,
   "version": "1.0.0",
-  "description": "A BFF monorepo using Apollo Federation to provide a unified GraphQL API for Medusa Store",
+  "description": "A BFF monorepo using Apollo Federation to provide a unified GraphQL API for Medusa Store with remote caching",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
