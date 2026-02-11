@@ -9,6 +9,7 @@ import {
   IntrospectAndCompose,
   RemoteGraphQLDataSource,
   SupergraphSdlUpdateFunction,
+  type ServiceEndpointDefinition,
 } from '@apollo/gateway';
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -71,8 +72,12 @@ async function startServer() {
   let updateSupergraphSdl: SupergraphSdlUpdateFunction | null = null;
   let lastReloadAt: string | null = null;
   let lastReloadError: string | null = null;
-  const buildService = ({ name: _, url }: { name: string; url: string }) =>
-    new RemoteGraphQLDataSource({
+  const buildService = ({ name, url }: ServiceEndpointDefinition) => {
+    if (!url) {
+      throw new Error(`Missing URL for subgraph "${name}".`);
+    }
+
+    return new RemoteGraphQLDataSource({
       url,
       willSendRequest({ request, context }) {
         // Pass cookie and session data to subgraphs
@@ -85,15 +90,18 @@ async function startServer() {
         }
       },
     });
+  };
 
   const gateway = useRegistry
     ? new ApolloGateway({
-        supergraphSdl: async ({ update }) => {
-          updateSupergraphSdl = update;
-          const supergraphSdl = await fetchSupergraphSdl(supergraphSdlUrl!);
-          lastReloadAt = new Date().toISOString();
-          lastReloadError = null;
-          return { supergraphSdl };
+        supergraphSdl: {
+          async initialize({ update }) {
+            updateSupergraphSdl = update;
+            const supergraphSdl = await fetchSupergraphSdl(supergraphSdlUrl!);
+            lastReloadAt = new Date().toISOString();
+            lastReloadError = null;
+            return { supergraphSdl };
+          },
         },
         buildService,
       })
