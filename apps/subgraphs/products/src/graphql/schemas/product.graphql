@@ -1,6 +1,5 @@
 type Query {
   deploymentInfoProducts: ProductsDeploymentInfo!
-  smokePing: String!
   products(
     limit: Int
     offset: Int

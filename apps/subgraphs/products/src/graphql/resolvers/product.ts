@@ -14,7 +14,6 @@ export const productResolvers = {
       platform: 'Render',
       securityScanEnabled: true,
     }),
-    smokePing: () => `products-smoke:${new Date().toISOString()}`,
     products: async (
       _parent: unknown,
       args: HttpTypes.StoreProductParams & { id?: string },
