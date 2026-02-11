@@ -156,7 +156,7 @@ jobs:
 
           headers=(-H "Content-Type: application/json")
           if [ -n "${RELOAD_TOKEN:-}" ]; then
-            headers+=(-H "x-supergraph-reload-token: $RELOAD_TOKEN")
+            headers+=(-H "Authorization: Bearer $RELOAD_TOKEN")
           fi
 
           curl -sS -X POST "$RELOAD_URL" "${headers[@]}" --max-time 20 --retry 3 --retry-delay 5
