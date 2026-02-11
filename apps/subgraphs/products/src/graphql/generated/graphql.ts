@@ -159,6 +159,7 @@ export type Query = {
   productCategory?: Maybe<ProductCategory>;
   products: ProductListResponse;
   searchProducts: SearchProducts;
+  smokePing: Scalars['String']['output'];
 };
 
 export type QueryCollectionArgs = {
@@ -720,6 +721,7 @@ export type QueryResolvers<
     ContextType,
     Partial<QuerySearchProductsArgs>
   >;
+  smokePing?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type SearchProductsResolvers<
