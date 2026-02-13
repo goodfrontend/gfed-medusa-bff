@@ -1,6 +1,6 @@
 {
   "name": "@gfed-medusa-bff/customers",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "build": "pnpm run codegen && tsup && pnpm copy-schema",
@@ -19,7 +19,7 @@
     "test:coverage:threshold": "jest --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@apollo/server": "^5.2.0",
+    "@apollo/server": "^5.4.0",
     "@apollo/subgraph": "^2.12.1",
     "@as-integrations/express5": "^1.1.2",
     "@gfed-medusa/bff-lib-common": "^1.0.0",
