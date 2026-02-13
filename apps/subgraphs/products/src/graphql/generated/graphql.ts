@@ -141,19 +141,9 @@ export type ProductVariantOption = {
   value: Scalars['String']['output'];
 };
 
-export type ProductsDeploymentInfo = {
-  deployedAt: Scalars['DateTime']['output'];
-  deployedBy: Scalars['String']['output'];
-  environment: Scalars['String']['output'];
-  message: Scalars['String']['output'];
-  platform: Scalars['String']['output'];
-  version: Scalars['String']['output'];
-};
-
 export type Query = {
   collection?: Maybe<Collection>;
   collections: Array<Collection>;
-  deploymentInfoProducts: ProductsDeploymentInfo;
   product?: Maybe<Product>;
   productCategories: Array<ProductCategory>;
   productCategory?: Maybe<ProductCategory>;
@@ -360,7 +350,6 @@ export type ResolversTypes = {
   ProductTag: ResolverTypeWrapper<ProductTag>;
   ProductVariant: ResolverTypeWrapper<ProductVariant>;
   ProductVariantOption: ResolverTypeWrapper<ProductVariantOption>;
-  ProductsDeploymentInfo: ResolverTypeWrapper<ProductsDeploymentInfo>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SearchProducts: ResolverTypeWrapper<SearchProducts>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -386,7 +375,6 @@ export type ResolversParentTypes = {
   ProductTag: ProductTag;
   ProductVariant: ProductVariant;
   ProductVariantOption: ProductVariantOption;
-  ProductsDeploymentInfo: ProductsDeploymentInfo;
   Query: Record<PropertyKey, never>;
   SearchProducts: SearchProducts;
   String: Scalars['String']['output'];
@@ -394,8 +382,8 @@ export type ResolversParentTypes = {
 
 export type CollectionResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Collection'] = ResolversParentTypes['Collection'],
+  ParentType extends ResolversParentTypes['Collection'] =
+    ResolversParentTypes['Collection'],
 > = {
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -407,15 +395,17 @@ export type CollectionResolvers<
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
-export interface DateTimeScalarConfig
-  extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
+export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
+  ResolversTypes['DateTime'],
+  any
+> {
   name: 'DateTime';
 }
 
 export type PriceResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Price'] = ResolversParentTypes['Price'],
+  ParentType extends ResolversParentTypes['Price'] =
+    ResolversParentTypes['Price'],
 > = {
   amount?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   currencyCode?: Resolver<
@@ -432,8 +422,8 @@ export type PriceResolvers<
 
 export type ProductResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Product'] = ResolversParentTypes['Product'],
+  ParentType extends ResolversParentTypes['Product'] =
+    ResolversParentTypes['Product'],
 > = {
   collection?: Resolver<
     Maybe<ResolversTypes['Collection']>,
@@ -494,8 +484,8 @@ export type ProductResolvers<
 
 export type ProductCategoryResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductCategory'] = ResolversParentTypes['ProductCategory'],
+  ParentType extends ResolversParentTypes['ProductCategory'] =
+    ResolversParentTypes['ProductCategory'],
 > = {
   categoryChildren?: Resolver<
     Maybe<Array<ResolversTypes['ProductCategory']>>,
@@ -524,8 +514,8 @@ export type ProductCategoryResolvers<
 
 export type ProductHitResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductHit'] = ResolversParentTypes['ProductHit'],
+  ParentType extends ResolversParentTypes['ProductHit'] =
+    ResolversParentTypes['ProductHit'],
 > = {
   description?: Resolver<
     Maybe<ResolversTypes['String']>,
@@ -544,8 +534,8 @@ export type ProductHitResolvers<
 
 export type ProductImageResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductImage'] = ResolversParentTypes['ProductImage'],
+  ParentType extends ResolversParentTypes['ProductImage'] =
+    ResolversParentTypes['ProductImage'],
 > = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -553,8 +543,8 @@ export type ProductImageResolvers<
 
 export type ProductListResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductList'] = ResolversParentTypes['ProductList'],
+  ParentType extends ResolversParentTypes['ProductList'] =
+    ResolversParentTypes['ProductList'],
 > = {
   count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   items?: Resolver<
@@ -566,8 +556,8 @@ export type ProductListResolvers<
 
 export type ProductListResponseResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductListResponse'] = ResolversParentTypes['ProductListResponse'],
+  ParentType extends ResolversParentTypes['ProductListResponse'] =
+    ResolversParentTypes['ProductListResponse'],
 > = {
   count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   products?: Resolver<
@@ -579,8 +569,8 @@ export type ProductListResponseResolvers<
 
 export type ProductOptionResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption'],
+  ParentType extends ResolversParentTypes['ProductOption'] =
+    ResolversParentTypes['ProductOption'],
 > = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -593,8 +583,8 @@ export type ProductOptionResolvers<
 
 export type ProductOptionValueResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductOptionValue'] = ResolversParentTypes['ProductOptionValue'],
+  ParentType extends ResolversParentTypes['ProductOptionValue'] =
+    ResolversParentTypes['ProductOptionValue'],
 > = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -602,16 +592,16 @@ export type ProductOptionValueResolvers<
 
 export type ProductTagResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductTag'] = ResolversParentTypes['ProductTag'],
+  ParentType extends ResolversParentTypes['ProductTag'] =
+    ResolversParentTypes['ProductTag'],
 > = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 };
 
 export type ProductVariantResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductVariant'] = ResolversParentTypes['ProductVariant'],
+  ParentType extends ResolversParentTypes['ProductVariant'] =
+    ResolversParentTypes['ProductVariant'],
 > = {
   allowBackorder?: Resolver<
     Maybe<ResolversTypes['Boolean']>,
@@ -647,31 +637,18 @@ export type ProductVariantResolvers<
 
 export type ProductVariantOptionResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductVariantOption'] = ResolversParentTypes['ProductVariantOption'],
+  ParentType extends ResolversParentTypes['ProductVariantOption'] =
+    ResolversParentTypes['ProductVariantOption'],
 > = {
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
-export type ProductsDeploymentInfoResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['ProductsDeploymentInfo'] = ResolversParentTypes['ProductsDeploymentInfo'],
-> = {
-  deployedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  deployedBy?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  environment?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  platform?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-};
-
 export type QueryResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['Query'] = ResolversParentTypes['Query'],
+  ParentType extends ResolversParentTypes['Query'] =
+    ResolversParentTypes['Query'],
 > = {
   collection?: Resolver<
     Maybe<ResolversTypes['Collection']>,
@@ -684,11 +661,6 @@ export type QueryResolvers<
     ParentType,
     ContextType,
     Partial<QueryCollectionsArgs>
-  >;
-  deploymentInfoProducts?: Resolver<
-    ResolversTypes['ProductsDeploymentInfo'],
-    ParentType,
-    ContextType
   >;
   product?: Resolver<
     Maybe<ResolversTypes['Product']>,
@@ -724,8 +696,8 @@ export type QueryResolvers<
 
 export type SearchProductsResolvers<
   ContextType = GraphQLContext,
-  ParentType extends
-    ResolversParentTypes['SearchProducts'] = ResolversParentTypes['SearchProducts'],
+  ParentType extends ResolversParentTypes['SearchProducts'] =
+    ResolversParentTypes['SearchProducts'],
 > = {
   hitsPerPage?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   items?: Resolver<
@@ -755,7 +727,6 @@ export type Resolvers<ContextType = GraphQLContext> = {
   ProductTag?: ProductTagResolvers<ContextType>;
   ProductVariant?: ProductVariantResolvers<ContextType>;
   ProductVariantOption?: ProductVariantOptionResolvers<ContextType>;
-  ProductsDeploymentInfo?: ProductsDeploymentInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SearchProducts?: SearchProductsResolvers<ContextType>;
 };

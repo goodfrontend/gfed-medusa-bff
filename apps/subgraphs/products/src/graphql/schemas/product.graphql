@@ -1,5 +1,4 @@
 type Query {
-  deploymentInfoProducts: ProductsDeploymentInfo!
   products(
     limit: Int
     offset: Int
@@ -34,15 +33,6 @@ type Query {
     filters: String
     facets: [String!]
   ): SearchProducts!
-}
-
-type ProductsDeploymentInfo {
-  version: String!
-  environment: String!
-  message: String!
-  deployedAt: DateTime!
-  deployedBy: String!
-  platform: String!
 }
 
 type ProductListResponse {

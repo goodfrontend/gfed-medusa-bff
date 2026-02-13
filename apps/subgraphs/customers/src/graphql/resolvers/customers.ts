@@ -8,15 +8,6 @@ import { transformCustomer } from './util/transforms';
 
 export const customerResolvers = {
   Query: {
-    deploymentInfoCustomers: () => ({
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      message: 'Customers subgraph - Initial production release v1.0.0',
-      deployedAt: new Date().toISOString(),
-      serviceName: 'customers-subgraph',
-      region: process.env.RENDER_REGION || 'oregon',
-      securityScanEnabled: true,
-    }),
     me: async (
       _: unknown,
       __: unknown,
