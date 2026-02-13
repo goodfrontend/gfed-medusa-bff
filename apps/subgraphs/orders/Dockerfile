@@ -6,7 +6,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 
 RUN apk add --no-cache libc6-compat git && \
     corepack enable && \
-    corepack prepare pnpm@latest --activate && \
+    corepack prepare pnpm@9.0.0 --activate && \
     pnpm install turbo --global
 
 FROM base AS pruner
@@ -21,12 +21,7 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# need to set concurrency to 1 for free tier on render
-RUN pnpm install \
-    --frozen-lockfile \
-    --shamefully-hoist \
-    --network-concurrency=1 \
-    --child-concurrency=1
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json

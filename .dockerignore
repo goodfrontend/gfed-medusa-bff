@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+
+# Git
+.git
+.github
+.gitignore
+
+# Turbo
+.turbo
+
+# Build outputs
+dist
+coverage
+
+# Documentation
+*.md
+README.md
+CHANGELOG.md
+
+# Environment files
+.env*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.cache
+tmp
+temp

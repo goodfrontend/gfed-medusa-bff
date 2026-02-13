@@ -1,0 +1,688 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'turbo.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/**'
+
+permissions:
+  actions: write
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.changes.outputs.gateway }}
+      products: ${{ steps.changes.outputs.products }}
+      orders: ${{ steps.changes.outputs.orders }}
+      content: ${{ steps.changes.outputs.content }}
+      customers: ${{ steps.changes.outputs.customers }}
+      packages: ${{ steps.changes.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            gateway:
+              - 'apps/gateway/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/**'
+            products:
+              - 'apps/subgraphs/products/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/**'
+            orders:
+              - 'apps/subgraphs/orders/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/**'
+            content:
+              - 'apps/subgraphs/content/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/**'
+            customers:
+              - 'apps/subgraphs/customers/**'
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/**'
+            packages:
+              - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+
+  setup:
+    name: Setup Dependencies
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.gateway == 'true' ||
+      needs.detect-changes.outputs.products == 'true' ||
+      needs.detect-changes.outputs.orders == 'true' ||
+      needs.detect-changes.outputs.customers == 'true' ||
+      needs.detect-changes.outputs.content == 'true' ||
+      needs.detect-changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+  verify-gateway:
+    name: Verify Gateway
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.gateway == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level critical
+
+      - name: Lint
+        run: pnpm lint --filter=@gfed-medusa-bff/gateway
+
+      - name: Type check
+        run: pnpm check-types --filter=@gfed-medusa-bff/gateway
+
+      - name: Build
+        run: pnpm build --filter=@gfed-medusa-bff/gateway
+
+  verify-products:
+    name: Verify Products
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.products == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      - name: Lint
+        run: pnpm lint --filter=@gfed-medusa-bff/products
+
+      - name: Type check
+        run: pnpm check-types --filter=@gfed-medusa-bff/products
+
+      - name: Build
+        run: pnpm build --filter=@gfed-medusa-bff/products
+
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/products
+
+  verify-orders:
+    name: Verify Orders
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.orders == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      - name: Lint
+        run: pnpm lint --filter=@gfed-medusa-bff/orders
+
+      - name: Type check
+        run: pnpm check-types --filter=@gfed-medusa-bff/orders
+
+      - name: Build
+        run: pnpm build --filter=@gfed-medusa-bff/orders
+
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/orders
+
+  verify-customers:
+    name: Verify Customers
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.customers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      - name: Lint
+        run: pnpm lint --filter=@gfed-medusa-bff/customers
+
+      - name: Type check
+        run: pnpm check-types --filter=@gfed-medusa-bff/customers
+
+      - name: Build
+        run: pnpm build --filter=@gfed-medusa-bff/customers
+
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/customers
+
+  verify-content:
+    name: Verify Content
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.content == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      - name: Lint
+        run: pnpm lint --filter=@gfed-medusa-bff/content
+
+      - name: Type check
+        run: pnpm check-types --filter=@gfed-medusa-bff/content
+
+      - name: Build
+        run: pnpm build --filter=@gfed-medusa-bff/content
+
+      # TODO: Disable test for now
+      # - name: Test
+      #   run: pnpm test --filter=@gfed-medusa-bff/content
+
+  test-packages:
+    name: Test packages
+    needs: [detect-changes, setup]
+    if: needs.detect-changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Turbo cache
+        uses: rharkor/caching-for-turbo@v2.3.11
+        with:
+          cache-prefix: 'ci-turbo'
+
+      # TODO: Disable test for now
+      # - name: Test lib-common
+      #   run: pnpm test --filter=@gfed-medusa-bff/lib-common
+
+  build-preview-gateway:
+    name: Build Gateway preview image
+    needs: [detect-changes, verify-gateway]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: gateway
+      dockerfile: ./apps/gateway/Dockerfile
+
+  build-preview-products:
+    name: Build Products preview image
+    needs: [detect-changes, verify-products]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: products
+      dockerfile: ./apps/subgraphs/products/Dockerfile
+
+  build-preview-orders:
+    name: Build Orders preview image
+    needs: [detect-changes, verify-orders]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: orders
+      dockerfile: ./apps/subgraphs/orders/Dockerfile
+
+  build-preview-customers:
+    name: Build Customers preview image
+    needs: [detect-changes, verify-customers]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: customers
+      dockerfile: ./apps/subgraphs/customers/Dockerfile
+
+  build-preview-content:
+    name: Build Content preview image
+    needs: [detect-changes, verify-content]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      app: content
+      dockerfile: ./apps/subgraphs/content/Dockerfile
+
+  render-preview-gateway:
+    name: Gateway Render preview
+    needs: [detect-changes, build-preview-gateway]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: gateway-smoke
+      image: ghcr.io/${{ github.repository }}/gateway:${{ github.sha }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  render-preview-products:
+    name: Products Render preview
+    needs: [detect-changes, build-preview-products]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.products == 'true'
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: products-smoke
+      image: ghcr.io/${{ github.repository }}/products:${{ github.sha }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  render-preview-orders:
+    name: Orders Render preview
+    needs: [detect-changes, build-preview-orders]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.orders == 'true'
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: orders-smoke
+      image: ghcr.io/${{ github.repository }}/orders:${{ github.sha }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  render-preview-customers:
+    name: Customers Render preview
+    needs: [detect-changes, build-preview-customers]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.customers == 'true'
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: customers-smoke
+      image: ghcr.io/${{ github.repository }}/customers:${{ github.sha }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  render-preview-content:
+    name: Content Render preview
+    needs: [detect-changes, build-preview-content]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.content == 'true'
+    uses: ./.github/workflows/_deploy-render-preview.yaml
+    with:
+      environment_name: content-smoke
+      image: ghcr.io/${{ github.repository }}/content:${{ github.sha }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+  post-preview-gateway:
+    name: Post Gateway preview
+    needs: [detect-changes, render-preview-gateway]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      always()
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Gateway
+      app_slug: gateway
+      preview_url: ${{ needs.render-preview-gateway.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview-gateway.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview-gateway.result }}
+      pr_number: ${{ github.event.pull_request.number }}
+
+  post-preview-products:
+    name: Post Products preview
+    needs: [detect-changes, render-preview-products]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.products == 'true' &&
+      always()
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Products
+      app_slug: products
+      preview_url: ${{ needs.render-preview-products.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview-products.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview-products.result }}
+      pr_number: ${{ github.event.pull_request.number }}
+
+  post-preview-orders:
+    name: Post Orders preview
+    needs: [detect-changes, render-preview-orders]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.orders == 'true' &&
+      always()
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Orders
+      app_slug: orders
+      preview_url: ${{ needs.render-preview-orders.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview-orders.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview-orders.result }}
+      pr_number: ${{ github.event.pull_request.number }}
+
+  post-preview-customers:
+    name: Post Customers preview
+    needs: [detect-changes, render-preview-customers]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.customers == 'true' &&
+      always()
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Customers
+      app_slug: customers
+      preview_url: ${{ needs.render-preview-customers.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview-customers.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview-customers.result }}
+      pr_number: ${{ github.event.pull_request.number }}
+
+  post-preview-content:
+    name: Post Content preview
+    needs: [detect-changes, render-preview-content]
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.detect-changes.outputs.content == 'true' &&
+      always()
+    uses: ./.github/workflows/_post-render-preview.yaml
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+    with:
+      app_label: Content
+      app_slug: content
+      preview_url: ${{ needs.render-preview-content.outputs.preview_url }}
+      preview_service_id: ${{ needs.render-preview-content.outputs.preview_service_id }}
+      render_result: ${{ needs.render-preview-content.result }}
+      pr_number: ${{ github.event.pull_request.number }}
