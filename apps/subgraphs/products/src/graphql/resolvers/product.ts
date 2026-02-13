@@ -5,15 +5,6 @@ import { GraphQLContext } from '../types/context';
 
 export const productResolvers = {
   Query: {
-    deploymentInfoProducts: () => ({
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      message: 'Products subgraph - Initial production release v1.0.0',
-      deployedAt: new Date().toISOString(),
-      deployedBy: 'GitHub Actions',
-      platform: 'Render',
-      securityScanEnabled: true,
-    }),
     products: async (
       _parent: unknown,
       args: HttpTypes.StoreProductParams & { id?: string },
