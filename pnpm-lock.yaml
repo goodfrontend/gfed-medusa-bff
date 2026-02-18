@@ -353,6 +353,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      express-session:
+        specifier: ^1.18.2
+        version: 1.18.2
       glob:
         specifier: ^11.0.3
         version: 11.1.0
@@ -390,6 +393,9 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+      '@types/express-session':
+        specifier: ^1.18.2
+        version: 1.18.2
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
