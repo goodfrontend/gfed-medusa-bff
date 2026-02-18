@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import type { AddressInfo } from 'net';
+import { Session, SessionData } from 'express-session';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
@@ -37,7 +38,20 @@ async function startServer() {
   app.use(
     '/graphql',
     expressMiddleware(server, {
-      context: async ({ req, res }) => createContext({ req, res }),
+      context: async ({ req, res }) => {
+        let session: (Session & Partial<SessionData>) | null = null;
+
+        // Retrieve session data from gateway
+        if (req.headers['x-session-data']) {
+          try {
+            session = JSON.parse(req.headers['x-session-data'] as string);
+          } catch (e) {
+            session = {} as Session;
+          }
+        }
+
+        return createContext({ req, res, session });
+      },
     })
   );
 
