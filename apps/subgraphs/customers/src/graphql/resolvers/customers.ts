@@ -3,6 +3,7 @@ import {
   handleMedusaError,
 } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
+import { StoreCustomer } from '@medusajs/types';
 
 import { transformCustomer } from './util/transforms';
 
@@ -20,9 +21,12 @@ export const customerResolvers = {
           });
         }
 
-        const { customer } = await medusa.store.customer.retrieve({
-          fields: '*orders',
-        });
+        const { customer } = await medusa.store.customer.retrieve(
+          { fields: '*orders' },
+          {
+            Authorization: `Bearer ${session?.medusaToken}`,
+          }
+        );
 
         return transformCustomer(customer);
       } catch (e) {
@@ -32,30 +36,91 @@ export const customerResolvers = {
   },
 
   Mutation: {
+    register: async (
+      _: unknown,
+      {
+        input,
+      }: {
+        input: {
+          email: string;
+          password: string;
+          firstName?: string;
+          lastName?: string;
+          phone?: string;
+        };
+      },
+      { medusa }: GraphQLContext
+    ) => {
+      try {
+        const token = await medusa.auth.register('customer', 'emailpass', {
+          email: input.email,
+          password: input.password,
+        });
+
+        if (typeof token !== 'string') {
+          throw new Error('Unable to register');
+        }
+
+        const { customer } = await medusa.store.customer.create(
+          {
+            email: input.email,
+            first_name: input.firstName,
+            last_name: input.lastName,
+            phone: input.phone,
+          },
+          {},
+          {
+            Authorization: `Bearer ${token}`,
+          }
+        );
+
+        return {
+          token,
+          customer: transformCustomer(customer),
+        };
+      } catch (e) {
+        handleMedusaError(e, 'run Mutation.register', ['Mutation', 'register']);
+      }
+    },
+
     login: async (
       _: unknown,
-      args: { email: string; password: string },
+      { input }: { input: { email: string; password: string } },
       { medusa }: GraphQLContext
     ) => {
       try {
         const token = await medusa.auth.login('customer', 'emailpass', {
-          email: args.email,
-          password: args.password,
+          email: input.email,
+          password: input.password,
         });
 
         if (typeof token !== 'string') {
           throw new Error('Unable to login');
         }
 
-        return { token, isCustomerLoggedIn: true };
+        const { customer } = await medusa.store.customer.retrieve(
+          { fields: '*orders' },
+          {
+            Authorization: `Bearer ${token}`,
+          }
+        );
+
+        return {
+          token,
+          customer: transformCustomer(customer),
+        };
       } catch (e) {
         handleMedusaError(e, 'run Mutation.login', ['Mutation', 'login']);
       }
     },
-    logout: async (_: unknown, __: unknown, { medusa }: GraphQLContext) => {
-      await medusa.auth.logout();
 
-      return { success: true };
+    logout: async (_: unknown, __: unknown, { medusa }: GraphQLContext) => {
+      try {
+        await medusa.auth.logout();
+        return true;
+      } catch (e) {
+        handleMedusaError(e, 'run Mutation.logout', ['Mutation', 'logout']);
+      }
     },
   },
 };

@@ -3,8 +3,29 @@ type Query {
 }
 
 type Mutation {
-  login(email: String!, password: String!): LoginResponse
-  logout: LogoutResponse
+  register(input: RegisterCustomerInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+}
+
+# New Input Types
+input RegisterCustomerInput {
+  email: String!
+  password: String!
+  firstName: String
+  lastName: String
+  phone: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+# Response Types
+type AuthPayload {
+  token: String!
+  customer: Customer
 }
 
 type LoginResponse {

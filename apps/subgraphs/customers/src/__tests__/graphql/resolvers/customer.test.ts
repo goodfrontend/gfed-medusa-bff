@@ -1,11 +1,16 @@
-import { customerResolvers } from '@graphql/resolvers';
+import { customerResolvers } from '@graphql/resolvers/customers';
 import { transformCustomer } from '@graphql/resolvers/util/transforms';
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
-import { createMockCustomer, mockLoginToken } from '@mocks/customer';
+import {
+  createMockCustomer,
+  mockLoginToken,
+  mockRegisterToken,
+} from '@mocks/customer';
 import {
   internalServerErrorHandler,
   invalidLoginHandler,
+  invalidRegisterHandler,
 } from '@mocks/msw/handlers/customer';
 import { server } from '@mocks/msw/node';
 
@@ -60,8 +65,42 @@ describe('Customer Resolvers', () => {
     });
   });
 
+  describe('Mutation.register', () => {
+    const registerInput = {
+      email: 'newcustomer@example.com',
+      password: 'password123',
+      firstName: 'Jane',
+      lastName: 'Smith',
+      phone: '+9876543210',
+    };
+
+    it('should register customer successfully', async () => {
+      const result = await customerResolvers.Mutation.register(
+        {},
+        { input: registerInput },
+        testContext
+      );
+
+      expect(result).toHaveProperty('token');
+      expect(result).toHaveProperty('customer');
+      expect(result.token).toBe(mockRegisterToken);
+    });
+
+    it('should handle failed registration when email already exists', async () => {
+      server.use(invalidRegisterHandler);
+
+      await expect(
+        customerResolvers.Mutation.register(
+          {},
+          { input: registerInput },
+          testContext
+        )
+      ).rejects.toThrow();
+    });
+  });
+
   describe('Mutation.login', () => {
-    const loginArgs = {
+    const loginInput = {
       email: 'john@example.com',
       password: 'password123',
     };
@@ -69,21 +108,20 @@ describe('Customer Resolvers', () => {
     it('should login customer successfully', async () => {
       const result = await customerResolvers.Mutation.login(
         {},
-        loginArgs,
+        { input: loginInput },
         testContext
       );
 
-      expect(result).toEqual({
-        token: mockLoginToken,
-        isCustomerLoggedIn: true,
-      });
+      expect(result).toHaveProperty('token');
+      expect(result).toHaveProperty('customer');
+      expect(result.token).toBe(mockLoginToken);
     });
 
     it('should handle failed login attempts and login errors', async () => {
       server.use(invalidLoginHandler);
 
       await expect(
-        customerResolvers.Mutation.login({}, loginArgs, testContext)
+        customerResolvers.Mutation.login({}, { input: loginInput }, testContext)
       ).rejects.toThrow();
     });
   });
@@ -96,7 +134,7 @@ describe('Customer Resolvers', () => {
         testContext
       );
 
-      expect(result).toEqual({ success: true });
+      expect(result).toBe(true);
     });
   });
 });
