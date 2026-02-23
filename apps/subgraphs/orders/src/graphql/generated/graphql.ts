@@ -306,9 +306,15 @@ export type Promotion = {
 
 export type Query = {
   cart?: Maybe<Cart>;
+  region?: Maybe<Region>;
+  regions: Array<Region>;
 };
 
 export type QueryCartArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QueryRegionArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -1018,6 +1024,13 @@ export type QueryResolvers<
     ContextType,
     RequireFields<QueryCartArgs, 'id'>
   >;
+  region?: Resolver<
+    Maybe<ResolversTypes['Region']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryRegionArgs, 'id'>
+  >;
+  regions?: Resolver<Array<ResolversTypes['Region']>, ParentType, ContextType>;
 };
 
 export type RegionResolvers<
