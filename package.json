@@ -12,7 +12,8 @@
     "lint:workflows": "yamllint .github/workflows/*.yaml && actionlint .github/workflows/*.yaml",
     "generate:all": "turbo run generate-schema",
     "publish:all": "turbo run publish-schema",
-    "ci:publish": "pnpm build --filter=\"./packages/**\" && changeset publish --access public"
+    "ci:publish": "pnpm build --filter=\"./packages/**\" && changeset publish --access public",
+    "cache:purge": "sh -lc 'docker exec -it ${REDIS_CONTAINER:-redis} sh -lc \"redis-cli --scan --pattern \\\"${CACHE_NAMESPACE:-bff:cache:v1:}*\\\" | xargs -r redis-cli del\"'"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

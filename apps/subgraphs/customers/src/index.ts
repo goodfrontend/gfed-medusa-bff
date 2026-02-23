@@ -115,7 +115,7 @@ async function startServer() {
 
   logger.info(
     { port, env: process.env.NODE_ENV },
-    `Products subgraph ready at ${hostname}:${port}/graphql`
+    `Customers subgraph ready at ${hostname}:${port}/graphql`
   );
 
   process.on('SIGTERM', () => {

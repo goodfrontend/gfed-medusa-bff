@@ -78,7 +78,7 @@ type ApplicationMethod {
   currencyCode: String!
 }
 
-type Cart {
+type Cart @cacheControl(maxAge: 0) {
   id: ID!
   currencyCode: String!
   originalTotal: Int!
@@ -170,7 +170,7 @@ type CompleteCartOrderResult {
 union CompleteCartResponse = CompleteCartErrorResult | CompleteCartOrderResult
 
 extend type Query {
-  cart(id: ID!): Cart
+  cart(id: ID!): Cart @cacheControl(maxAge: 0)
 }
 
 extend type Mutation {

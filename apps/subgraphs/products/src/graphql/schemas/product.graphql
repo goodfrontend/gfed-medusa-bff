@@ -10,8 +10,9 @@ type Query {
     id: [ID!]
     is_giftcard: Boolean
     tag_id: [String]
-  ): ProductListResponse!
+  ): ProductListResponse! @cacheControl(maxAge: 60, scope: PUBLIC)
   product(id: ID!, region_id: String): Product
+    @cacheControl(maxAge: 60, scope: PUBLIC)
   productCategories(
     limit: Int
     offset: Int
@@ -21,10 +22,12 @@ type Query {
     is_internal: Boolean
     include_descendants_tree: Boolean
     parent_category_id: String
-  ): [ProductCategory!]!
+  ): [ProductCategory!]! @cacheControl(maxAge: 300, scope: PUBLIC)
   productCategory(id: ID!): ProductCategory
+    @cacheControl(maxAge: 300, scope: PUBLIC)
   collections(limit: Int, offset: Int, handle: [String]): [Collection!]!
-  collection(id: ID!): Collection
+    @cacheControl(maxAge: 300, scope: PUBLIC)
+  collection(id: ID!): Collection @cacheControl(maxAge: 300, scope: PUBLIC)
   searchProducts(
     query: String
     indexName: String
@@ -32,7 +35,7 @@ type Query {
     page: Int
     filters: String
     facets: [String!]
-  ): SearchProducts!
+  ): SearchProducts! @cacheControl(maxAge: 30, scope: PUBLIC)
 }
 
 type ProductListResponse {
@@ -40,7 +43,7 @@ type ProductListResponse {
   count: Int!
 }
 
-type Product {
+type Product @cacheControl(maxAge: 300, scope: PUBLIC) {
   id: ID!
   title: String!
   handle: String!
@@ -82,10 +85,10 @@ type ProductOptionValue {
   value: String!
 }
 
-type ProductVariant @key(fields: "id") {
+type ProductVariant @key(fields: "id") @cacheControl(maxAge: 30, scope: PUBLIC) {
   id: ID!
   sku: String
-  inventoryQuantity: Int
+  inventoryQuantity: Int @cacheControl(maxAge: 0)
   allowBackorder: Boolean
   manageInventory: Boolean
   options: [ProductVariantOption]
@@ -101,13 +104,13 @@ type ProductVariantOption {
   value: String!
 }
 
-type Price {
+type Price @cacheControl(maxAge: 30, scope: PUBLIC) {
   amount: Float
   currencyCode: String
   priceType: String
 }
 
-type ProductCategory {
+type ProductCategory @cacheControl(maxAge: 600, scope: PUBLIC) {
   id: ID!
   name: String!
   description: String
@@ -117,7 +120,7 @@ type ProductCategory {
   products: ProductList
 }
 
-type Collection {
+type Collection @cacheControl(maxAge: 600, scope: PUBLIC) {
   id: ID!
   title: String!
   handle: String!

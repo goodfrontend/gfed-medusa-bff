@@ -39,6 +39,8 @@ export type Scalars = {
   DateTime: { input: string; output: string };
 };
 
+export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
+
 export type Customer = {
   addresses?: Maybe<Array<Maybe<CustomerAddress>>>;
   companyName?: Maybe<Scalars['String']['output']>;
@@ -212,9 +214,11 @@ export type DirectiveResolverFn<
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CacheControlScope: CacheControlScope;
   Customer: ResolverTypeWrapper<Customer>;
   CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   LoginResponse: ResolverTypeWrapper<LoginResponse>;
   LogoutResponse: ResolverTypeWrapper<LogoutResponse>;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
@@ -228,12 +232,25 @@ export type ResolversParentTypes = {
   Customer: Customer;
   CustomerAddress: CustomerAddress;
   DateTime: Scalars['DateTime']['output'];
+  Int: Scalars['Int']['output'];
   LoginResponse: LoginResponse;
   LogoutResponse: LogoutResponse;
   Mutation: Record<PropertyKey, never>;
   Query: Record<PropertyKey, never>;
   String: Scalars['String']['output'];
 };
+
+export type CacheControlDirectiveArgs = {
+  maxAge?: Maybe<Scalars['Int']['input']>;
+  scope?: Maybe<CacheControlScope>;
+};
+
+export type CacheControlDirectiveResolver<
+  Result,
+  Parent,
+  ContextType = GraphQLContext,
+  Args = CacheControlDirectiveArgs,
+> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type CustomerResolvers<
   ContextType = GraphQLContext,
@@ -383,4 +400,8 @@ export type Resolvers<ContextType = GraphQLContext> = {
   LogoutResponse?: LogoutResponseResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+};
+
+export type DirectiveResolvers<ContextType = GraphQLContext> = {
+  cacheControl?: CacheControlDirectiveResolver<any, any, ContextType>;
 };

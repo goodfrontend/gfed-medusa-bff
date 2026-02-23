@@ -2,7 +2,9 @@ import type express from 'express';
 
 import type { Logger } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
+import type { Product } from '@graphql/generated/graphql';
 import Medusa from '@medusajs/js-sdk';
+import DataLoader from 'dataloader';
 
 import { AlgoliaSearchService } from './algolia/search';
 import { CategoryService } from './medusa/category';
@@ -22,6 +24,7 @@ export function createContext({
   let _categoryService: CategoryService | null = null;
   let _collectionService: CollectionService | null = null;
   let _algoliaSearchService: AlgoliaSearchService | null = null;
+  let _productByIdLoader: DataLoader<string, Product | null> | null = null;
 
   const createMedusa = () => {
     const medusa = new Medusa({
@@ -43,14 +46,26 @@ export function createContext({
     process.env.ALGOLIA_PRODUCT_INDEX_NAME
   );
 
+  const getProductService = () => {
+    if (!_productService) _productService = new ProductService(medusa);
+    return _productService;
+  };
+
   return {
     req,
     res,
     medusa,
     logger,
     get productService() {
-      if (!_productService) _productService = new ProductService(medusa);
-      return _productService;
+      return getProductService();
+    },
+    get productByIdLoader() {
+      if (!_productByIdLoader) {
+        _productByIdLoader = new DataLoader(async (ids: readonly string[]) => {
+          return await getProductService().getProductsByIds(ids as string[], {});
+        });
+      }
+      return _productByIdLoader;
     },
     get categoryService() {
       if (!_categoryService) _categoryService = new CategoryService(medusa);

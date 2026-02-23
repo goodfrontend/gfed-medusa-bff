@@ -131,6 +131,69 @@ The reusable workflow lives at `.github/workflows/_publish-supergraph.yaml` and 
 - Lint and format config is always inherited—customize only per-app rules if needed.
 - Add new subgraphs by creating a folder under `apps/subgraphs/*` and extending the federation config in the gateway.
 
+## Caching and Redis
+
+### Gateway Response Caching
+
+The gateway uses Apollo Server response caching. Cache hints are defined in **subgraph schemas** via `@cacheControl`, and the gateway caches the full response based on the most restrictive hint.
+
+**Relevant files**
+- Gateway cache config: `apps/gateway/src/config/cache.ts`
+- Gateway server: `apps/gateway/src/index.ts`
+- Subgraph cache hints: `apps/subgraphs/*/src/**/schemas/*.graphql`
+
+### Redis Configuration
+
+Configure Redis for shared cache storage:
+
+```env
+REDIS_URL=redis://localhost:6379
+CACHE_NAMESPACE=bff:cache:v1:
+CACHE_DEBUG=false
+```
+
+To run Redis locally for demos:
+```sh
+docker run --rm --name redis -p 6379:6379 redis:7
+```
+
+Notes:
+- `CACHE_NAMESPACE` controls the key prefix (use this for namespace bump purges).
+- `CACHE_DEBUG=true` adds an `x-cache: HIT|MISS` response header for demos.
+
+### Purging Cache
+
+#### Namespace Bump (recommended)
+Change the namespace and redeploy:
+```env
+CACHE_NAMESPACE=bff:cache:v2:
+```
+
+#### Delete Keys by Prefix (Redis CLI)
+```sh
+redis-cli --scan --pattern "bff:cache:v1:*" | xargs -r redis-cli del
+```
+
+If using Docker:
+```sh
+docker exec -it <redis_container_id> sh -lc 'redis-cli --scan --pattern "bff:cache:v1:*" | xargs -r redis-cli del'
+```
+
+Or use the root script (Docker, container name `redis` by default):
+```sh
+pnpm cache:purge
+```
+
+You can override the container name and prefix:
+```sh
+REDIS_CONTAINER=my-redis CACHE_NAMESPACE=bff:cache:v2: pnpm cache:purge
+```
+
+#### Clear All Keys (use with caution)
+```sh
+redis-cli FLUSHDB
+```
+
 ### Adding a New Subgraph to Local Development
 
 When you create a new subgraph inside the monorepo, make sure to register it in the Turbo configuration so it starts automatically during local development.

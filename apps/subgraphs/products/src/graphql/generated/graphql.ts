@@ -39,6 +39,8 @@ export type Scalars = {
   DateTime: { input: string; output: string };
 };
 
+export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
+
 export type Collection = {
   handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -333,6 +335,7 @@ export type DirectiveResolverFn<
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CacheControlScope: CacheControlScope;
   Collection: ResolverTypeWrapper<Collection>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
@@ -379,6 +382,18 @@ export type ResolversParentTypes = {
   SearchProducts: SearchProducts;
   String: Scalars['String']['output'];
 };
+
+export type CacheControlDirectiveArgs = {
+  maxAge?: Maybe<Scalars['Int']['input']>;
+  scope?: Maybe<CacheControlScope>;
+};
+
+export type CacheControlDirectiveResolver<
+  Result,
+  Parent,
+  ContextType = GraphQLContext,
+  Args = CacheControlDirectiveArgs,
+> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type CollectionResolvers<
   ContextType = GraphQLContext,
@@ -729,4 +744,8 @@ export type Resolvers<ContextType = GraphQLContext> = {
   ProductVariantOption?: ProductVariantOptionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SearchProducts?: SearchProductsResolvers<ContextType>;
+};
+
+export type DirectiveResolvers<ContextType = GraphQLContext> = {
+  cacheControl?: CacheControlDirectiveResolver<any, any, ContextType>;
 };

@@ -1,4 +1,4 @@
-type Order {
+type Order @cacheControl(maxAge: 0) {
   id: ID!
   regionId: String!
   customerId: String!

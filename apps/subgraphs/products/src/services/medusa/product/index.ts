@@ -40,4 +40,27 @@ export class ProductService extends MedusaBaseService {
       handleMedusaError(error, 'fetch product', ['product']);
     }
   }
+
+  async getProductsByIds(
+    ids: string[],
+    params?: HttpTypes.StoreProductListParams
+  ): Promise<(Product | null)[]> {
+    if (!ids.length) return [];
+
+    try {
+      const { products } = await this.medusa.store.product.list({
+        ...params,
+        id: ids,
+        fields: '+variants.inventory_quantity',
+      });
+
+      const mapped = new Map(
+        products.map((product) => [product.id, formatProductData(product)])
+      );
+
+      return ids.map((id) => mapped.get(id) ?? null);
+    } catch (error: unknown) {
+      handleMedusaError(error, 'fetch products by ids', ['products']);
+    }
+  }
 }

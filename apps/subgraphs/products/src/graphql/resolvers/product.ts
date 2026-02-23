@@ -68,6 +68,17 @@ export const productResolvers = {
       return await context.algoliaSearchService.search(args);
     },
   },
+  ProductVariant: {
+    product: async (
+      parent: { productId?: string; product?: unknown },
+      _args: unknown,
+      context: GraphQLContext
+    ) => {
+      if (parent.product) return parent.product as any;
+      if (!parent.productId) return null;
+      return await context.productByIdLoader.load(parent.productId);
+    },
+  },
   Collection: {
     products: async (
       parent: HttpTypes.StoreCollection,
