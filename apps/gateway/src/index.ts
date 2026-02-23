@@ -4,25 +4,27 @@ import express from 'express';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { KeyValueCacheSetOptions } from '@apollo/utils.keyvaluecache';
-import type {
-  ApolloServerPlugin,
-  GraphQLRequestListener,
-} from '@apollo/server';
 
 import {
   ApolloGateway,
   IntrospectAndCompose,
   RemoteGraphQLDataSource,
-  SupergraphSdlUpdateFunction,
   type ServiceEndpointDefinition,
+  SupergraphSdlUpdateFunction,
 } from '@apollo/gateway';
+import type {
+  ApolloServerPlugin,
+  GraphQLRequestListener,
+} from '@apollo/server';
 import { ApolloServer } from '@apollo/server';
-import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import responseCachePlugin from '@apollo/server-plugin-response-cache';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+import type { KeyValueCacheSetOptions } from '@apollo/utils.keyvaluecache';
 import { expressMiddleware } from '@as-integrations/express5';
+import Medusa from '@medusajs/js-sdk';
 
 import { responseCache } from './config/cache';
+import { client, getOpenIdConfigs, getPKCE } from './config/openid';
 import { sessionConfig } from './config/session';
 import { sessionUpdatePlugin } from './plugins/sessionUpdate';
 
@@ -44,7 +46,10 @@ const RELOAD_ROUTE = '/admin/reload-supergraph';
 
 async function fetchSupergraphSdl(url: string) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SUPERGRAPH_FETCH_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    SUPERGRAPH_FETCH_TIMEOUT_MS
+  );
 
   try {
     const headers: Record<string, string> = {};
@@ -100,7 +105,10 @@ async function startServer() {
         }
 
         if (context.session) {
-          request.http?.headers.set('x-session-data', JSON.stringify(context.session));
+          request.http?.headers.set(
+            'x-session-data',
+            JSON.stringify(context.session)
+          );
         }
       },
     });
@@ -173,21 +181,21 @@ async function startServer() {
 
   const cacheDebugPlugin: ApolloServerPlugin<GatewayContext> = {
     async requestDidStart(): Promise<GraphQLRequestListener<GatewayContext> | void> {
-        if (process.env.CACHE_DEBUG !== 'true') return;
-        cacheContext.enterWith({ cacheHit: false });
-        return {
-          async willSendResponse({ contextValue }) {
-            const store = cacheContext.getStore();
-            if (contextValue?.res && store) {
-              contextValue.res.setHeader(
-                'x-cache',
-                store.cacheHit ? 'HIT' : 'MISS'
-              );
-            }
-          },
-        };
-      },
-    };
+      if (process.env.CACHE_DEBUG !== 'true') return;
+      cacheContext.enterWith({ cacheHit: false });
+      return {
+        async willSendResponse({ contextValue }) {
+          const store = cacheContext.getStore();
+          if (contextValue?.res && store) {
+            contextValue.res.setHeader(
+              'x-cache',
+              store.cacheHit ? 'HIT' : 'MISS'
+            );
+          }
+        },
+      };
+    },
+  };
 
   const server = new ApolloServer<GatewayContext>({
     gateway,
@@ -197,7 +205,8 @@ async function startServer() {
       sessionUpdatePlugin,
       responseCachePlugin({
         cache: responseCacheWithTracking,
-        sessionId: async ({ contextValue }) => contextValue.req.sessionID ?? null,
+        sessionId: async ({ contextValue }) =>
+          contextValue.req.sessionID ?? null,
       }),
       cacheDebugPlugin,
     ],
@@ -215,6 +224,157 @@ async function startServer() {
   );
   app.use(sessionConfig);
   app.use(express.json());
+
+  app.get('/auth/login', async (req, res) => {
+    const { codeChallenge, codeVerifier } = await getPKCE();
+    const { redirectTo, parameters } = await getOpenIdConfigs({
+      codeChallenge,
+    });
+
+    // Save PKCE details to session (will need on auth callback)
+    req.session.pkce = { codeVerifier, codeChallenge, nonce: parameters.nonce };
+
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve()))
+    );
+
+    res.redirect(redirectTo.toString());
+  });
+
+  app.get('/auth/callback', async (req, res) => {
+    const currentUrl = new URL(`${process.env.BFF_URL}${req.url}`);
+
+    const { codeChallenge, codeVerifier, nonce } = { ...req.session.pkce };
+    const { config } = await getOpenIdConfigs({
+      codeChallenge: codeChallenge!,
+      nonce: nonce!,
+    });
+
+    let tokens:
+      | (client.TokenEndpointResponse & client.TokenEndpointResponseHelpers)
+      | undefined = undefined;
+
+    try {
+      tokens = await client.authorizationCodeGrant(config, currentUrl, {
+        pkceCodeVerifier: codeVerifier,
+        expectedNonce: nonce,
+        idTokenExpected: true,
+      });
+    } catch (e) {
+      res.status(500).json({
+        error: 'There was an error with the authorization code grant flow',
+        message: JSON.stringify(e),
+      });
+    }
+
+    const { id_token: idToken, access_token: accessToken } = { ...tokens };
+
+    if (!idToken || typeof idToken !== 'string') {
+      throw new Error(`Invalid id_token: ${idToken}`);
+    }
+
+    const claims = tokens?.claims();
+
+    const { sub } = { ...claims };
+
+    let emailAddress: string | undefined;
+    let firstName: string | undefined;
+    let lastName: string | undefined;
+
+    if (sub) {
+      const userInfo = await client.fetchUserInfo(config, accessToken!, sub);
+
+      const { given_name, family_name, email } = { ...userInfo };
+
+      firstName = given_name;
+      lastName = family_name;
+      emailAddress = email;
+    }
+
+    const medusa = new Medusa({
+      baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
+      globalHeaders: {
+        'X-Publishable-API-Key':
+          process.env.MEDUSA_PUBLISHABLE_KEY || 'pk_test',
+      },
+    });
+
+    let medusaRes: unknown = undefined;
+
+    try {
+      // Retrieve or create Medusa customer + create Medusa JWT for user
+      medusaRes = await medusa.client.fetch('/store/external-oidc', {
+        method: 'POST',
+        body: {
+          idToken,
+        },
+      });
+    } catch (e) {
+      res.status(500).json({
+        error: 'There was an error fetching JWT from Medusa',
+        message: JSON.stringify(e),
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const medusaToken = (medusaRes as any).token;
+
+    // Add session information + persist
+    req.session.authId = sub;
+    req.session.user = { email: emailAddress, firstName, lastName };
+    req.session.medusaToken = medusaToken as string;
+    req.session.isCustomerLoggedIn = true;
+
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve()))
+    );
+
+    // Redirect back to storefront after successful login
+    res.redirect(process.env.STOREFRONT_URL || 'http://localhost:8080');
+  });
+
+  app.get('/auth/logout', async (req, res) => {
+    const { codeChallenge, nonce } = { ...req.session.pkce };
+
+    const { config } = await getOpenIdConfigs({
+      codeChallenge: codeChallenge!,
+      nonce: nonce!,
+    });
+
+    let logoutUri: URL | undefined;
+
+    try {
+      logoutUri = client.buildEndSessionUrl(config);
+    } catch (e) {
+      res.status(500).json({
+        error: 'There was an error building the logout URL',
+        message: JSON.stringify(e),
+      });
+    }
+
+    req.session.medusaToken = undefined;
+    req.session.isCustomerLoggedIn = undefined;
+    req.session.pkce = undefined;
+    req.session.authId = undefined;
+
+    await new Promise<void>((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) reject(err);
+        else {
+          res.clearCookie('storefront.sid', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 1000 * 60 * 60 * 24,
+          });
+          resolve();
+        }
+      });
+    });
+
+    res.redirect(logoutUri?.toString() ?? '/');
+  });
+
   if (useRegistry) {
     app.get(RELOAD_ROUTE, (req, res) => {
       if (!isReloadAuthorized(req)) {
@@ -250,7 +410,8 @@ async function startServer() {
         res.status(200).json({ status: 'reloaded' });
       } catch (error) {
         console.error('Failed to reload supergraph:', error);
-        lastReloadError = error instanceof Error ? error.message : 'Unknown error';
+        lastReloadError =
+          error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ error: 'Failed to reload supergraph' });
       }
     });

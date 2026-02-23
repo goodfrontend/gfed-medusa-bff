@@ -148,7 +148,10 @@ export const customerResolvers = {
 
         return transformCustomer(customer);
       } catch (e) {
-        handleMedusaError(e, 'run Mutation.updateCustomer', ['Mutation', 'updateCustomer']);
+        handleMedusaError(e, 'run Mutation.updateCustomer', [
+          'Mutation',
+          'updateCustomer',
+        ]);
       }
     },
 
@@ -189,7 +192,10 @@ export const customerResolvers = {
 
         return transformCustomer(customer);
       } catch (e) {
-        handleMedusaError(e, 'run Mutation.addCustomerAddress', ['Mutation', 'addCustomerAddress']);
+        handleMedusaError(e, 'run Mutation.addCustomerAddress', [
+          'Mutation',
+          'addCustomerAddress',
+        ]);
       }
     },
 
@@ -229,7 +235,10 @@ export const customerResolvers = {
 
         return transformCustomer(customer);
       } catch (e) {
-        handleMedusaError(e, 'run Mutation.updateCustomerAddress', ['Mutation', 'updateCustomerAddress']);
+        handleMedusaError(e, 'run Mutation.updateCustomerAddress', [
+          'Mutation',
+          'updateCustomerAddress',
+        ]);
       }
     },
 
@@ -249,11 +258,17 @@ export const customerResolvers = {
           ? { Authorization: `Bearer ${session.medusaToken}` }
           : undefined;
 
-        const result = await medusa.store.customer.deleteAddress(id, authHeader);
+        const result = await medusa.store.customer.deleteAddress(
+          id,
+          authHeader
+        );
 
         return { id: result.id, deleted: result.deleted };
       } catch (e) {
-        handleMedusaError(e, 'run Mutation.deleteCustomerAddress', ['Mutation', 'deleteCustomerAddress']);
+        handleMedusaError(e, 'run Mutation.deleteCustomerAddress', [
+          'Mutation',
+          'deleteCustomerAddress',
+        ]);
       }
     },
   },
