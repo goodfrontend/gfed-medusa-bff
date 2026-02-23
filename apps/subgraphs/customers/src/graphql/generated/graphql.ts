@@ -83,7 +83,6 @@ export type LoginInput = {
   password: Scalars['String']['input'];
 };
 
-
 export type Mutation = {
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
@@ -394,7 +393,6 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
 > {
   name: 'DateTime';
 }
-
 
 export type MutationResolvers<
   ContextType = GraphQLContext,
