@@ -3,6 +3,12 @@ import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import type { AddressInfo } from 'net';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type { KeyValueCacheSetOptions } from '@apollo/utils.keyvaluecache';
+import type {
+  ApolloServerPlugin,
+  GraphQLRequestListener,
+} from '@apollo/server';
 
 import {
   ApolloGateway,
@@ -13,10 +19,18 @@ import {
 } from '@apollo/gateway';
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+import responseCachePlugin from '@apollo/server-plugin-response-cache';
 import { expressMiddleware } from '@as-integrations/express5';
 
+import { responseCache } from './config/cache';
 import { sessionConfig } from './config/session';
 import { sessionUpdatePlugin } from './plugins/sessionUpdate';
+
+type GatewayContext = {
+  req: express.Request;
+  res: express.Response;
+  session: express.Request['session'];
+};
 
 const isDev = process.env.NODE_ENV !== 'production';
 const supergraphSdlUrl = process.env.SUPERGRAPH_SDL_URL?.trim();
@@ -130,12 +144,62 @@ async function startServer() {
         buildService,
       });
 
-  const server = new ApolloServer({
+  const cacheContext = new AsyncLocalStorage<{ cacheHit: boolean }>();
+
+  const baseCache = responseCache;
+  const responseCacheWithTracking =
+    baseCache && process.env.CACHE_DEBUG === 'true'
+      ? {
+          async get(key: string) {
+            const value = await baseCache.get(key);
+            const store = cacheContext.getStore();
+            if (store && value !== undefined && value !== null) {
+              store.cacheHit = true;
+            }
+            return value;
+          },
+          async set(
+            key: string,
+            value: string,
+            options?: KeyValueCacheSetOptions
+          ) {
+            return baseCache.set(key, value, options);
+          },
+          async delete(key: string) {
+            return baseCache.delete(key);
+          },
+        }
+      : baseCache;
+
+  const cacheDebugPlugin: ApolloServerPlugin<GatewayContext> = {
+    async requestDidStart(): Promise<GraphQLRequestListener<GatewayContext> | void> {
+        if (process.env.CACHE_DEBUG !== 'true') return;
+        cacheContext.enterWith({ cacheHit: false });
+        return {
+          async willSendResponse({ contextValue }) {
+            const store = cacheContext.getStore();
+            if (contextValue?.res && store) {
+              contextValue.res.setHeader(
+                'x-cache',
+                store.cacheHit ? 'HIT' : 'MISS'
+              );
+            }
+          },
+        };
+      },
+    };
+
+  const server = new ApolloServer<GatewayContext>({
     gateway,
     introspection: isDev,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       sessionUpdatePlugin,
+      responseCachePlugin({
+        cache: responseCacheWithTracking,
+        sessionId: async ({ contextValue }) => contextValue.req.sessionID ?? null,
+      }),
+      cacheDebugPlugin,
     ],
   });
 

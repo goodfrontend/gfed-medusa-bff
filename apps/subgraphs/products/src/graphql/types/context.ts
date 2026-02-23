@@ -6,6 +6,8 @@ import { AlgoliaSearchService } from '@services/algolia/search';
 import { CategoryService } from '@services/medusa/category';
 import { CollectionService } from '@services/medusa/collection';
 import { ProductService } from '@services/medusa/product';
+import DataLoader from 'dataloader';
+import type { Product } from '@graphql/generated/graphql';
 
 export type GraphQLContext = {
   req: express.Request;
@@ -13,6 +15,7 @@ export type GraphQLContext = {
   medusa: Medusa;
   logger: Logger;
   productService: ProductService;
+  productByIdLoader: DataLoader<string, Product | null>;
   categoryService: CategoryService;
   collectionService: CollectionService;
   algoliaSearchService: AlgoliaSearchService;

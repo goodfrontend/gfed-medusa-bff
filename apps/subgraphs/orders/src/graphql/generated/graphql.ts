@@ -81,6 +81,8 @@ export type ApplicationMethod = {
 
 export type ApplicationType = 'fixed' | 'percentage';
 
+export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
+
 export type Cart = {
   billingAddress?: Maybe<Address>;
   createdAt?: Maybe<Scalars['DateTime']['output']>;
@@ -475,6 +477,7 @@ export type ResolversTypes = {
   ApplicationMethod: ResolverTypeWrapper<ApplicationMethod>;
   ApplicationType: ApplicationType;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CacheControlScope: CacheControlScope;
   Cart: ResolverTypeWrapper<Cart>;
   CompleteCartError: ResolverTypeWrapper<CompleteCartError>;
   CompleteCartErrorResult: ResolverTypeWrapper<CompleteCartErrorResult>;
@@ -544,6 +547,18 @@ export type ResolversParentTypes = {
   UpdateCartInput: UpdateCartInput;
   UpdateLineItemInput: UpdateLineItemInput;
 };
+
+export type CacheControlDirectiveArgs = {
+  maxAge?: Maybe<Scalars['Int']['input']>;
+  scope?: Maybe<CacheControlScope>;
+};
+
+export type CacheControlDirectiveResolver<
+  Result,
+  Parent,
+  ContextType = GraphQLContext,
+  Args = CacheControlDirectiveArgs,
+> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type AddressResolvers<
   ContextType = GraphQLContext,
@@ -1081,4 +1096,8 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Region?: RegionResolvers<ContextType>;
   ShippingMethod?: ShippingMethodResolvers<ContextType>;
   StoreLineItemDeleteResponse?: StoreLineItemDeleteResponseResolvers<ContextType>;
+};
+
+export type DirectiveResolvers<ContextType = GraphQLContext> = {
+  cacheControl?: CacheControlDirectiveResolver<any, any, ContextType>;
 };

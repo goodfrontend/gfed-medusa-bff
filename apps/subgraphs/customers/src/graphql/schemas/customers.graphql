@@ -1,5 +1,5 @@
 type Query {
-  me: Customer
+  me: Customer @cacheControl(maxAge: 0)
 }
 
 type Mutation {
@@ -16,7 +16,7 @@ type LogoutResponse {
   success: Boolean
 }
 
-type Customer {
+type Customer @cacheControl(maxAge: 0) {
   id: String!
   email: String
   defaultBillingAddressId: String

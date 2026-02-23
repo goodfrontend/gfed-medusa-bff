@@ -7,7 +7,7 @@ type PartialRichText {
   text: JSON
 }
 
-type Footer @key(fields: "_id") {
+type Footer @key(fields: "_id") @cacheControl(maxAge: 1800, scope: PUBLIC) {
   _id: ID!
   _type: String!
   storeName: String
@@ -17,5 +17,5 @@ type Footer @key(fields: "_id") {
 }
 
 extend type Query {
-  footer: Footer
+  footer: Footer @cacheControl(maxAge: 1800, scope: PUBLIC)
 }

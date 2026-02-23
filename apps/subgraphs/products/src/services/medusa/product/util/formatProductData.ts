@@ -37,10 +37,12 @@ export const formatProductData = (
       allow_backorder: allowBackorder,
       inventory_quantity: inventoryQuantity,
       calculated_price: calculatedPrice,
+      product_id: productId,
     } = variant;
 
     return {
       id: variantId,
+      productId,
       sku,
       options:
         variantOptions?.map(({ id, option_id, value }) => ({
@@ -65,7 +67,7 @@ export const formatProductData = (
             calculatedPrice?.original_price?.price_list_type || 'default',
         },
       }),
-    };
+    } as unknown as Product['variants'][number];
   });
 
   return {
