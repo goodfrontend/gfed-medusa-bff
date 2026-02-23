@@ -83,14 +83,6 @@ export type LoginInput = {
   password: Scalars['String']['input'];
 };
 
-export type LoginResponse = {
-  isCustomerLoggedIn?: Maybe<Scalars['Boolean']['output']>;
-  token?: Maybe<Scalars['String']['output']>;
-};
-
-export type LogoutResponse = {
-  success?: Maybe<Scalars['Boolean']['output']>;
-};
 
 export type Mutation = {
   login: AuthPayload;
@@ -247,9 +239,12 @@ export type ResolversTypes = {
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
 =======
   LoginInput: LoginInput;
+<<<<<<< HEAD
 >>>>>>> d3c9c42 (feat: auth mutations)
   LoginResponse: ResolverTypeWrapper<LoginResponse>;
   LogoutResponse: ResolverTypeWrapper<LogoutResponse>;
+=======
+>>>>>>> 41ff591 (fix: remove unused types)
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   RegisterCustomerInput: RegisterCustomerInput;
@@ -267,9 +262,12 @@ export type ResolversParentTypes = {
   Int: Scalars['Int']['output'];
 =======
   LoginInput: LoginInput;
+<<<<<<< HEAD
 >>>>>>> d3c9c42 (feat: auth mutations)
   LoginResponse: LoginResponse;
   LogoutResponse: LogoutResponse;
+=======
+>>>>>>> 41ff591 (fix: remove unused types)
   Mutation: Record<PropertyKey, never>;
   Query: Record<PropertyKey, never>;
   RegisterCustomerInput: RegisterCustomerInput;
@@ -397,26 +395,6 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
   name: 'DateTime';
 }
 
-export type LoginResponseResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends ResolversParentTypes['LoginResponse'] =
-    ResolversParentTypes['LoginResponse'],
-> = {
-  isCustomerLoggedIn?: Resolver<
-    Maybe<ResolversTypes['Boolean']>,
-    ParentType,
-    ContextType
-  >;
-  token?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-};
-
-export type LogoutResponseResolvers<
-  ContextType = GraphQLContext,
-  ParentType extends ResolversParentTypes['LogoutResponse'] =
-    ResolversParentTypes['LogoutResponse'],
-> = {
-  success?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-};
 
 export type MutationResolvers<
   ContextType = GraphQLContext,
@@ -451,8 +429,6 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Customer?: CustomerResolvers<ContextType>;
   CustomerAddress?: CustomerAddressResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
-  LoginResponse?: LoginResponseResolvers<ContextType>;
-  LogoutResponse?: LogoutResponseResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
 };

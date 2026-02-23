@@ -10,6 +10,7 @@ import {
 import {
   internalServerErrorHandler,
   invalidLoginHandler,
+  invalidLogoutHandler,
   invalidRegisterHandler,
 } from '@mocks/msw/handlers/customer';
 import { server } from '@mocks/msw/node';
@@ -84,6 +85,7 @@ describe('Customer Resolvers', () => {
       expect(result).toHaveProperty('token');
       expect(result).toHaveProperty('customer');
       expect(result.token).toBe(mockRegisterToken);
+      expect(result.customer).toEqual(transformCustomer(createMockCustomer()));
     });
 
     it('should handle failed registration when email already exists', async () => {
@@ -135,6 +137,14 @@ describe('Customer Resolvers', () => {
       );
 
       expect(result).toBe(true);
+    });
+
+    it('should handle logout errors', async () => {
+      server.use(invalidLogoutHandler);
+
+      await expect(
+        customerResolvers.Mutation.logout({}, {}, testContext)
+      ).rejects.toThrow();
     });
   });
 });

@@ -8,7 +8,6 @@ type Mutation {
   logout: Boolean!
 }
 
-# New Input Types
 input RegisterCustomerInput {
   email: String!
   password: String!
@@ -22,22 +21,12 @@ input LoginInput {
   password: String!
 }
 
-# Response Types
 type AuthPayload {
   token: String!
   customer: Customer
 }
 
-type LoginResponse {
-  token: String
-  isCustomerLoggedIn: Boolean
-}
-
-type LogoutResponse {
-  success: Boolean
-}
-
-type Customer @cacheControl(maxAge: 0) {
+type Customer {
   id: String!
   email: String
   defaultBillingAddressId: String

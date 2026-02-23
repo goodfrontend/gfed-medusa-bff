@@ -2,8 +2,11 @@ import {
   UnauthorizedError,
   handleMedusaError,
 } from '@gfed-medusa/bff-lib-common';
+import {
+  MutationLoginArgs,
+  MutationRegisterArgs,
+} from '@graphql/generated/graphql';
 import { GraphQLContext } from '@graphql/types/context';
-import { StoreCustomer } from '@medusajs/types';
 
 import { transformCustomer } from './util/transforms';
 
@@ -23,9 +26,9 @@ export const customerResolvers = {
 
         const { customer } = await medusa.store.customer.retrieve(
           { fields: '*orders' },
-          {
-            Authorization: `Bearer ${session?.medusaToken}`,
-          }
+          session?.medusaToken
+            ? { Authorization: `Bearer ${session.medusaToken}` }
+            : {}
         );
 
         return transformCustomer(customer);
@@ -38,17 +41,7 @@ export const customerResolvers = {
   Mutation: {
     register: async (
       _: unknown,
-      {
-        input,
-      }: {
-        input: {
-          email: string;
-          password: string;
-          firstName?: string;
-          lastName?: string;
-          phone?: string;
-        };
-      },
+      { input }: MutationRegisterArgs,
       { medusa }: GraphQLContext
     ) => {
       try {
@@ -64,9 +57,9 @@ export const customerResolvers = {
         const { customer } = await medusa.store.customer.create(
           {
             email: input.email,
-            first_name: input.firstName,
-            last_name: input.lastName,
-            phone: input.phone,
+            first_name: input.firstName ?? undefined,
+            last_name: input.lastName ?? undefined,
+            phone: input.phone ?? undefined,
           },
           {},
           {
@@ -85,7 +78,7 @@ export const customerResolvers = {
 
     login: async (
       _: unknown,
-      { input }: { input: { email: string; password: string } },
+      { input }: MutationLoginArgs,
       { medusa }: GraphQLContext
     ) => {
       try {

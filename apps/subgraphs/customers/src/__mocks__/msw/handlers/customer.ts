@@ -55,6 +55,12 @@ export const invalidRegisterHandler = http.post(
   () =>
     HttpResponse.json(
       { message: 'Identity with email already exists' },
-      { status: 401 }
+      { status: 409 }
     )
+);
+
+export const invalidLogoutHandler = http.delete(
+  `${process.env.MEDUSA_API_URL}/auth/session`,
+  () =>
+    HttpResponse.json({ message: 'Internal Server Error' }, { status: 500 })
 );
