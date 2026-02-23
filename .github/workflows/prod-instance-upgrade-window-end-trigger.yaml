@@ -1,0 +1,102 @@
+name: Trigger Reconciler At Window End
+
+on:
+  workflow_dispatch:
+    inputs:
+      end_epoch:
+        description: "Window end in UTC unix epoch seconds"
+        required: true
+        type: string
+      parent_run_id:
+        description: "Configure workflow run ID that created this watcher"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: prod-instance-upgrade-window-end-trigger
+  cancel-in-progress: true
+
+jobs:
+  wait-and-trigger:
+    name: Wait and dispatch reconciler
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until window end (with chunked chaining)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          END_EPOCH: ${{ inputs.end_epoch }}
+          PARENT_RUN_ID: ${{ inputs.parent_run_id }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          case "$END_EPOCH" in
+            (*[!0-9]*|'')
+              echo "::error::Invalid end_epoch input: '${END_EPOCH}'"
+              exit 1
+              ;;
+          esac
+
+          now_epoch="$(date -u +%s)"
+          remaining=$((END_EPOCH - now_epoch))
+          chunk_seconds=18000
+          dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
+
+          dispatch_workflow() {
+            local workflow_file="$1"
+            local payload="$2"
+            local out_file="$3"
+
+            curl -sS -o "$out_file" -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches"
+          }
+
+          if [ "$remaining" -gt "$chunk_seconds" ]; then
+            echo "::notice::Window ends in ${remaining}s (> ${chunk_seconds}s). Sleeping ${chunk_seconds}s then chaining watcher."
+            sleep "$chunk_seconds"
+
+            chain_payload="$(jq -cn \
+              --arg ref "$dispatch_ref" \
+              --arg end_epoch "$END_EPOCH" \
+              --arg parent_run_id "$PARENT_RUN_ID" \
+              '{ref:$ref,inputs:{end_epoch:$end_epoch,parent_run_id:$parent_run_id}}')"
+
+            chain_status="$(dispatch_workflow "prod-instance-upgrade-window-end-trigger.yaml" "$chain_payload" /tmp/end_trigger_chain.json)"
+
+            if [ "$chain_status" != "204" ]; then
+              echo "::error::Failed to chain end-time watcher (HTTP ${chain_status})."
+              cat /tmp/end_trigger_chain.json
+              exit 1
+            fi
+
+            echo "::notice::Chained end-time watcher successfully."
+            exit 0
+          fi
+
+          if [ "$remaining" -gt 0 ]; then
+            echo "::notice::Sleeping ${remaining}s until end epoch ${END_EPOCH}."
+            sleep "$remaining"
+          else
+            echo "::notice::End epoch already passed by $((0 - remaining))s; dispatching reconciler now."
+          fi
+
+          reconciler_payload="$(jq -cn --arg ref "$dispatch_ref" '{ref:$ref}')"
+          reconciler_status="$(dispatch_workflow "prod-instance-upgrade-window-reconciler.yaml" "$reconciler_payload" /tmp/end_trigger_reconciler.json)"
+
+          if [ "$reconciler_status" != "204" ]; then
+            echo "::error::Failed to dispatch reconciler at window end (HTTP ${reconciler_status})."
+            cat /tmp/end_trigger_reconciler.json
+            exit 1
+          fi
+
+          echo "::notice::Dispatched reconciler at window end."

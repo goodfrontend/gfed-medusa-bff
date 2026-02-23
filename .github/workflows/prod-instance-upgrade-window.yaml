@@ -1,0 +1,251 @@
+name: Configure Prod Instance Upgrade Window
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_datetime:
+        description: "Window start in local time (YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS])"
+        required: true
+        type: string
+      end_datetime:
+        description: "Window end in local time (YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS])"
+        required: true
+        type: string
+      timezone:
+        description: "IANA timezone (for example: UTC, America/New_York, Asia/Singapore)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: prod-instance-upgrade-window-config
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: Save upgrade window for production BFF services
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs and convert to UTC
+        id: window
+        env:
+          START_DATETIME: ${{ inputs.start_datetime }}
+          END_DATETIME: ${{ inputs.end_datetime }}
+          TIMEZONE_NAME: ${{ inputs.timezone }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+          start_raw = os.environ["START_DATETIME"].strip()
+          end_raw = os.environ["END_DATETIME"].strip()
+          tz_name = os.environ["TIMEZONE_NAME"].strip()
+
+          if not start_raw or not end_raw or not tz_name:
+              raise SystemExit("start_datetime, end_datetime, and timezone are required.")
+
+          try:
+              tz = ZoneInfo(tz_name)
+          except ZoneInfoNotFoundError:
+              raise SystemExit(f"Invalid timezone: {tz_name}")
+
+          formats = [
+              "%Y-%m-%dT%H:%M",
+              "%Y-%m-%d %H:%M",
+              "%Y-%m-%dT%H:%M:%S",
+              "%Y-%m-%d %H:%M:%S",
+          ]
+
+          def parse_local(raw: str) -> datetime:
+              for fmt in formats:
+                  try:
+                      return datetime.strptime(raw, fmt)
+                  except ValueError:
+                      pass
+              raise SystemExit(
+                  f"Invalid datetime '{raw}'. Use YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS]."
+              )
+
+          start_local = parse_local(start_raw)
+          end_local = parse_local(end_raw)
+
+          start_utc = start_local.replace(tzinfo=tz).astimezone(timezone.utc)
+          end_utc = end_local.replace(tzinfo=tz).astimezone(timezone.utc)
+          now_utc = datetime.now(timezone.utc)
+
+          if end_utc <= start_utc:
+              raise SystemExit("end_datetime must be after start_datetime.")
+
+          if end_utc <= now_utc:
+              raise SystemExit("end_datetime must be in the future.")
+
+          services = [
+              "gateway-prod",
+              "content-prod",
+              "products-prod",
+              "orders-prod",
+              "customers-prod",
+          ]
+
+          payload = {
+              "enabled": True,
+              "service_names": services,
+              "service_from_plan": "free",
+              "service_to_plan": "starter",
+              "from_plan": "free",
+              "to_plan": "starter",
+              "timezone": tz_name,
+              "start_input": start_raw,
+              "end_input": end_raw,
+              "start_utc": start_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "end_utc": end_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "start_epoch": int(start_utc.timestamp()),
+              "end_epoch": int(end_utc.timestamp()),
+              "updated_by": os.getenv("GITHUB_ACTOR", ""),
+              "updated_at_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "source_workflow": os.getenv("GITHUB_WORKFLOW", ""),
+              "source_run_id": os.getenv("GITHUB_RUN_ID", ""),
+          }
+
+          with open("instance-window.json", "w", encoding="ascii") as f:
+              json.dump(payload, f, separators=(",", ":"))
+
+          summary = [
+              f"Configured window for {len(services)} production services",
+              f"Services: {', '.join(services)}",
+              f"Service plan window: {payload['service_from_plan']} -> {payload['service_to_plan']} -> {payload['service_from_plan']}",
+              f"Timezone: {tz_name}",
+              f"Start (local): {start_raw}",
+              f"End (local): {end_raw}",
+              f"Start (UTC): {payload['start_utc']}",
+              f"End (UTC): {payload['end_utc']}",
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              for line in summary:
+                  f.write(f"- {line}\n")
+          PY
+
+      - name: Upload window artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-instance-upgrade-window
+          path: instance-window.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Trigger immediate reconciliation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          workflow_file="prod-instance-upgrade-window-reconciler.yaml"
+          dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
+          dispatch_payload="$(jq -cn --arg ref "${dispatch_ref}" '{ref:$ref}')"
+
+          dispatch_status=$(curl -sS -o /tmp/reconciler_dispatch.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Content-Type: application/json" \
+            -d "$dispatch_payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches")
+
+          if [ "$dispatch_status" != "204" ]; then
+            echo "::warning::Could not trigger immediate reconciliation (HTTP ${dispatch_status}). Scheduled reconciler will still run."
+            cat /tmp/reconciler_dispatch.json
+            exit 0
+          fi
+
+          echo "::notice::Triggered immediate reconciliation run."
+
+      - name: Trigger start-time watcher
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
+          start_epoch="$(jq -r '.start_epoch // empty' instance-window.json)"
+
+          case "$start_epoch" in
+            (*[!0-9]*|'')
+              echo "::error::Invalid start_epoch in instance-window.json: '${start_epoch}'"
+              exit 1
+              ;;
+          esac
+
+          payload="$(jq -cn \
+            --arg ref "$dispatch_ref" \
+            --arg start_epoch "$start_epoch" \
+            --arg parent_run_id "${GITHUB_RUN_ID}" \
+            '{ref:$ref,inputs:{start_epoch:$start_epoch,parent_run_id:$parent_run_id}}')"
+
+          workflow_file="prod-instance-upgrade-window-start-trigger.yaml"
+          dispatch_status=$(curl -sS -o /tmp/start_trigger_dispatch.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches")
+
+          if [ "$dispatch_status" != "204" ]; then
+            echo "::warning::Could not trigger start-time watcher (HTTP ${dispatch_status}). Scheduled reconciler will still run."
+            cat /tmp/start_trigger_dispatch.json
+            exit 0
+          fi
+
+          echo "::notice::Triggered start-time watcher for epoch ${start_epoch}."
+
+      - name: Trigger end-time watcher
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
+          end_epoch="$(jq -r '.end_epoch // empty' instance-window.json)"
+
+          case "$end_epoch" in
+            (*[!0-9]*|'')
+              echo "::error::Invalid end_epoch in instance-window.json: '${end_epoch}'"
+              exit 1
+              ;;
+          esac
+
+          payload="$(jq -cn \
+            --arg ref "$dispatch_ref" \
+            --arg end_epoch "$end_epoch" \
+            --arg parent_run_id "${GITHUB_RUN_ID}" \
+            '{ref:$ref,inputs:{end_epoch:$end_epoch,parent_run_id:$parent_run_id}}')"
+
+          workflow_file="prod-instance-upgrade-window-end-trigger.yaml"
+          dispatch_status=$(curl -sS -o /tmp/end_trigger_dispatch.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches")
+
+          if [ "$dispatch_status" != "204" ]; then
+            echo "::warning::Could not trigger end-time watcher (HTTP ${dispatch_status}). Scheduled reconciler will still run."
+            cat /tmp/end_trigger_dispatch.json
+            exit 0
+          fi
+
+          echo "::notice::Triggered end-time watcher for epoch ${end_epoch}."
