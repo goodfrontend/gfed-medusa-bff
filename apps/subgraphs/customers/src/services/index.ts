@@ -18,6 +18,9 @@ export function createContext({
 
     const medusa = new Medusa({
       baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
+      auth: {
+        type: 'jwt',
+      },
       globalHeaders: {
         'X-Publishable-API-Key':
           process.env.MEDUSA_PUBLISHABLE_KEY || 'pk_test',

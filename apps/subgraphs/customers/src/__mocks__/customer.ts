@@ -1,6 +1,7 @@
 import { StoreCustomer } from '@medusajs/types';
 
 export const mockLoginToken = 'test-auth-token';
+export const mockRegisterToken = 'test-register-token';
 
 export const createMockCustomer = (
   overrides?: Partial<StoreCustomer>

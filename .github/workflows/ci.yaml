@@ -84,52 +84,9 @@ jobs:
               - 'pnpm-workspace.yaml'
               - 'package.json'
 
-  setup:
-    name: Setup Dependencies
-    needs: detect-changes
-    if: |
-      needs.detect-changes.outputs.gateway == 'true' ||
-      needs.detect-changes.outputs.products == 'true' ||
-      needs.detect-changes.outputs.orders == 'true' ||
-      needs.detect-changes.outputs.customers == 'true' ||
-      needs.detect-changes.outputs.content == 'true' ||
-      needs.detect-changes.outputs.packages == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.0.0
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
   verify-gateway:
     name: Verify Gateway
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.gateway == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -183,7 +140,7 @@ jobs:
 
   verify-products:
     name: Verify Products
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.products == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -238,7 +195,7 @@ jobs:
 
   verify-orders:
     name: Verify Orders
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.orders == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -293,7 +250,7 @@ jobs:
 
   verify-customers:
     name: Verify Customers
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.customers == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -348,7 +305,7 @@ jobs:
 
   verify-content:
     name: Verify Content
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.content == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -403,7 +360,7 @@ jobs:
 
   test-packages:
     name: Test packages
-    needs: [detect-changes, setup]
+    needs: detect-changes
     if: needs.detect-changes.outputs.packages == 'true'
     runs-on: ubuntu-latest
     steps:

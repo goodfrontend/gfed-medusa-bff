@@ -3,20 +3,73 @@ type Query {
 }
 
 type Mutation {
-  login(email: String!, password: String!): LoginResponse
-  logout: LogoutResponse
+  register(input: RegisterCustomerInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  updateCustomer(input: UpdateCustomerInput!): Customer!
+  addCustomerAddress(input: AddCustomerAddressInput!): Customer!
+  updateCustomerAddress(id: ID!, input: UpdateCustomerAddressInput!): Customer!
+  deleteCustomerAddress(id: ID!): DeleteCustomerAddressResult!
 }
 
-type LoginResponse {
-  token: String
-  isCustomerLoggedIn: Boolean
+input UpdateCustomerInput {
+  firstName: String
+  lastName: String
+  phone: String
 }
 
-type LogoutResponse {
-  success: Boolean
+input AddCustomerAddressInput {
+  firstName: String
+  lastName: String
+  company: String
+  address1: String
+  address2: String
+  city: String
+  province: String
+  countryCode: String
+  postalCode: String
+  phone: String
+  isDefaultBilling: Boolean
+  isDefaultShipping: Boolean
 }
 
-type Customer @cacheControl(maxAge: 0) {
+input UpdateCustomerAddressInput {
+  firstName: String
+  lastName: String
+  company: String
+  address1: String
+  address2: String
+  city: String
+  province: String
+  countryCode: String
+  postalCode: String
+  phone: String
+}
+
+type DeleteCustomerAddressResult {
+  id: ID!
+  deleted: Boolean!
+}
+
+input RegisterCustomerInput {
+  email: String!
+  password: String!
+  firstName: String
+  lastName: String
+  phone: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type AuthPayload {
+  token: String!
+  customer: Customer
+}
+
+type Customer {
   id: String!
   email: String
   defaultBillingAddressId: String

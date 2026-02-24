@@ -1,0 +1,4 @@
+extend type Query {
+  regions: [Region!]!
+  region(id: ID!): Region
+}
