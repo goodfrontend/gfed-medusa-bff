@@ -316,8 +316,7 @@ async function startServer() {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const medusaToken = (medusaRes as any).token;
+    const medusaToken = (medusaRes as { token?: string }).token;
 
     // Add session information + persist
     req.session.authId = sub;
@@ -352,6 +351,10 @@ async function startServer() {
       });
     }
 
+    res.redirect(logoutUri?.toString() ?? '/');
+  });
+
+  app.get('/auth/logout-callback', async (req, res) => {
     req.session.medusaToken = undefined;
     req.session.isCustomerLoggedIn = undefined;
     req.session.pkce = undefined;
@@ -372,7 +375,7 @@ async function startServer() {
       });
     });
 
-    res.redirect(logoutUri?.toString() ?? '/');
+    res.redirect(process.env.STOREFRONT_URL ?? 'http://localhost:8000');
   });
 
   if (useRegistry) {
