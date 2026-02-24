@@ -39,11 +39,6 @@ export type Scalars = {
   DateTime: { input: string; output: string };
 };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
-=======
-=======
 export type AddCustomerAddressInput = {
   address1?: InputMaybe<Scalars['String']['input']>;
   address2?: InputMaybe<Scalars['String']['input']>;
@@ -59,12 +54,12 @@ export type AddCustomerAddressInput = {
   province?: InputMaybe<Scalars['String']['input']>;
 };
 
->>>>>>> cc52f7d (feat: customer address mutations)
 export type AuthPayload = {
   customer?: Maybe<Customer>;
   token: Scalars['String']['output'];
 };
->>>>>>> d3c9c42 (feat: auth mutations)
+
+export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
 
 export type Customer = {
   addresses?: Maybe<Array<Maybe<CustomerAddress>>>;
@@ -298,21 +293,10 @@ export type ResolversTypes = {
   Customer: ResolverTypeWrapper<Customer>;
   CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
-=======
-=======
   DeleteCustomerAddressResult: ResolverTypeWrapper<DeleteCustomerAddressResult>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
->>>>>>> cc52f7d (feat: customer address mutations)
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   LoginInput: LoginInput;
-<<<<<<< HEAD
->>>>>>> d3c9c42 (feat: auth mutations)
-  LoginResponse: ResolverTypeWrapper<LoginResponse>;
-  LogoutResponse: ResolverTypeWrapper<LogoutResponse>;
-=======
->>>>>>> 41ff591 (fix: remove unused types)
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   RegisterCustomerInput: RegisterCustomerInput;
@@ -329,21 +313,10 @@ export type ResolversParentTypes = {
   Customer: Customer;
   CustomerAddress: CustomerAddress;
   DateTime: Scalars['DateTime']['output'];
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Int: Scalars['Int']['output'];
-=======
-=======
   DeleteCustomerAddressResult: DeleteCustomerAddressResult;
   ID: Scalars['ID']['output'];
->>>>>>> cc52f7d (feat: customer address mutations)
+  Int: Scalars['Int']['output'];
   LoginInput: LoginInput;
-<<<<<<< HEAD
->>>>>>> d3c9c42 (feat: auth mutations)
-  LoginResponse: LoginResponse;
-  LogoutResponse: LogoutResponse;
-=======
->>>>>>> 41ff591 (fix: remove unused types)
   Mutation: Record<PropertyKey, never>;
   Query: Record<PropertyKey, never>;
   RegisterCustomerInput: RegisterCustomerInput;
@@ -352,7 +325,6 @@ export type ResolversParentTypes = {
   UpdateCustomerInput: UpdateCustomerInput;
 };
 
-<<<<<<< HEAD
 export type CacheControlDirectiveArgs = {
   maxAge?: Maybe<Scalars['Int']['input']>;
   scope?: Maybe<CacheControlScope>;
@@ -365,7 +337,6 @@ export type CacheControlDirectiveResolver<
   Args = CacheControlDirectiveArgs,
 > = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
-=======
 export type AuthPayloadResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['AuthPayload'] =
@@ -379,7 +350,6 @@ export type AuthPayloadResolvers<
   token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
->>>>>>> d3c9c42 (feat: auth mutations)
 export type CustomerResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['Customer'] =
