@@ -1,0 +1,13 @@
+type ShippingOption {
+  id: ID!
+  name: String!
+  amount: Int
+  priceType: String!
+  serviceZoneId: String
+  insufficientInventory: Boolean
+}
+
+extend type Query {
+  shippingOptions(cartId: ID!): [ShippingOption]
+  calculateShippingOption(optionId: ID!, cartId: ID!, data: JSON): ShippingOption
+}

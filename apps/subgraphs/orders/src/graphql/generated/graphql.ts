@@ -305,9 +305,17 @@ export type Promotion = {
 };
 
 export type Query = {
+  calculateShippingOption?: Maybe<ShippingOption>;
   cart?: Maybe<Cart>;
   region?: Maybe<Region>;
   regions: Array<Region>;
+  shippingOptions?: Maybe<Array<Maybe<ShippingOption>>>;
+};
+
+export type QueryCalculateShippingOptionArgs = {
+  cartId: Scalars['ID']['input'];
+  data?: InputMaybe<Scalars['JSON']['input']>;
+  optionId: Scalars['ID']['input'];
 };
 
 export type QueryCartArgs = {
@@ -316,6 +324,10 @@ export type QueryCartArgs = {
 
 export type QueryRegionArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryShippingOptionsArgs = {
+  cartId: Scalars['ID']['input'];
 };
 
 export type Region = {
@@ -334,6 +346,15 @@ export type ShippingMethod = {
   name: Scalars['String']['output'];
   shippingOptionId?: Maybe<Scalars['String']['output']>;
   total?: Maybe<Scalars['Int']['output']>;
+};
+
+export type ShippingOption = {
+  amount?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  insufficientInventory?: Maybe<Scalars['Boolean']['output']>;
+  name: Scalars['String']['output'];
+  priceType: Scalars['String']['output'];
+  serviceZoneId?: Maybe<Scalars['String']['output']>;
 };
 
 export type StoreLineItemDeleteResponse = {
@@ -512,6 +533,7 @@ export type ResolversTypes = {
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Region: ResolverTypeWrapper<Region>;
   ShippingMethod: ResolverTypeWrapper<ShippingMethod>;
+  ShippingOption: ResolverTypeWrapper<ShippingOption>;
   StoreLineItemDeleteResponse: ResolverTypeWrapper<StoreLineItemDeleteResponse>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   UpdateCartInput: UpdateCartInput;
@@ -548,6 +570,7 @@ export type ResolversParentTypes = {
   Query: Record<PropertyKey, never>;
   Region: Region;
   ShippingMethod: ShippingMethod;
+  ShippingOption: ShippingOption;
   StoreLineItemDeleteResponse: StoreLineItemDeleteResponse;
   String: Scalars['String']['output'];
   UpdateCartInput: UpdateCartInput;
@@ -1018,6 +1041,12 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
+  calculateShippingOption?: Resolver<
+    Maybe<ResolversTypes['ShippingOption']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryCalculateShippingOptionArgs, 'cartId' | 'optionId'>
+  >;
   cart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
     ParentType,
@@ -1031,6 +1060,12 @@ export type QueryResolvers<
     RequireFields<QueryRegionArgs, 'id'>
   >;
   regions?: Resolver<Array<ResolversTypes['Region']>, ParentType, ContextType>;
+  shippingOptions?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes['ShippingOption']>>>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryShippingOptionsArgs, 'cartId'>
+  >;
 };
 
 export type RegionResolvers<
@@ -1075,6 +1110,27 @@ export type ShippingMethodResolvers<
   total?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
 };
 
+export type ShippingOptionResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ShippingOption'] =
+    ResolversParentTypes['ShippingOption'],
+> = {
+  amount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  insufficientInventory?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  serviceZoneId?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+};
+
 export type StoreLineItemDeleteResponseResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['StoreLineItemDeleteResponse'] =
@@ -1108,6 +1164,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Query?: QueryResolvers<ContextType>;
   Region?: RegionResolvers<ContextType>;
   ShippingMethod?: ShippingMethodResolvers<ContextType>;
+  ShippingOption?: ShippingOptionResolvers<ContextType>;
   StoreLineItemDeleteResponse?: StoreLineItemDeleteResponseResolvers<ContextType>;
 };
 
