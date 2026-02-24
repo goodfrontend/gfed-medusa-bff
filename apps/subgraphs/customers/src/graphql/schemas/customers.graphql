@@ -6,6 +6,49 @@ type Mutation {
   register(input: RegisterCustomerInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
   logout: Boolean!
+  updateCustomer(input: UpdateCustomerInput!): Customer!
+  addCustomerAddress(input: AddCustomerAddressInput!): Customer!
+  updateCustomerAddress(id: ID!, input: UpdateCustomerAddressInput!): Customer!
+  deleteCustomerAddress(id: ID!): DeleteCustomerAddressResult!
+}
+
+input UpdateCustomerInput {
+  firstName: String
+  lastName: String
+  phone: String
+}
+
+input AddCustomerAddressInput {
+  firstName: String
+  lastName: String
+  company: String
+  address1: String
+  address2: String
+  city: String
+  province: String
+  countryCode: String
+  postalCode: String
+  phone: String
+  isDefaultBilling: Boolean
+  isDefaultShipping: Boolean
+}
+
+input UpdateCustomerAddressInput {
+  firstName: String
+  lastName: String
+  company: String
+  address1: String
+  address2: String
+  city: String
+  province: String
+  countryCode: String
+  postalCode: String
+  phone: String
+}
+
+type DeleteCustomerAddressResult {
+  id: ID!
+  deleted: Boolean!
 }
 
 input RegisterCustomerInput {

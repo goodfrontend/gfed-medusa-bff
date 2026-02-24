@@ -40,8 +40,26 @@ export type Scalars = {
 };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
 =======
+=======
+export type AddCustomerAddressInput = {
+  address1?: InputMaybe<Scalars['String']['input']>;
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  company?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  isDefaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  province?: InputMaybe<Scalars['String']['input']>;
+};
+
+>>>>>>> cc52f7d (feat: customer address mutations)
 export type AuthPayload = {
   customer?: Maybe<Customer>;
   token: Scalars['String']['output'];
@@ -78,15 +96,32 @@ export type CustomerAddress = {
   province?: Maybe<Scalars['String']['output']>;
 };
 
+export type DeleteCustomerAddressResult = {
+  deleted: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+};
+
 export type LoginInput = {
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
 };
 
 export type Mutation = {
+  addCustomerAddress: Customer;
+  deleteCustomerAddress: DeleteCustomerAddressResult;
   login: AuthPayload;
   logout: Scalars['Boolean']['output'];
   register: AuthPayload;
+  updateCustomer: Customer;
+  updateCustomerAddress: Customer;
+};
+
+export type MutationAddCustomerAddressArgs = {
+  input: AddCustomerAddressInput;
+};
+
+export type MutationDeleteCustomerAddressArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type MutationLoginArgs = {
@@ -95,6 +130,15 @@ export type MutationLoginArgs = {
 
 export type MutationRegisterArgs = {
   input: RegisterCustomerInput;
+};
+
+export type MutationUpdateCustomerArgs = {
+  input: UpdateCustomerInput;
+};
+
+export type MutationUpdateCustomerAddressArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateCustomerAddressInput;
 };
 
 export type Query = {
@@ -106,6 +150,25 @@ export type RegisterCustomerInput = {
   firstName?: InputMaybe<Scalars['String']['input']>;
   lastName?: InputMaybe<Scalars['String']['input']>;
   password: Scalars['String']['input'];
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateCustomerAddressInput = {
+  address1?: InputMaybe<Scalars['String']['input']>;
+  address2?: InputMaybe<Scalars['String']['input']>;
+  city?: InputMaybe<Scalars['String']['input']>;
+  company?: InputMaybe<Scalars['String']['input']>;
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  province?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateCustomerInput = {
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  lastName?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -228,6 +291,7 @@ export type DirectiveResolverFn<
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AddCustomerAddressInput: AddCustomerAddressInput;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CacheControlScope: CacheControlScope;
@@ -235,8 +299,13 @@ export type ResolversTypes = {
   CustomerAddress: ResolverTypeWrapper<CustomerAddress>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
 <<<<<<< HEAD
+<<<<<<< HEAD
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
 =======
+=======
+  DeleteCustomerAddressResult: ResolverTypeWrapper<DeleteCustomerAddressResult>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+>>>>>>> cc52f7d (feat: customer address mutations)
   LoginInput: LoginInput;
 <<<<<<< HEAD
 >>>>>>> d3c9c42 (feat: auth mutations)
@@ -248,18 +317,26 @@ export type ResolversTypes = {
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   RegisterCustomerInput: RegisterCustomerInput;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  UpdateCustomerAddressInput: UpdateCustomerAddressInput;
+  UpdateCustomerInput: UpdateCustomerInput;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AddCustomerAddressInput: AddCustomerAddressInput;
   AuthPayload: AuthPayload;
   Boolean: Scalars['Boolean']['output'];
   Customer: Customer;
   CustomerAddress: CustomerAddress;
   DateTime: Scalars['DateTime']['output'];
 <<<<<<< HEAD
+<<<<<<< HEAD
   Int: Scalars['Int']['output'];
 =======
+=======
+  DeleteCustomerAddressResult: DeleteCustomerAddressResult;
+  ID: Scalars['ID']['output'];
+>>>>>>> cc52f7d (feat: customer address mutations)
   LoginInput: LoginInput;
 <<<<<<< HEAD
 >>>>>>> d3c9c42 (feat: auth mutations)
@@ -271,6 +348,8 @@ export type ResolversParentTypes = {
   Query: Record<PropertyKey, never>;
   RegisterCustomerInput: RegisterCustomerInput;
   String: Scalars['String']['output'];
+  UpdateCustomerAddressInput: UpdateCustomerAddressInput;
+  UpdateCustomerInput: UpdateCustomerInput;
 };
 
 <<<<<<< HEAD
@@ -394,11 +473,32 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
   name: 'DateTime';
 }
 
+export type DeleteCustomerAddressResultResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['DeleteCustomerAddressResult'] =
+    ResolversParentTypes['DeleteCustomerAddressResult'],
+> = {
+  deleted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+};
+
 export type MutationResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['Mutation'] =
     ResolversParentTypes['Mutation'],
 > = {
+  addCustomerAddress?: Resolver<
+    ResolversTypes['Customer'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationAddCustomerAddressArgs, 'input'>
+  >;
+  deleteCustomerAddress?: Resolver<
+    ResolversTypes['DeleteCustomerAddressResult'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationDeleteCustomerAddressArgs, 'id'>
+  >;
   login?: Resolver<
     ResolversTypes['AuthPayload'],
     ParentType,
@@ -411,6 +511,18 @@ export type MutationResolvers<
     ParentType,
     ContextType,
     RequireFields<MutationRegisterArgs, 'input'>
+  >;
+  updateCustomer?: Resolver<
+    ResolversTypes['Customer'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationUpdateCustomerArgs, 'input'>
+  >;
+  updateCustomerAddress?: Resolver<
+    ResolversTypes['Customer'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationUpdateCustomerAddressArgs, 'id' | 'input'>
   >;
 };
 
@@ -427,6 +539,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Customer?: CustomerResolvers<ContextType>;
   CustomerAddress?: CustomerAddressResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  DeleteCustomerAddressResult?: DeleteCustomerAddressResultResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
 };
