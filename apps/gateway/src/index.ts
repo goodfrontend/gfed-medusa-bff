@@ -43,7 +43,6 @@ const useRegistry = Boolean(supergraphSdlUrl);
 const POLL_INTERVAL = 10000;
 const SUPERGRAPH_FETCH_TIMEOUT_MS = 10000;
 const RELOAD_ROUTE = '/admin/reload-supergraph';
-const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
 
 async function fetchSupergraphSdl(url: string) {
   const controller = new AbortController();
@@ -225,15 +224,6 @@ async function startServer() {
   );
   app.use(sessionConfig);
   app.use(express.json());
-
-  app.get('/health/live', (_req, res) => {
-    res.status(200).json({
-      status: 'healthy',
-      service: 'gateway',
-      deployMarker: DEPLOY_MARKER,
-      timestamp: new Date().toISOString(),
-    });
-  });
 
   app.get('/auth/login', async (req, res) => {
     const { codeChallenge, codeVerifier } = await getPKCE();
