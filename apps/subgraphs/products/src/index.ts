@@ -26,6 +26,7 @@ const logger = createLogger({
 });
 
 const healthCheck = new HealthCheck('products-subgraph', '1.0.0');
+const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
 healthCheck.register('self', async () => ({ status: 'healthy' }));
 
 async function startServer() {
@@ -76,6 +77,14 @@ async function startServer() {
   app.use(express.json());
 
   app.get('/health', healthCheck.getHandler());
+  app.get('/health/live', (_req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      service: 'products-subgraph',
+      deployMarker: DEPLOY_MARKER,
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   app.use(
     '/graphql',

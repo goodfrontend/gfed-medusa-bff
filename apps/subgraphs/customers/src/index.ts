@@ -18,6 +18,8 @@ import { resolvers } from './graphql/resolvers';
 import { typeDefs } from './graphql/schemas';
 import { createContext } from './services';
 
+const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
+
 async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
@@ -81,6 +83,7 @@ async function startServer() {
       status: 'healthy',
       service: 'customers-subgraph',
       timestamp: new Date().toISOString(),
+      deployMarker: DEPLOY_MARKER,
     });
   });
 
