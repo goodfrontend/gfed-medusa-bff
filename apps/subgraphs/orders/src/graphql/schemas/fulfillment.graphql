@@ -14,6 +14,22 @@ type ServiceZone {
   location: ServiceZoneLocation
 }
 
+type PriceRule {
+  attribute: String!
+  operator: String!
+  value: String!
+}
+
+type ShippingOptionPrice {
+  amount: Int
+  currencyCode: String
+  priceRules: [PriceRule]
+}
+
+type CalculatedShippingOptionPrice {
+  amount: Int
+}
+
 type ShippingOption {
   id: ID!
   name: String!
@@ -22,6 +38,8 @@ type ShippingOption {
   serviceZoneId: String
   insufficientInventory: Boolean
   serviceZone: ServiceZone
+  calculatedPrice: CalculatedShippingOptionPrice
+  prices: [ShippingOptionPrice]
 }
 
 extend type Query {

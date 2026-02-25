@@ -4,7 +4,7 @@ import { GraphQLContext } from '@graphql/types/context';
 import { transformShippingOption } from './util/transforms';
 
 const SHIPPING_OPTION_FIELDS =
-  '+service_zone.fulfillment_set.type,*service_zone.fulfillment_set.location.address';
+  '+service_zone.fulfillment_set.type,*service_zone.fulfillment_set.location.address,+calculated_price,*prices,*prices.price_rules';
 
 export const fulfillmentResolvers = {
   Query: {

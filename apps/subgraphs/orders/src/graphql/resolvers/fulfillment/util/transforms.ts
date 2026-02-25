@@ -7,6 +7,9 @@ export const transformShippingOption = (
   const dynamicOption = option as any;
   const serviceZoneRaw = dynamicOption.service_zone;
 
+  const calculatedPriceRaw = dynamicOption.calculated_price;
+  const pricesRaw: any[] = dynamicOption.prices ?? [];
+
   return {
     id: option.id,
     name: option.name,
@@ -14,6 +17,16 @@ export const transformShippingOption = (
     priceType: option.price_type,
     serviceZoneId: option.service_zone_id,
     insufficientInventory: option.insufficient_inventory,
+    calculatedPrice: calculatedPriceRaw ? { amount: calculatedPriceRaw.amount ?? null } : null,
+    prices: pricesRaw.map((p) => ({
+      amount: p.amount ?? null,
+      currencyCode: p.currency_code ?? null,
+      priceRules: (p.price_rules ?? []).map((r: any) => ({
+        attribute: r.attribute,
+        operator: r.operator,
+        value: r.value,
+      })),
+    })),
     serviceZone: serviceZoneRaw
       ? {
           fulfillmentSetType: serviceZoneRaw.fulfillment_set?.type ?? null,
