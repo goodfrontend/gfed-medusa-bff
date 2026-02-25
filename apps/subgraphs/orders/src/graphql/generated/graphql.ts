@@ -171,10 +171,12 @@ export type LineItem = {
 export type Mutation = {
   addShippingMethod?: Maybe<Cart>;
   applyPromotions?: Maybe<Cart>;
+  calculateShippingOptionPrice?: Maybe<ShippingOption>;
   completeCart?: Maybe<CompleteCartResponse>;
   createCart?: Maybe<Cart>;
   createLineItem?: Maybe<Cart>;
   deleteLineItem: StoreLineItemDeleteResponse;
+  initiatePaymentSession?: Maybe<Cart>;
   transferCart?: Maybe<Cart>;
   updateCart?: Maybe<Cart>;
   updateLineItem?: Maybe<Cart>;
@@ -188,6 +190,12 @@ export type MutationAddShippingMethodArgs = {
 export type MutationApplyPromotionsArgs = {
   cartId: Scalars['ID']['input'];
   codes: Array<Scalars['String']['input']>;
+};
+
+export type MutationCalculateShippingOptionPriceArgs = {
+  cartId: Scalars['ID']['input'];
+  data?: InputMaybe<Scalars['JSON']['input']>;
+  optionId: Scalars['ID']['input'];
 };
 
 export type MutationCompleteCartArgs = {
@@ -206,6 +214,11 @@ export type MutationCreateLineItemArgs = {
 export type MutationDeleteLineItemArgs = {
   cartId: Scalars['ID']['input'];
   lineItemId: Scalars['ID']['input'];
+};
+
+export type MutationInitiatePaymentSessionArgs = {
+  cartId: Scalars['ID']['input'];
+  providerId: Scalars['String']['input'];
 };
 
 export type MutationTransferCartArgs = {
@@ -305,21 +318,19 @@ export type Promotion = {
 };
 
 export type Query = {
-  calculateShippingOption?: Maybe<ShippingOption>;
   cart?: Maybe<Cart>;
+  paymentProviders: Array<PaymentProviders>;
   region?: Maybe<Region>;
   regions: Array<Region>;
   shippingOptions?: Maybe<Array<Maybe<ShippingOption>>>;
 };
 
-export type QueryCalculateShippingOptionArgs = {
-  cartId: Scalars['ID']['input'];
-  data?: InputMaybe<Scalars['JSON']['input']>;
-  optionId: Scalars['ID']['input'];
-};
-
 export type QueryCartArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryPaymentProvidersArgs = {
+  regionId: Scalars['ID']['input'];
 };
 
 export type QueryRegionArgs = {
@@ -338,6 +349,22 @@ export type Region = {
   name: Scalars['String']['output'];
 };
 
+export type ServiceZone = {
+  fulfillmentSetType?: Maybe<Scalars['String']['output']>;
+  location?: Maybe<ServiceZoneLocation>;
+};
+
+export type ServiceZoneLocation = {
+  address?: Maybe<ServiceZoneLocationAddress>;
+};
+
+export type ServiceZoneLocationAddress = {
+  address1?: Maybe<Scalars['String']['output']>;
+  city?: Maybe<Scalars['String']['output']>;
+  countryCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+};
+
 export type ShippingMethod = {
   amount: Scalars['Int']['output'];
   cartId?: Maybe<Scalars['String']['output']>;
@@ -354,6 +381,7 @@ export type ShippingOption = {
   insufficientInventory?: Maybe<Scalars['Boolean']['output']>;
   name: Scalars['String']['output'];
   priceType: Scalars['String']['output'];
+  serviceZone?: Maybe<ServiceZone>;
   serviceZoneId?: Maybe<Scalars['String']['output']>;
 };
 
@@ -532,6 +560,9 @@ export type ResolversTypes = {
   Promotion: ResolverTypeWrapper<Promotion>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Region: ResolverTypeWrapper<Region>;
+  ServiceZone: ResolverTypeWrapper<ServiceZone>;
+  ServiceZoneLocation: ResolverTypeWrapper<ServiceZoneLocation>;
+  ServiceZoneLocationAddress: ResolverTypeWrapper<ServiceZoneLocationAddress>;
   ShippingMethod: ResolverTypeWrapper<ShippingMethod>;
   ShippingOption: ResolverTypeWrapper<ShippingOption>;
   StoreLineItemDeleteResponse: ResolverTypeWrapper<StoreLineItemDeleteResponse>;
@@ -569,6 +600,9 @@ export type ResolversParentTypes = {
   Promotion: Promotion;
   Query: Record<PropertyKey, never>;
   Region: Region;
+  ServiceZone: ServiceZone;
+  ServiceZoneLocation: ServiceZoneLocation;
+  ServiceZoneLocationAddress: ServiceZoneLocationAddress;
   ShippingMethod: ShippingMethod;
   ShippingOption: ShippingOption;
   StoreLineItemDeleteResponse: StoreLineItemDeleteResponse;
@@ -842,6 +876,15 @@ export type MutationResolvers<
     ContextType,
     RequireFields<MutationApplyPromotionsArgs, 'cartId' | 'codes'>
   >;
+  calculateShippingOptionPrice?: Resolver<
+    Maybe<ResolversTypes['ShippingOption']>,
+    ParentType,
+    ContextType,
+    RequireFields<
+      MutationCalculateShippingOptionPriceArgs,
+      'cartId' | 'optionId'
+    >
+  >;
   completeCart?: Resolver<
     Maybe<ResolversTypes['CompleteCartResponse']>,
     ParentType,
@@ -865,6 +908,12 @@ export type MutationResolvers<
     ParentType,
     ContextType,
     RequireFields<MutationDeleteLineItemArgs, 'cartId' | 'lineItemId'>
+  >;
+  initiatePaymentSession?: Resolver<
+    Maybe<ResolversTypes['Cart']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationInitiatePaymentSessionArgs, 'cartId' | 'providerId'>
   >;
   transferCart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
@@ -1041,17 +1090,17 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
-  calculateShippingOption?: Resolver<
-    Maybe<ResolversTypes['ShippingOption']>,
-    ParentType,
-    ContextType,
-    RequireFields<QueryCalculateShippingOptionArgs, 'cartId' | 'optionId'>
-  >;
   cart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
     ParentType,
     ContextType,
     RequireFields<QueryCartArgs, 'id'>
+  >;
+  paymentProviders?: Resolver<
+    Array<ResolversTypes['PaymentProviders']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryPaymentProvidersArgs, 'regionId'>
   >;
   region?: Resolver<
     Maybe<ResolversTypes['Region']>,
@@ -1086,6 +1135,54 @@ export type RegionResolvers<
   currencyCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
+export type ServiceZoneResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZone'] =
+    ResolversParentTypes['ServiceZone'],
+> = {
+  fulfillmentSetType?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  location?: Resolver<
+    Maybe<ResolversTypes['ServiceZoneLocation']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type ServiceZoneLocationResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZoneLocation'] =
+    ResolversParentTypes['ServiceZoneLocation'],
+> = {
+  address?: Resolver<
+    Maybe<ResolversTypes['ServiceZoneLocationAddress']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type ServiceZoneLocationAddressResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZoneLocationAddress'] =
+    ResolversParentTypes['ServiceZoneLocationAddress'],
+> = {
+  address1?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  city?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  postalCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type ShippingMethodResolvers<
@@ -1124,6 +1221,11 @@ export type ShippingOptionResolvers<
   >;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   priceType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  serviceZone?: Resolver<
+    Maybe<ResolversTypes['ServiceZone']>,
+    ParentType,
+    ContextType
+  >;
   serviceZoneId?: Resolver<
     Maybe<ResolversTypes['String']>,
     ParentType,
@@ -1163,6 +1265,9 @@ export type Resolvers<ContextType = GraphQLContext> = {
   Promotion?: PromotionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Region?: RegionResolvers<ContextType>;
+  ServiceZone?: ServiceZoneResolvers<ContextType>;
+  ServiceZoneLocation?: ServiceZoneLocationResolvers<ContextType>;
+  ServiceZoneLocationAddress?: ServiceZoneLocationAddressResolvers<ContextType>;
   ShippingMethod?: ShippingMethodResolvers<ContextType>;
   ShippingOption?: ShippingOptionResolvers<ContextType>;
   StoreLineItemDeleteResponse?: StoreLineItemDeleteResponseResolvers<ContextType>;

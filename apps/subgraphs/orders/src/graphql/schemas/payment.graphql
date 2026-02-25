@@ -46,3 +46,7 @@ type PaymentSessions {
   data: JSON!
   status: PaymentSessionStatus!
 }
+
+extend type Query {
+  paymentProviders(regionId: ID!): [PaymentProviders!]!
+}

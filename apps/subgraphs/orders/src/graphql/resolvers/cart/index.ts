@@ -128,6 +128,23 @@ export const cartResolvers = {
       });
       return normalizeCart(cart);
     },
+
+    initiatePaymentSession: async (
+      _parent: unknown,
+      { cartId, providerId }: { cartId: string; providerId: string },
+      { medusa }: GraphQLContext
+    ) => {
+      const { cart } = await medusa.store.cart.retrieve(cartId, {
+        fields: '+payment_collection.id',
+      });
+      await medusa.store.payment.initiatePaymentSession(cart, {
+        provider_id: providerId,
+      });
+      const { cart: updatedCart } = await medusa.store.cart.retrieve(cartId, {
+        fields: '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*',
+      });
+      return normalizeCart(updatedCart);
+    },
   },
 
   CompleteCartResponse: {

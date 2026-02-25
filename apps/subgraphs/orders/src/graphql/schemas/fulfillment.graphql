@@ -1,3 +1,19 @@
+type ServiceZoneLocationAddress {
+  city: String
+  countryCode: String
+  address1: String
+  postalCode: String
+}
+
+type ServiceZoneLocation {
+  address: ServiceZoneLocationAddress
+}
+
+type ServiceZone {
+  fulfillmentSetType: String
+  location: ServiceZoneLocation
+}
+
 type ShippingOption {
   id: ID!
   name: String!
@@ -5,9 +21,13 @@ type ShippingOption {
   priceType: String!
   serviceZoneId: String
   insufficientInventory: Boolean
+  serviceZone: ServiceZone
 }
 
 extend type Query {
   shippingOptions(cartId: ID!): [ShippingOption]
-  calculateShippingOption(optionId: ID!, cartId: ID!, data: JSON): ShippingOption
+}
+
+extend type Mutation {
+  calculateShippingOptionPrice(optionId: ID!, cartId: ID!, data: JSON): ShippingOption
 }
