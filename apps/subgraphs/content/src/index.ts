@@ -12,6 +12,8 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
 
+const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
+
 async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
@@ -32,6 +34,15 @@ async function startServer() {
   app.use(cors<cors.CorsRequest>());
 
   app.use(express.json());
+
+  app.get('/health/live', (_req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      service: 'content-subgraph',
+      deployMarker: DEPLOY_MARKER,
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   app.use('/graphql', expressMiddleware(server));
 
