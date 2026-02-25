@@ -8,9 +8,9 @@ projects:
         services:
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: gateway-prod
-            region: oregon
+            region: frankfurt
             autoDeployTrigger: off
             image:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/gateway:latest
@@ -19,9 +19,9 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: content-prod
-            region: oregon
+            region: frankfurt
             autoDeployTrigger: off
             image:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/content:latest
@@ -30,9 +30,9 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: products-prod
-            region: oregon
+            region: frankfurt
             autoDeployTrigger: off
             image:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/products:latest
@@ -41,9 +41,9 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: orders-prod
-            region: oregon
+            region: frankfurt
             autoDeployTrigger: off
             image:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/orders:latest
@@ -52,9 +52,9 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: customers-prod
-            region: oregon
+            region: frankfurt
             autoDeployTrigger: off
             image:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/customers:latest
@@ -75,7 +75,7 @@ projects:
               - fromGroup: bff-smoke-env-group
               - key: SUPERGRAPH_SDL_URL
                 value: https://api.github.com/repos/goodfrontend/gfed-medusa-schema-registry/contents/supergraph/smoke/latest.graphql
-                previewValue: ""
+                previewValue: ''
 
           - type: web
             runtime: image
