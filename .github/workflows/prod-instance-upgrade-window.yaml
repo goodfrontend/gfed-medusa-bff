@@ -3,17 +3,26 @@ name: Configure Prod Instance Upgrade Window
 on:
   workflow_dispatch:
     inputs:
+      start_mode:
+        description: "Window start mode (scheduled uses start_datetime, immediate starts now)"
+        required: false
+        default: scheduled
+        type: choice
+        options:
+          - scheduled
+          - immediate
       start_datetime:
         description: "Window start in local time (YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS])"
-        required: true
+        required: false
         type: string
       end_datetime:
         description: "Window end in local time (YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS])"
-        required: true
+        required: false
         type: string
       timezone:
-        description: "IANA timezone (for example: UTC, America/New_York, Asia/Singapore)"
-        required: true
+        description: "IANA timezone (for example: UTC, Europe/London, Asia/Manila)"
+        required: false
+        default: Asia/Manila
         type: string
 
 permissions:
@@ -32,6 +41,7 @@ jobs:
       - name: Validate inputs and convert to UTC
         id: window
         env:
+          START_MODE: ${{ inputs.start_mode }}
           START_DATETIME: ${{ inputs.start_datetime }}
           END_DATETIME: ${{ inputs.end_datetime }}
           TIMEZONE_NAME: ${{ inputs.timezone }}
@@ -44,12 +54,10 @@ jobs:
           from datetime import datetime, timezone
           from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-          start_raw = os.environ["START_DATETIME"].strip()
+          start_mode = os.environ.get("START_MODE", "scheduled").strip().lower()
+          start_raw_input = os.environ["START_DATETIME"].strip()
           end_raw = os.environ["END_DATETIME"].strip()
-          tz_name = os.environ["TIMEZONE_NAME"].strip()
-
-          if not start_raw or not end_raw or not tz_name:
-              raise SystemExit("start_datetime, end_datetime, and timezone are required.")
+          tz_name = os.environ["TIMEZONE_NAME"].strip() or "Asia/Manila"
 
           try:
               tz = ZoneInfo(tz_name)
@@ -73,18 +81,30 @@ jobs:
                   f"Invalid datetime '{raw}'. Use YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS]."
               )
 
-          start_local = parse_local(start_raw)
-          end_local = parse_local(end_raw)
-
-          start_utc = start_local.replace(tzinfo=tz).astimezone(timezone.utc)
-          end_utc = end_local.replace(tzinfo=tz).astimezone(timezone.utc)
           now_utc = datetime.now(timezone.utc)
 
-          if end_utc <= start_utc:
-              raise SystemExit("end_datetime must be after start_datetime.")
+          if start_mode == "immediate":
+              start_raw = "immediate"
+              start_utc = now_utc
+          elif start_mode == "scheduled":
+              if not start_raw_input:
+                  raise SystemExit("start_datetime is required when start_mode=scheduled.")
+              start_raw = start_raw_input
+              start_local = parse_local(start_raw_input)
+              start_utc = start_local.replace(tzinfo=tz).astimezone(timezone.utc)
+          else:
+              raise SystemExit("start_mode must be either 'scheduled' or 'immediate'.")
 
-          if end_utc <= now_utc:
-              raise SystemExit("end_datetime must be in the future.")
+          has_end = bool(end_raw)
+          if has_end:
+              end_local = parse_local(end_raw)
+              end_utc = end_local.replace(tzinfo=tz).astimezone(timezone.utc)
+
+              if end_utc <= start_utc:
+                  raise SystemExit("end_datetime must be after start_datetime.")
+
+              if end_utc <= now_utc:
+                  raise SystemExit("end_datetime must be in the future.")
 
           services = [
               "gateway-prod",
@@ -102,17 +122,25 @@ jobs:
               "from_plan": "free",
               "to_plan": "starter",
               "timezone": tz_name,
+              "start_mode": start_mode,
               "start_input": start_raw,
-              "end_input": end_raw,
               "start_utc": start_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "end_utc": end_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "start_epoch": int(start_utc.timestamp()),
-              "end_epoch": int(end_utc.timestamp()),
+              "has_end": has_end,
               "updated_by": os.getenv("GITHUB_ACTOR", ""),
               "updated_at_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "source_workflow": os.getenv("GITHUB_WORKFLOW", ""),
               "source_run_id": os.getenv("GITHUB_RUN_ID", ""),
           }
+
+          if has_end:
+              payload.update(
+                  {
+                      "end_input": end_raw,
+                      "end_utc": end_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                      "end_epoch": int(end_utc.timestamp()),
+                  }
+              )
 
           with open("instance-window.json", "w", encoding="ascii") as f:
               json.dump(payload, f, separators=(",", ":"))
@@ -122,11 +150,19 @@ jobs:
               f"Services: {', '.join(services)}",
               f"Service plan window: {payload['service_from_plan']} -> {payload['service_to_plan']} -> {payload['service_from_plan']}",
               f"Timezone: {tz_name}",
-              f"Start (local): {start_raw}",
-              f"End (local): {end_raw}",
+              f"Start mode: {start_mode}",
+              f"Start input: {start_raw}",
               f"Start (UTC): {payload['start_utc']}",
-              f"End (UTC): {payload['end_utc']}",
           ]
+          if has_end:
+              summary.extend(
+                  [
+                      f"End (local): {end_raw}",
+                      f"End (UTC): {payload['end_utc']}",
+                  ]
+              )
+          else:
+              summary.append("End: open-ended (no end_datetime provided)")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
               for line in summary:
                   f.write(f"- {line}\n")
@@ -185,6 +221,12 @@ jobs:
               ;;
           esac
 
+          now_epoch="$(date -u +%s)"
+          if [ "$start_epoch" -le "$now_epoch" ]; then
+            echo "::notice::Start epoch ${start_epoch} is current/past (now=${now_epoch}). Skipping start-time watcher to avoid duplicate immediate reconciliation."
+            exit 0
+          fi
+
           payload="$(jq -cn \
             --arg ref "$dispatch_ref" \
             --arg start_epoch "$start_epoch" \
@@ -209,7 +251,7 @@ jobs:
 
           echo "::notice::Triggered start-time watcher for epoch ${start_epoch}."
 
-      - name: Trigger end-time watcher
+      - name: Trigger end-time watcher (or cancel stale chain when open-ended)
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -219,12 +261,17 @@ jobs:
           dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
           end_epoch="$(jq -r '.end_epoch // empty' instance-window.json)"
 
-          case "$end_epoch" in
-            (*[!0-9]*|'')
-              echo "::error::Invalid end_epoch in instance-window.json: '${end_epoch}'"
-              exit 1
-              ;;
-          esac
+          if [ -z "$end_epoch" ]; then
+            end_epoch="$(date -u +%s)"
+            echo "::notice::No end_datetime configured. Dispatching end trigger at current epoch (${end_epoch}) to supersede any existing end-time watcher."
+          else
+            case "$end_epoch" in
+              (*[!0-9]*)
+                echo "::error::Invalid end_epoch in instance-window.json: '${end_epoch}'"
+                exit 1
+                ;;
+            esac
+          fi
 
           payload="$(jq -cn \
             --arg ref "$dispatch_ref" \
