@@ -3,6 +3,18 @@ name: Configure Prod Instance Upgrade Window
 on:
   workflow_dispatch:
     inputs:
+      web_service_upgrade_plan:
+        description: "Render web service plan"
+        required: false
+        default: starter ($7/month, 512 MB RAM, 0.5 CPU)
+        type: choice
+        options:
+          - starter ($7/month, 512 MB RAM, 0.5 CPU)
+          - standard ($25/month, 2 GB RAM, 1 CPU)
+          - pro ($85/month, 4 GB RAM, 2 CPU)
+          - pro plus ($175/month, 8 GB RAM, 4 CPU)
+          - pro max ($225/month, 16 GB RAM, 4 CPU)
+          - pro ultra ($450/month, 32 GB RAM, 8 CPU)
       start_mode:
         description: "Window start mode (scheduled uses start_datetime, immediate starts now)"
         required: false
@@ -45,12 +57,14 @@ jobs:
           START_DATETIME: ${{ inputs.start_datetime }}
           END_DATETIME: ${{ inputs.end_datetime }}
           TIMEZONE_NAME: ${{ inputs.timezone }}
+          WEB_SERVICE_UPGRADE_PLAN: ${{ inputs.web_service_upgrade_plan }}
         run: |
           set -euo pipefail
 
           python - <<'PY'
           import json
           import os
+          import re
           from datetime import datetime, timezone
           from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -58,6 +72,18 @@ jobs:
           start_raw_input = os.environ["START_DATETIME"].strip()
           end_raw = os.environ["END_DATETIME"].strip()
           tz_name = os.environ["TIMEZONE_NAME"].strip() or "Asia/Manila"
+          target_service_plan_input = os.environ.get("WEB_SERVICE_UPGRADE_PLAN", "").strip()
+
+          if not target_service_plan_input:
+              raise SystemExit("web_service_upgrade_plan must not be empty.")
+
+          target_service_plan = re.sub(r"\s*\(.*\)\s*$", "", target_service_plan_input).strip().lower()
+          valid_service_plans = {"free", "starter", "standard", "pro", "pro plus", "pro max", "pro ultra"}
+          if target_service_plan not in valid_service_plans:
+              raise SystemExit(
+                  "web_service_upgrade_plan must resolve to one of: "
+                  + ", ".join(sorted(valid_service_plans))
+              )
 
           try:
               tz = ZoneInfo(tz_name)
@@ -118,9 +144,9 @@ jobs:
               "enabled": True,
               "service_names": services,
               "service_from_plan": "free",
-              "service_to_plan": "starter",
+              "service_to_plan": target_service_plan,
               "from_plan": "free",
-              "to_plan": "starter",
+              "to_plan": target_service_plan,
               "timezone": tz_name,
               "start_mode": start_mode,
               "start_input": start_raw,
@@ -148,6 +174,7 @@ jobs:
           summary = [
               f"Configured window for {len(services)} production services",
               f"Services: {', '.join(services)}",
+              f"Selected upgrade plan option: {target_service_plan_input}",
               f"Service plan window: {payload['service_from_plan']} -> {payload['service_to_plan']} -> {payload['service_from_plan']}",
               f"Timezone: {tz_name}",
               f"Start mode: {start_mode}",
