@@ -187,6 +187,38 @@ export function normalizeCart(cart: StoreCart): any {
   };
 }
 
+export function normalizeOrder(order: StoreOrder): any {
+  return {
+    id: order.id,
+    regionId: order.region_id ?? '',
+    customerId: order.customer_id ?? '',
+    email: order.email ?? '',
+    paymentStatus: order.payment_status ?? '',
+    fulfillmentStatus: order.fulfillment_status ?? '',
+    total: order.total ?? 0,
+    status: order.status ?? '',
+    createdAt: order.created_at ?? null,
+    currencyCode: order.currency_code ?? '',
+    displayId: order.display_id ?? null,
+    subtotal: order.subtotal ?? null,
+    discountTotal: order.discount_total ?? null,
+    giftCardTotal: order.gift_card_total ?? null,
+    shippingTotal: order.shipping_total ?? null,
+    taxTotal: order.tax_total ?? null,
+    items: normalizeLineItems(order.items ?? []),
+    shippingMethods:
+      (order.shipping_methods ?? []).map((method) => ({
+        id: method.id,
+        name: method.name,
+        amount: method.amount,
+        shippingOptionId: method.shipping_option_id,
+        createdAt: method.created_at,
+      })),
+    shippingAddress: normalizeAddress(order.shipping_address),
+    paymentCollections: (order.payment_collections ?? []).map(normalizePaymentCollection),
+  };
+}
+
 export function camelToSnakeCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(camelToSnakeCase);

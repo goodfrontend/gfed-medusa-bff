@@ -173,17 +173,25 @@ export type LineItem = {
 };
 
 export type Mutation = {
+  acceptOrderTransfer?: Maybe<OrderTransferResult>;
   addShippingMethod?: Maybe<Cart>;
   applyPromotions?: Maybe<Cart>;
   calculateShippingOptionPrice?: Maybe<ShippingOption>;
   completeCart?: Maybe<CompleteCartResponse>;
   createCart?: Maybe<Cart>;
   createLineItem?: Maybe<Cart>;
+  declineOrderTransfer?: Maybe<OrderTransferResult>;
   deleteLineItem: StoreLineItemDeleteResponse;
   initiatePaymentSession?: Maybe<Cart>;
+  requestOrderTransfer?: Maybe<OrderTransferResult>;
   transferCart?: Maybe<Cart>;
   updateCart?: Maybe<Cart>;
   updateLineItem?: Maybe<Cart>;
+};
+
+export type MutationAcceptOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
+  token: Scalars['String']['input'];
 };
 
 export type MutationAddShippingMethodArgs = {
@@ -215,6 +223,11 @@ export type MutationCreateLineItemArgs = {
   data: CreateLineItemInput;
 };
 
+export type MutationDeclineOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
+  token: Scalars['String']['input'];
+};
+
 export type MutationDeleteLineItemArgs = {
   cartId: Scalars['ID']['input'];
   lineItemId: Scalars['ID']['input'];
@@ -223,6 +236,10 @@ export type MutationDeleteLineItemArgs = {
 export type MutationInitiatePaymentSessionArgs = {
   cartId: Scalars['ID']['input'];
   providerId: Scalars['String']['input'];
+};
+
+export type MutationRequestOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
 };
 
 export type MutationTransferCartArgs = {
@@ -261,6 +278,24 @@ export type Order = {
   subtotal?: Maybe<Scalars['Int']['output']>;
   taxTotal?: Maybe<Scalars['Int']['output']>;
   total: Scalars['Int']['output'];
+};
+
+export type OrderListResponse = {
+  count: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  orders: Array<Order>;
+};
+
+export type OrderTransferData = {
+  email: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+};
+
+export type OrderTransferResult = {
+  error?: Maybe<Scalars['String']['output']>;
+  order?: Maybe<OrderTransferData>;
+  success: Scalars['Boolean']['output'];
 };
 
 export type Payment = {
@@ -307,8 +342,16 @@ export type PaymentStatus =
   | 'authorized'
   | 'awaiting'
   | 'canceled'
+  | 'captured'
+  | 'completed'
   | 'not_paid'
-  | 'partially_authorized';
+  | 'not_started'
+  | 'partially_authorized'
+  | 'partially_captured'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'requires_action'
+  | 'voided';
 
 export type PriceRule = {
   attribute: Scalars['String']['output'];
@@ -329,6 +372,8 @@ export type Promotion = {
 
 export type Query = {
   cart?: Maybe<Cart>;
+  order?: Maybe<Order>;
+  orders?: Maybe<OrderListResponse>;
   paymentProviders: Array<PaymentProviders>;
   region?: Maybe<Region>;
   regions: Array<Region>;
@@ -337,6 +382,15 @@ export type Query = {
 
 export type QueryCartArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryOrderArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QueryOrdersArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type QueryPaymentProvidersArgs = {
@@ -569,6 +623,9 @@ export type ResolversTypes = {
   LineItem: ResolverTypeWrapper<LineItem>;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Order: ResolverTypeWrapper<Order>;
+  OrderListResponse: ResolverTypeWrapper<OrderListResponse>;
+  OrderTransferData: ResolverTypeWrapper<OrderTransferData>;
+  OrderTransferResult: ResolverTypeWrapper<OrderTransferResult>;
   Payment: ResolverTypeWrapper<Payment>;
   PaymentCollection: ResolverTypeWrapper<PaymentCollection>;
   PaymentProviders: ResolverTypeWrapper<PaymentProviders>;
@@ -614,6 +671,9 @@ export type ResolversParentTypes = {
   LineItem: LineItem;
   Mutation: Record<PropertyKey, never>;
   Order: Order;
+  OrderListResponse: OrderListResponse;
+  OrderTransferData: OrderTransferData;
+  OrderTransferResult: OrderTransferResult;
   Payment: Payment;
   PaymentCollection: PaymentCollection;
   PaymentProviders: PaymentProviders;
@@ -896,6 +956,12 @@ export type MutationResolvers<
   ParentType extends ResolversParentTypes['Mutation'] =
     ResolversParentTypes['Mutation'],
 > = {
+  acceptOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationAcceptOrderTransferArgs, 'orderId' | 'token'>
+  >;
   addShippingMethod?: Resolver<
     Maybe<ResolversTypes['Cart']>,
     ParentType,
@@ -935,6 +1001,12 @@ export type MutationResolvers<
     ContextType,
     RequireFields<MutationCreateLineItemArgs, 'cartId' | 'data'>
   >;
+  declineOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationDeclineOrderTransferArgs, 'orderId' | 'token'>
+  >;
   deleteLineItem?: Resolver<
     ResolversTypes['StoreLineItemDeleteResponse'],
     ParentType,
@@ -946,6 +1018,12 @@ export type MutationResolvers<
     ParentType,
     ContextType,
     RequireFields<MutationInitiatePaymentSessionArgs, 'cartId' | 'providerId'>
+  >;
+  requestOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationRequestOrderTransferArgs, 'orderId'>
   >;
   transferCart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
@@ -1020,6 +1098,40 @@ export type OrderResolvers<
   subtotal?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   taxTotal?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+};
+
+export type OrderListResponseResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderListResponse'] =
+    ResolversParentTypes['OrderListResponse'],
+> = {
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  limit?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  offset?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  orders?: Resolver<Array<ResolversTypes['Order']>, ParentType, ContextType>;
+};
+
+export type OrderTransferDataResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderTransferData'] =
+    ResolversParentTypes['OrderTransferData'],
+> = {
+  email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+};
+
+export type OrderTransferResultResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderTransferResult'] =
+    ResolversParentTypes['OrderTransferResult'],
+> = {
+  error?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  order?: Resolver<
+    Maybe<ResolversTypes['OrderTransferData']>,
+    ParentType,
+    ContextType
+  >;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
 };
 
 export type PaymentResolvers<
@@ -1137,6 +1249,18 @@ export type QueryResolvers<
     ParentType,
     ContextType,
     RequireFields<QueryCartArgs, 'id'>
+  >;
+  order?: Resolver<
+    Maybe<ResolversTypes['Order']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryOrderArgs, 'id'>
+  >;
+  orders?: Resolver<
+    Maybe<ResolversTypes['OrderListResponse']>,
+    ParentType,
+    ContextType,
+    Partial<QueryOrdersArgs>
   >;
   paymentProviders?: Resolver<
     Array<ResolversTypes['PaymentProviders']>,
@@ -1328,6 +1452,9 @@ export type Resolvers<ContextType = GraphQLContext> = {
   LineItem?: LineItemResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Order?: OrderResolvers<ContextType>;
+  OrderListResponse?: OrderListResponseResolvers<ContextType>;
+  OrderTransferData?: OrderTransferDataResolvers<ContextType>;
+  OrderTransferResult?: OrderTransferResultResolvers<ContextType>;
   Payment?: PaymentResolvers<ContextType>;
   PaymentCollection?: PaymentCollectionResolvers<ContextType>;
   PaymentProviders?: PaymentProvidersResolvers<ContextType>;
