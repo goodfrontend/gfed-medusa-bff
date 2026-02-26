@@ -38,7 +38,7 @@ export const sessionUpdatePlugin: ApolloServerPlugin<{
         // Handle logout: destroy session and send a clearCookie response
         if (
           response.body.kind === 'single' &&
-          (response.body.singleResult.data?.logout as any)?.success
+          (response.body.singleResult.data?.logout as boolean)
         ) {
           await new Promise<void>((resolve, reject) =>
             contextValue.session.destroy((err) => {
