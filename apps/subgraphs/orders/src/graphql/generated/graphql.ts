@@ -83,6 +83,10 @@ export type ApplicationType = 'fixed' | 'percentage';
 
 export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
 
+export type CalculatedShippingOptionPrice = {
+  amount?: Maybe<Scalars['Int']['output']>;
+};
+
 export type Cart = {
   billingAddress?: Maybe<Address>;
   createdAt?: Maybe<Scalars['DateTime']['output']>;
@@ -169,15 +173,25 @@ export type LineItem = {
 };
 
 export type Mutation = {
+  acceptOrderTransfer?: Maybe<OrderTransferResult>;
   addShippingMethod?: Maybe<Cart>;
   applyPromotions?: Maybe<Cart>;
+  calculateShippingOptionPrice?: Maybe<ShippingOption>;
   completeCart?: Maybe<CompleteCartResponse>;
   createCart?: Maybe<Cart>;
   createLineItem?: Maybe<Cart>;
+  declineOrderTransfer?: Maybe<OrderTransferResult>;
   deleteLineItem: StoreLineItemDeleteResponse;
+  initiatePaymentSession?: Maybe<Cart>;
+  requestOrderTransfer?: Maybe<OrderTransferResult>;
   transferCart?: Maybe<Cart>;
   updateCart?: Maybe<Cart>;
   updateLineItem?: Maybe<Cart>;
+};
+
+export type MutationAcceptOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
+  token: Scalars['String']['input'];
 };
 
 export type MutationAddShippingMethodArgs = {
@@ -188,6 +202,12 @@ export type MutationAddShippingMethodArgs = {
 export type MutationApplyPromotionsArgs = {
   cartId: Scalars['ID']['input'];
   codes: Array<Scalars['String']['input']>;
+};
+
+export type MutationCalculateShippingOptionPriceArgs = {
+  cartId: Scalars['ID']['input'];
+  data?: InputMaybe<Scalars['JSON']['input']>;
+  optionId: Scalars['ID']['input'];
 };
 
 export type MutationCompleteCartArgs = {
@@ -203,9 +223,23 @@ export type MutationCreateLineItemArgs = {
   data: CreateLineItemInput;
 };
 
+export type MutationDeclineOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
+  token: Scalars['String']['input'];
+};
+
 export type MutationDeleteLineItemArgs = {
   cartId: Scalars['ID']['input'];
   lineItemId: Scalars['ID']['input'];
+};
+
+export type MutationInitiatePaymentSessionArgs = {
+  cartId: Scalars['ID']['input'];
+  providerId: Scalars['String']['input'];
+};
+
+export type MutationRequestOrderTransferArgs = {
+  orderId: Scalars['ID']['input'];
 };
 
 export type MutationTransferCartArgs = {
@@ -244,6 +278,24 @@ export type Order = {
   subtotal?: Maybe<Scalars['Int']['output']>;
   taxTotal?: Maybe<Scalars['Int']['output']>;
   total: Scalars['Int']['output'];
+};
+
+export type OrderListResponse = {
+  count: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+  offset: Scalars['Int']['output'];
+  orders: Array<Order>;
+};
+
+export type OrderTransferData = {
+  email: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+};
+
+export type OrderTransferResult = {
+  error?: Maybe<Scalars['String']['output']>;
+  order?: Maybe<OrderTransferData>;
+  success: Scalars['Boolean']['output'];
 };
 
 export type Payment = {
@@ -290,8 +342,22 @@ export type PaymentStatus =
   | 'authorized'
   | 'awaiting'
   | 'canceled'
+  | 'captured'
+  | 'completed'
   | 'not_paid'
-  | 'partially_authorized';
+  | 'not_started'
+  | 'partially_authorized'
+  | 'partially_captured'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'requires_action'
+  | 'voided';
+
+export type PriceRule = {
+  attribute: Scalars['String']['output'];
+  operator: Scalars['String']['output'];
+  value: Scalars['String']['output'];
+};
 
 export type ProductVariant = {
   id: Scalars['ID']['output'];
@@ -305,21 +371,30 @@ export type Promotion = {
 };
 
 export type Query = {
-  calculateShippingOption?: Maybe<ShippingOption>;
   cart?: Maybe<Cart>;
+  order?: Maybe<Order>;
+  orders?: Maybe<OrderListResponse>;
+  paymentProviders: Array<PaymentProviders>;
   region?: Maybe<Region>;
   regions: Array<Region>;
   shippingOptions?: Maybe<Array<Maybe<ShippingOption>>>;
 };
 
-export type QueryCalculateShippingOptionArgs = {
-  cartId: Scalars['ID']['input'];
-  data?: InputMaybe<Scalars['JSON']['input']>;
-  optionId: Scalars['ID']['input'];
-};
-
 export type QueryCartArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryOrderArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QueryOrdersArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type QueryPaymentProvidersArgs = {
+  regionId: Scalars['ID']['input'];
 };
 
 export type QueryRegionArgs = {
@@ -338,6 +413,22 @@ export type Region = {
   name: Scalars['String']['output'];
 };
 
+export type ServiceZone = {
+  fulfillmentSetType?: Maybe<Scalars['String']['output']>;
+  location?: Maybe<ServiceZoneLocation>;
+};
+
+export type ServiceZoneLocation = {
+  address?: Maybe<ServiceZoneLocationAddress>;
+};
+
+export type ServiceZoneLocationAddress = {
+  address1?: Maybe<Scalars['String']['output']>;
+  city?: Maybe<Scalars['String']['output']>;
+  countryCode?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+};
+
 export type ShippingMethod = {
   amount: Scalars['Int']['output'];
   cartId?: Maybe<Scalars['String']['output']>;
@@ -350,11 +441,20 @@ export type ShippingMethod = {
 
 export type ShippingOption = {
   amount?: Maybe<Scalars['Int']['output']>;
+  calculatedPrice?: Maybe<CalculatedShippingOptionPrice>;
   id: Scalars['ID']['output'];
   insufficientInventory?: Maybe<Scalars['Boolean']['output']>;
   name: Scalars['String']['output'];
   priceType: Scalars['String']['output'];
+  prices?: Maybe<Array<Maybe<ShippingOptionPrice>>>;
+  serviceZone?: Maybe<ServiceZone>;
   serviceZoneId?: Maybe<Scalars['String']['output']>;
+};
+
+export type ShippingOptionPrice = {
+  amount?: Maybe<Scalars['Int']['output']>;
+  currencyCode?: Maybe<Scalars['String']['output']>;
+  priceRules?: Maybe<Array<Maybe<PriceRule>>>;
 };
 
 export type StoreLineItemDeleteResponse = {
@@ -505,6 +605,7 @@ export type ResolversTypes = {
   ApplicationType: ApplicationType;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CacheControlScope: CacheControlScope;
+  CalculatedShippingOptionPrice: ResolverTypeWrapper<CalculatedShippingOptionPrice>;
   Cart: ResolverTypeWrapper<Cart>;
   CompleteCartError: ResolverTypeWrapper<CompleteCartError>;
   CompleteCartErrorResult: ResolverTypeWrapper<CompleteCartErrorResult>;
@@ -522,18 +623,26 @@ export type ResolversTypes = {
   LineItem: ResolverTypeWrapper<LineItem>;
   Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Order: ResolverTypeWrapper<Order>;
+  OrderListResponse: ResolverTypeWrapper<OrderListResponse>;
+  OrderTransferData: ResolverTypeWrapper<OrderTransferData>;
+  OrderTransferResult: ResolverTypeWrapper<OrderTransferResult>;
   Payment: ResolverTypeWrapper<Payment>;
   PaymentCollection: ResolverTypeWrapper<PaymentCollection>;
   PaymentProviders: ResolverTypeWrapper<PaymentProviders>;
   PaymentSessionStatus: PaymentSessionStatus;
   PaymentSessions: ResolverTypeWrapper<PaymentSessions>;
   PaymentStatus: PaymentStatus;
+  PriceRule: ResolverTypeWrapper<PriceRule>;
   ProductVariant: ResolverTypeWrapper<ProductVariant>;
   Promotion: ResolverTypeWrapper<Promotion>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Region: ResolverTypeWrapper<Region>;
+  ServiceZone: ResolverTypeWrapper<ServiceZone>;
+  ServiceZoneLocation: ResolverTypeWrapper<ServiceZoneLocation>;
+  ServiceZoneLocationAddress: ResolverTypeWrapper<ServiceZoneLocationAddress>;
   ShippingMethod: ResolverTypeWrapper<ShippingMethod>;
   ShippingOption: ResolverTypeWrapper<ShippingOption>;
+  ShippingOptionPrice: ResolverTypeWrapper<ShippingOptionPrice>;
   StoreLineItemDeleteResponse: ResolverTypeWrapper<StoreLineItemDeleteResponse>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   UpdateCartInput: UpdateCartInput;
@@ -546,6 +655,7 @@ export type ResolversParentTypes = {
   AddressInput: AddressInput;
   ApplicationMethod: ApplicationMethod;
   Boolean: Scalars['Boolean']['output'];
+  CalculatedShippingOptionPrice: CalculatedShippingOptionPrice;
   Cart: Cart;
   CompleteCartError: CompleteCartError;
   CompleteCartErrorResult: CompleteCartErrorResult;
@@ -561,16 +671,24 @@ export type ResolversParentTypes = {
   LineItem: LineItem;
   Mutation: Record<PropertyKey, never>;
   Order: Order;
+  OrderListResponse: OrderListResponse;
+  OrderTransferData: OrderTransferData;
+  OrderTransferResult: OrderTransferResult;
   Payment: Payment;
   PaymentCollection: PaymentCollection;
   PaymentProviders: PaymentProviders;
   PaymentSessions: PaymentSessions;
+  PriceRule: PriceRule;
   ProductVariant: ProductVariant;
   Promotion: Promotion;
   Query: Record<PropertyKey, never>;
   Region: Region;
+  ServiceZone: ServiceZone;
+  ServiceZoneLocation: ServiceZoneLocation;
+  ServiceZoneLocationAddress: ServiceZoneLocationAddress;
   ShippingMethod: ShippingMethod;
   ShippingOption: ShippingOption;
+  ShippingOptionPrice: ShippingOptionPrice;
   StoreLineItemDeleteResponse: StoreLineItemDeleteResponse;
   String: Scalars['String']['output'];
   UpdateCartInput: UpdateCartInput;
@@ -633,6 +751,14 @@ export type ApplicationMethodResolvers<
   currencyCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   type?: Resolver<ResolversTypes['ApplicationType'], ParentType, ContextType>;
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
+export type CalculatedShippingOptionPriceResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['CalculatedShippingOptionPrice'] =
+    ResolversParentTypes['CalculatedShippingOptionPrice'],
+> = {
+  amount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
 };
 
 export type CartResolvers<
@@ -830,6 +956,12 @@ export type MutationResolvers<
   ParentType extends ResolversParentTypes['Mutation'] =
     ResolversParentTypes['Mutation'],
 > = {
+  acceptOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationAcceptOrderTransferArgs, 'orderId' | 'token'>
+  >;
   addShippingMethod?: Resolver<
     Maybe<ResolversTypes['Cart']>,
     ParentType,
@@ -841,6 +973,15 @@ export type MutationResolvers<
     ParentType,
     ContextType,
     RequireFields<MutationApplyPromotionsArgs, 'cartId' | 'codes'>
+  >;
+  calculateShippingOptionPrice?: Resolver<
+    Maybe<ResolversTypes['ShippingOption']>,
+    ParentType,
+    ContextType,
+    RequireFields<
+      MutationCalculateShippingOptionPriceArgs,
+      'cartId' | 'optionId'
+    >
   >;
   completeCart?: Resolver<
     Maybe<ResolversTypes['CompleteCartResponse']>,
@@ -860,11 +1001,29 @@ export type MutationResolvers<
     ContextType,
     RequireFields<MutationCreateLineItemArgs, 'cartId' | 'data'>
   >;
+  declineOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationDeclineOrderTransferArgs, 'orderId' | 'token'>
+  >;
   deleteLineItem?: Resolver<
     ResolversTypes['StoreLineItemDeleteResponse'],
     ParentType,
     ContextType,
     RequireFields<MutationDeleteLineItemArgs, 'cartId' | 'lineItemId'>
+  >;
+  initiatePaymentSession?: Resolver<
+    Maybe<ResolversTypes['Cart']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationInitiatePaymentSessionArgs, 'cartId' | 'providerId'>
+  >;
+  requestOrderTransfer?: Resolver<
+    Maybe<ResolversTypes['OrderTransferResult']>,
+    ParentType,
+    ContextType,
+    RequireFields<MutationRequestOrderTransferArgs, 'orderId'>
   >;
   transferCart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
@@ -941,6 +1100,40 @@ export type OrderResolvers<
   total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
 };
 
+export type OrderListResponseResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderListResponse'] =
+    ResolversParentTypes['OrderListResponse'],
+> = {
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  limit?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  offset?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  orders?: Resolver<Array<ResolversTypes['Order']>, ParentType, ContextType>;
+};
+
+export type OrderTransferDataResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderTransferData'] =
+    ResolversParentTypes['OrderTransferData'],
+> = {
+  email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+};
+
+export type OrderTransferResultResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['OrderTransferResult'] =
+    ResolversParentTypes['OrderTransferResult'],
+> = {
+  error?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  order?: Resolver<
+    Maybe<ResolversTypes['OrderTransferData']>,
+    ParentType,
+    ContextType
+  >;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+};
+
 export type PaymentResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['Payment'] =
@@ -1009,6 +1202,16 @@ export type PaymentSessionsResolvers<
   >;
 };
 
+export type PriceRuleResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['PriceRule'] =
+    ResolversParentTypes['PriceRule'],
+> = {
+  attribute?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  operator?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type ProductVariantResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['ProductVariant'] =
@@ -1041,17 +1244,29 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
-  calculateShippingOption?: Resolver<
-    Maybe<ResolversTypes['ShippingOption']>,
-    ParentType,
-    ContextType,
-    RequireFields<QueryCalculateShippingOptionArgs, 'cartId' | 'optionId'>
-  >;
   cart?: Resolver<
     Maybe<ResolversTypes['Cart']>,
     ParentType,
     ContextType,
     RequireFields<QueryCartArgs, 'id'>
+  >;
+  order?: Resolver<
+    Maybe<ResolversTypes['Order']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryOrderArgs, 'id'>
+  >;
+  orders?: Resolver<
+    Maybe<ResolversTypes['OrderListResponse']>,
+    ParentType,
+    ContextType,
+    Partial<QueryOrdersArgs>
+  >;
+  paymentProviders?: Resolver<
+    Array<ResolversTypes['PaymentProviders']>,
+    ParentType,
+    ContextType,
+    RequireFields<QueryPaymentProvidersArgs, 'regionId'>
   >;
   region?: Resolver<
     Maybe<ResolversTypes['Region']>,
@@ -1088,6 +1303,54 @@ export type RegionResolvers<
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
+export type ServiceZoneResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZone'] =
+    ResolversParentTypes['ServiceZone'],
+> = {
+  fulfillmentSetType?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  location?: Resolver<
+    Maybe<ResolversTypes['ServiceZoneLocation']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type ServiceZoneLocationResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZoneLocation'] =
+    ResolversParentTypes['ServiceZoneLocation'],
+> = {
+  address?: Resolver<
+    Maybe<ResolversTypes['ServiceZoneLocationAddress']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type ServiceZoneLocationAddressResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ServiceZoneLocationAddress'] =
+    ResolversParentTypes['ServiceZoneLocationAddress'],
+> = {
+  address1?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  city?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  postalCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+};
+
 export type ShippingMethodResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['ShippingMethod'] =
@@ -1116,6 +1379,11 @@ export type ShippingOptionResolvers<
     ResolversParentTypes['ShippingOption'],
 > = {
   amount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  calculatedPrice?: Resolver<
+    Maybe<ResolversTypes['CalculatedShippingOptionPrice']>,
+    ParentType,
+    ContextType
+  >;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   insufficientInventory?: Resolver<
     Maybe<ResolversTypes['Boolean']>,
@@ -1124,8 +1392,36 @@ export type ShippingOptionResolvers<
   >;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   priceType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  prices?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes['ShippingOptionPrice']>>>,
+    ParentType,
+    ContextType
+  >;
+  serviceZone?: Resolver<
+    Maybe<ResolversTypes['ServiceZone']>,
+    ParentType,
+    ContextType
+  >;
   serviceZoneId?: Resolver<
     Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type ShippingOptionPriceResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ShippingOptionPrice'] =
+    ResolversParentTypes['ShippingOptionPrice'],
+> = {
+  amount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  currencyCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  priceRules?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes['PriceRule']>>>,
     ParentType,
     ContextType
   >;
@@ -1144,6 +1440,7 @@ export type StoreLineItemDeleteResponseResolvers<
 export type Resolvers<ContextType = GraphQLContext> = {
   Address?: AddressResolvers<ContextType>;
   ApplicationMethod?: ApplicationMethodResolvers<ContextType>;
+  CalculatedShippingOptionPrice?: CalculatedShippingOptionPriceResolvers<ContextType>;
   Cart?: CartResolvers<ContextType>;
   CompleteCartError?: CompleteCartErrorResolvers<ContextType>;
   CompleteCartErrorResult?: CompleteCartErrorResultResolvers<ContextType>;
@@ -1155,16 +1452,24 @@ export type Resolvers<ContextType = GraphQLContext> = {
   LineItem?: LineItemResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Order?: OrderResolvers<ContextType>;
+  OrderListResponse?: OrderListResponseResolvers<ContextType>;
+  OrderTransferData?: OrderTransferDataResolvers<ContextType>;
+  OrderTransferResult?: OrderTransferResultResolvers<ContextType>;
   Payment?: PaymentResolvers<ContextType>;
   PaymentCollection?: PaymentCollectionResolvers<ContextType>;
   PaymentProviders?: PaymentProvidersResolvers<ContextType>;
   PaymentSessions?: PaymentSessionsResolvers<ContextType>;
+  PriceRule?: PriceRuleResolvers<ContextType>;
   ProductVariant?: ProductVariantResolvers<ContextType>;
   Promotion?: PromotionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Region?: RegionResolvers<ContextType>;
+  ServiceZone?: ServiceZoneResolvers<ContextType>;
+  ServiceZoneLocation?: ServiceZoneLocationResolvers<ContextType>;
+  ServiceZoneLocationAddress?: ServiceZoneLocationAddressResolvers<ContextType>;
   ShippingMethod?: ShippingMethodResolvers<ContextType>;
   ShippingOption?: ShippingOptionResolvers<ContextType>;
+  ShippingOptionPrice?: ShippingOptionPriceResolvers<ContextType>;
   StoreLineItemDeleteResponse?: StoreLineItemDeleteResponseResolvers<ContextType>;
 };
 

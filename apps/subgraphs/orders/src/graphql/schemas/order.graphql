@@ -20,3 +20,32 @@ type Order @cacheControl(maxAge: 0) {
   shippingTotal: Int
   taxTotal: Int
 }
+
+type OrderListResponse {
+  orders: [Order!]!
+  count: Int!
+  limit: Int!
+  offset: Int!
+}
+
+type OrderTransferData {
+  id: ID!
+  email: String!
+}
+
+type OrderTransferResult {
+  success: Boolean!
+  error: String
+  order: OrderTransferData
+}
+
+extend type Query {
+  order(id: ID!): Order
+  orders(limit: Int, offset: Int): OrderListResponse
+}
+
+extend type Mutation {
+  requestOrderTransfer(orderId: ID!): OrderTransferResult
+  acceptOrderTransfer(orderId: ID!, token: String!): OrderTransferResult
+  declineOrderTransfer(orderId: ID!, token: String!): OrderTransferResult
+}

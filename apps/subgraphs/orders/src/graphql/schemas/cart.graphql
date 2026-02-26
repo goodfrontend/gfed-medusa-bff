@@ -183,4 +183,5 @@ extend type Mutation {
   completeCart(cartId: ID!): CompleteCartResponse
   transferCart(cartId: ID!): Cart
   applyPromotions(cartId: ID!, codes: [String!]!): Cart
+  initiatePaymentSession(cartId: ID!, providerId: String!): Cart
 }

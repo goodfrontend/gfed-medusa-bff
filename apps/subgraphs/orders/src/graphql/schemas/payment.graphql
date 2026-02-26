@@ -1,9 +1,17 @@
 enum PaymentStatus {
-  canceled
   not_paid
   awaiting
   authorized
   partially_authorized
+  captured
+  partially_captured
+  refunded
+  partially_refunded
+  canceled
+  requires_action
+  completed
+  not_started
+  voided
 }
 
 type Payment {
@@ -45,4 +53,8 @@ type PaymentSessions {
   providerId: String!
   data: JSON!
   status: PaymentSessionStatus!
+}
+
+extend type Query {
+  paymentProviders(regionId: ID!): [PaymentProviders!]!
 }
