@@ -45,7 +45,7 @@ on:
         default: main
 
 concurrency:
-  group: schema-registry-${{ inputs.registry_branch }}-${{ inputs.environment }}
+  group: schema-registry-subgraph-${{ inputs.registry_branch }}-${{ inputs.environment }}-${{ inputs.subgraph_name }}
   cancel-in-progress: false
 
 jobs:
