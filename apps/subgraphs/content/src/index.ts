@@ -12,7 +12,7 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
 
-const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
+const DEPLOY_MARKER = 'prod-region-check-2026-02-27';
 
 async function startServer() {
   const app = express();

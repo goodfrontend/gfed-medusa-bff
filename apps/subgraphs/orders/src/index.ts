@@ -14,7 +14,7 @@ import { resolvers } from '@graphql/resolvers';
 import { typeDefs } from '@graphql/schemas';
 import { createContext } from '@services/index';
 
-const DEPLOY_MARKER = 'prod-region-check-2026-02-25';
+const DEPLOY_MARKER = 'prod-region-check-2026-02-27';
 
 async function startServer() {
   const app = express();
