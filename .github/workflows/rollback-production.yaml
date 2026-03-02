@@ -216,6 +216,10 @@ jobs:
       Rollback ${{ inputs.app }} to v${{
       needs.validate.outputs.version }} in production
     needs: validate
+    permissions:
+      contents: read
+      deployments: write
+      packages: write
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: ${{ needs.validate.outputs.service_name }}

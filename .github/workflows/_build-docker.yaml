@@ -8,6 +8,10 @@ on:
       dockerfile:
         required: true
         type: string
+      publish_latest:
+        required: false
+        type: boolean
+        default: false
     outputs:
       image_tag:
         value: ghcr.io/${{ github.repository }}/${{ inputs.app }}:${{ github.sha }}
@@ -27,11 +31,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve image tags
+        id: image-tags
+        run: |
+          set -euo pipefail
+
+          tags="ghcr.io/${{ github.repository }}/${{ inputs.app }}:${{ github.sha }}"
+          if [ "${{ inputs.publish_latest }}" = "true" ]; then
+            tags="${tags}"$'\n'"ghcr.io/${{ github.repository }}/${{ inputs.app }}:latest"
+          fi
+
+          {
+            echo 'tags<<EOF'
+            printf '%s\n' "$tags"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v5
         with:
           context: .
           file: ${{ inputs.dockerfile }}
           push: true
-          tags: ghcr.io/${{ github.repository }}/${{ inputs.app }}:${{ github.sha }}
+          tags: ${{ steps.image-tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
