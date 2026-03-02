@@ -43,7 +43,7 @@ const useRegistry = Boolean(supergraphSdlUrl);
 const POLL_INTERVAL = 10000;
 const SUPERGRAPH_FETCH_TIMEOUT_MS = 10000;
 const RELOAD_ROUTE = '/admin/reload-supergraph';
-const DEPLOY_MARKER = 'prod-region-check-2026-02-27-r2';
+const DEPLOY_MARKER = 'prod-region-check-2026-03-02-r3';
 
 async function fetchSupergraphSdl(url: string) {
   const controller = new AbortController();
