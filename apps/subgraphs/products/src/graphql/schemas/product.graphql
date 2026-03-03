@@ -10,9 +10,9 @@ type Query {
     id: [ID!]
     is_giftcard: Boolean
     tag_id: [String]
-  ): ProductListResponse! @cacheControl(maxAge: 60, scope: PUBLIC)
+  ): ProductListResponse! @cacheControl(maxAge: 300, scope: PUBLIC)
   product(id: ID!, region_id: String): Product
-    @cacheControl(maxAge: 60, scope: PUBLIC)
+    @cacheControl(maxAge: 300, scope: PUBLIC)
   productCategories(
     limit: Int
     offset: Int
@@ -39,7 +39,7 @@ type Query {
 }
 
 type ProductListResponse {
-  products: [Product]
+  products: [Product] @cacheControl(maxAge: 300, scope: PUBLIC)
   count: Int!
 }
 
@@ -55,11 +55,11 @@ type Product @cacheControl(maxAge: 300, scope: PUBLIC) {
   height: Float
   originCountry: String
   material: String
-  images: [ProductImage!]
-  tags: [ProductTag!]
-  options: [ProductOption!]
-  variants: [ProductVariant!]
-  collection: Collection
+  images: [ProductImage!] @cacheControl(maxAge: 300, scope: PUBLIC)
+  tags: [ProductTag!] @cacheControl(maxAge: 300, scope: PUBLIC)
+  options: [ProductOption!] @cacheControl(maxAge: 300, scope: PUBLIC)
+  variants: [ProductVariant!] @cacheControl(maxAge: 300, scope: PUBLIC)
+  collection: Collection @cacheControl(maxAge: 300, scope: PUBLIC)
   type: String
   collectionId: String
   createdAt: DateTime!
@@ -77,7 +77,7 @@ type ProductTag {
 type ProductOption {
   id: ID!
   title: String!
-  values: [ProductOptionValue!]!
+  values: [ProductOptionValue!]! @cacheControl(maxAge: 300, scope: PUBLIC)
 }
 
 type ProductOptionValue {
@@ -85,17 +85,19 @@ type ProductOptionValue {
   value: String!
 }
 
-type ProductVariant @key(fields: "id") @cacheControl(maxAge: 30, scope: PUBLIC) {
+type ProductVariant
+  @key(fields: "id")
+  @cacheControl(maxAge: 300, scope: PUBLIC) {
   id: ID!
   sku: String
   inventoryQuantity: Int @cacheControl(maxAge: 0)
   allowBackorder: Boolean
   manageInventory: Boolean
-  options: [ProductVariantOption]
-  price: Price
-  originalPrice: Price
+  options: [ProductVariantOption] @cacheControl(maxAge: 300, scope: PUBLIC)
+  price: Price @cacheControl(maxAge: 0)
+  originalPrice: Price @cacheControl(maxAge: 0)
   title: String
-  product: Product
+  product: Product @cacheControl(maxAge: 300, scope: PUBLIC)
 }
 
 type ProductVariantOption {
@@ -104,7 +106,7 @@ type ProductVariantOption {
   value: String!
 }
 
-type Price @cacheControl(maxAge: 30, scope: PUBLIC) {
+type Price @cacheControl(maxAge: 0, scope: PUBLIC) {
   amount: Float
   currencyCode: String
   priceType: String
@@ -115,21 +117,21 @@ type ProductCategory @cacheControl(maxAge: 600, scope: PUBLIC) {
   name: String!
   description: String
   handle: String!
-  parentCategory: ProductCategory
-  categoryChildren: [ProductCategory!]
-  products: ProductList
+  parentCategory: ProductCategory @cacheControl(maxAge: 600, scope: PUBLIC)
+  categoryChildren: [ProductCategory!] @cacheControl(maxAge: 600, scope: PUBLIC)
+  products: ProductList @cacheControl(maxAge: 300, scope: PUBLIC)
 }
 
 type Collection @cacheControl(maxAge: 600, scope: PUBLIC) {
   id: ID!
   title: String!
   handle: String!
-  products: ProductList
+  products: ProductList @cacheControl(maxAge: 300, scope: PUBLIC)
 }
 
 type ProductList {
   count: Int!
-  items: [Product!]
+  items: [Product!] @cacheControl(maxAge: 300, scope: PUBLIC)
 }
 
 type ProductHit {
@@ -147,5 +149,5 @@ type SearchProducts {
   hitsPerPage: Int!
   query: String!
   params: String!
-  items: [ProductHit!]!
+  items: [ProductHit!]! @cacheControl(maxAge: 30, scope: PUBLIC)
 }
