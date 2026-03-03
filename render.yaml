@@ -8,7 +8,7 @@ projects:
         services:
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: gateway-prod
             region: frankfurt
             autoDeployTrigger: off
@@ -19,7 +19,7 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: content-prod
             region: frankfurt
             autoDeployTrigger: off
@@ -30,7 +30,7 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: products-prod
             region: frankfurt
             autoDeployTrigger: off
@@ -41,7 +41,7 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: orders-prod
             region: frankfurt
             autoDeployTrigger: off
@@ -52,7 +52,7 @@ projects:
 
           - type: web
             runtime: image
-            plan: free
+            plan: starter
             name: customers-prod
             region: frankfurt
             autoDeployTrigger: off
