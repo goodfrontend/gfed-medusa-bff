@@ -89,6 +89,8 @@ async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
 
+  app.set('trust proxy', 1);
+
   let updateSupergraphSdl: SupergraphSdlUpdateFunction | null = null;
   let lastReloadAt: string | null = null;
   let lastReloadError: string | null = null;
@@ -377,7 +379,7 @@ async function startServer() {
           res.clearCookie('storefront.sid', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 1000 * 60 * 60 * 24,
           });
           resolve();
