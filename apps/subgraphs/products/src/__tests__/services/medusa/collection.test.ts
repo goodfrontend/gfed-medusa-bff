@@ -30,19 +30,47 @@ describe('CollectionService', () => {
         { id: 'col_1', title: 'Summer Collection', handle: 'summer' },
         { id: 'col_2', title: 'Winter Collection', handle: 'winter' },
       ];
-      mockMedusa.store.collection.list.mockResolvedValue({
+      mockMedusa.client.fetch.mockResolvedValue({
         collections: mockCollections,
       });
 
       const result = await collectionService.getCollections();
       expect(result).toEqual(mockCollections);
-      expect(mockMedusa.store.collection.list).toHaveBeenCalledWith({
-        fields: COLLECTION_FIELDS,
+      expect(mockMedusa.client.fetch).toHaveBeenCalledWith(
+        '/store/collections-with-products',
+        {
+          method: 'GET',
+          query: undefined,
+        }
+      );
+    });
+
+    it('should pass through supported query params', async () => {
+      mockMedusa.client.fetch.mockResolvedValue({
+        collections: [],
       });
+
+      await collectionService.getCollections({
+        limit: 8,
+        offset: 2,
+        handle: ['summer'],
+      });
+
+      expect(mockMedusa.client.fetch).toHaveBeenCalledWith(
+        '/store/collections-with-products',
+        {
+          method: 'GET',
+          query: {
+            limit: 8,
+            offset: 2,
+            handle: ['summer'],
+          },
+        }
+      );
     });
 
     it('should handle empty collection response', async () => {
-      mockMedusa.store.collection.list.mockResolvedValue({
+      mockMedusa.client.fetch.mockResolvedValue({
         collections: [],
       });
 
@@ -51,7 +79,7 @@ describe('CollectionService', () => {
     });
 
     it('should throw error on failure', async () => {
-      mockMedusa.store.collection.list.mockRejectedValue(
+      mockMedusa.client.fetch.mockRejectedValue(
         new Error('Collection fetch failed')
       );
       await expect(collectionService.getCollections()).rejects.toThrow();

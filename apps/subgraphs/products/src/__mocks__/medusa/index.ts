@@ -22,5 +22,6 @@ export const mockMedusa = {
   },
   client: {
     setToken: jest.fn(),
+    fetch: jest.fn(),
   },
 };
