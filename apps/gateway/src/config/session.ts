@@ -11,7 +11,8 @@ export const sessionConfig: (req: any, res: any, next: any) => void = session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.justgood.win' : undefined,
     maxAge: 1000 * 60 * 60 * 24,
   },
 });
