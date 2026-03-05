@@ -5,21 +5,33 @@ import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { MedusaBaseService } from '.';
 import { COLLECTION_FIELDS } from '../../constants/medusa';
 
+type CollectionsWithProductsResponse = {
+  collections?: Array<{
+    id: string;
+    title: string;
+    handle: string;
+  }>;
+};
+
 export class CollectionService extends MedusaBaseService {
   async getCollections(
     params?: HttpTypes.FindParams & HttpTypes.StoreCollectionFilters
   ): Promise<Collection[]> {
     try {
-      const { collections } = await this.medusa.store.collection.list({
-        ...params,
-        fields: COLLECTION_FIELDS,
-      });
+      const { collections } =
+        await this.medusa.client.fetch<CollectionsWithProductsResponse>(
+          '/store/collections-with-products',
+          {
+            method: 'GET',
+            query: params,
+          }
+        );
 
       return collections?.map(({ id, title, handle }) => ({
         id,
         title,
         handle,
-      }));
+      })) ?? [];
     } catch (error: unknown) {
       handleMedusaError(error, 'fetch collections', ['collections']);
     }
