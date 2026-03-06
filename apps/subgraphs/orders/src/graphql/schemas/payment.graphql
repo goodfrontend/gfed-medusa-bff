@@ -19,6 +19,7 @@ type Payment {
   amount: Int!
   currencyCode: String!
   providerId: String!
+  cardLast4: String
   data: JSON
   createdAt: DateTime
 }

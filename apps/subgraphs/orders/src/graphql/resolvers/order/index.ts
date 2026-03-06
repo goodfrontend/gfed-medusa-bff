@@ -1,12 +1,95 @@
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
 import { normalizeOrder } from '@graphql/resolvers/cart/util/transforms';
+import { StoreOrder } from '@medusajs/types';
 
 const ORDER_FIELDS =
   '*payment_collections.payments,*items,*items.metadata,*items.variant,*items.product';
 
 const ORDER_LIST_FIELDS =
   '*items,+items.metadata,*items.variant,*items.product';
+
+const STRIPE_API_BASE = (
+  process.env.STRIPE_API_BASE || 'https://api.stripe.com/v1'
+).replace(/\/+$/, '');
+const stripePaymentMethodCache = new Map<string, string | null>();
+
+async function retrieveStripePaymentMethodLast4(paymentMethodId: string) {
+  if (stripePaymentMethodCache.has(paymentMethodId)) {
+    return stripePaymentMethodCache.get(paymentMethodId) ?? null;
+  }
+
+  const stripeSecretKey = process.env.STRIPE_API_KEY;
+  if (!stripeSecretKey) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${STRIPE_API_BASE}/payment_methods/${paymentMethodId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${stripeSecretKey}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      stripePaymentMethodCache.set(paymentMethodId, null);
+      return null;
+    }
+
+    const paymentMethod = (await response.json()) as {
+      card?: { last4?: string };
+    };
+
+    const last4 = paymentMethod.card?.last4 ?? null;
+    stripePaymentMethodCache.set(paymentMethodId, last4);
+
+    return last4;
+  } catch {
+    stripePaymentMethodCache.set(paymentMethodId, null);
+    return null;
+  }
+}
+
+async function enrichOrderStripePaymentLast4(order: StoreOrder) {
+  const paymentCollections = order.payment_collections ?? [];
+
+  for (const collection of paymentCollections) {
+    const payments = collection.payments ?? [];
+
+    for (const payment of payments) {
+      if (!payment.provider_id?.startsWith('pp_stripe_')) {
+        continue;
+      }
+
+      const paymentData = (payment.data ?? {}) as {
+        card_last4?: string;
+        payment_method?: string;
+      };
+
+      if (paymentData.card_last4) {
+        continue;
+      }
+
+      const paymentMethodId = paymentData.payment_method;
+      if (!paymentMethodId) {
+        continue;
+      }
+
+      const last4 = await retrieveStripePaymentMethodLast4(paymentMethodId);
+      if (!last4) {
+        continue;
+      }
+
+      payment.data = {
+        ...paymentData,
+        card_last4: last4,
+      };
+    }
+  }
+}
 
 export const orderResolvers = {
   Query: {
@@ -19,6 +102,7 @@ export const orderResolvers = {
         const { order } = await medusa.store.order.retrieve(id, {
           fields: ORDER_FIELDS,
         });
+        await enrichOrderStripePaymentLast4(order as StoreOrder);
         return normalizeOrder(order);
       } catch (e) {
         handleMedusaError(e, 'run Query.order', ['Query', 'order']);
@@ -38,6 +122,11 @@ export const orderResolvers = {
             order: '-created_at',
             fields: ORDER_LIST_FIELDS,
           } as any);
+        await Promise.all(
+          orders.map((order) =>
+            enrichOrderStripePaymentLast4(order as unknown as StoreOrder)
+          )
+        );
         return {
           orders: orders.map(normalizeOrder),
           count,

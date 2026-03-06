@@ -97,6 +97,18 @@ export function normalizePaymentCollection(
         status: s.status ?? '',
         data: s.data ?? {},
       })) ?? [],
+    payments:
+      collection.payments?.map((payment) => ({
+        id: payment.id ?? '',
+        amount: payment.amount ?? 0,
+        currencyCode: payment.currency_code ?? '',
+        providerId: payment.provider_id ?? '',
+        cardLast4:
+          (payment.data as { card_last4?: string } | undefined)?.card_last4 ??
+          null,
+        data: payment.data ?? {},
+        createdAt: payment.created_at ?? null,
+      })) ?? [],
     createdAt: collection.created_at,
     status: collection.status ?? 'not_paid',
   };

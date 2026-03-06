@@ -16,7 +16,7 @@ export const cartResolvers = {
     ) => {
       const { cart } = await medusa.store.cart.retrieve(id, {
         fields:
-          '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*',
+          '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*,+payment_collection.*,+payment_collection.payment_sessions.*,+payment_collection.payment_providers.*',
       });
 
       return normalizeCart(cart);
@@ -141,7 +141,8 @@ export const cartResolvers = {
         provider_id: providerId,
       });
       const { cart: updatedCart } = await medusa.store.cart.retrieve(cartId, {
-        fields: '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*',
+        fields:
+          '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*,+payment_collection.*,+payment_collection.payment_sessions.*,+payment_collection.payment_providers.*',
       });
       return normalizeCart(updatedCart);
     },

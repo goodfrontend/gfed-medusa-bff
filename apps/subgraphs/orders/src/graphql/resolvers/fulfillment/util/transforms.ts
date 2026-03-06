@@ -9,11 +9,15 @@ export const transformShippingOption = (
 
   const calculatedPriceRaw = dynamicOption.calculated_price;
   const pricesRaw: any[] = dynamicOption.prices ?? [];
+  const derivedAmount =
+    option.amount ??
+    pricesRaw.find((price) => typeof price?.amount === 'number')?.amount ??
+    null;
 
   return {
     id: option.id,
     name: option.name,
-    amount: option.amount ?? null,
+    amount: derivedAmount,
     priceType: option.price_type,
     serviceZoneId: option.service_zone_id,
     insufficientInventory: option.insufficient_inventory,
