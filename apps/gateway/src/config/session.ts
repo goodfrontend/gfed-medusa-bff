@@ -2,17 +2,19 @@ import session from 'express-session';
 
 import { redisStore } from './redis';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export const sessionConfig: (req: any, res: any, next: any) => void = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   name: 'storefront.sid',
   resave: false,
   saveUninitialized: false,
-  store: process.env.NODE_ENV !== 'production' ? undefined : redisStore,
+  store: isProd ? redisStore : undefined,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProd,
     sameSite: 'none',
-    domain: process.env.NODE_ENV === 'production' ? '.justgood.win' : undefined,
+    domain: isProd ? '.justgood.win' : undefined,
     maxAge: 1000 * 60 * 60 * 24,
   },
 });
