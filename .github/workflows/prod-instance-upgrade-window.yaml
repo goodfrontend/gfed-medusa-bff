@@ -6,7 +6,7 @@ on:
       web_service_upgrade_plan:
         description: "Render web service plan"
         required: false
-        default: starter ($7/month, 512 MB RAM, 0.5 CPU)
+        default: standard ($25/month, 2 GB RAM, 1 CPU)
         type: choice
         options:
           - starter ($7/month, 512 MB RAM, 0.5 CPU)
