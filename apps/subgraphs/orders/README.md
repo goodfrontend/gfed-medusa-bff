@@ -20,6 +20,10 @@ Federated Apollo subgraph that currently exposes Medusa cart logic and is planne
    cp .env.template .env
    ```
 
+   For Stripe card metadata enrichment in order responses, set:
+   - `STRIPE_API_KEY` (required for Stripe API calls)
+   - `STRIPE_API_BASE` (optional, defaults to `https://api.stripe.com/v1`)
+
 ## Running
 
 ```sh
