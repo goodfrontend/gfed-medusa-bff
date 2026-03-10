@@ -106,3 +106,18 @@ export const rateLimitExceededProductErrorHandler = http.get(
   `${process.env.MEDUSA_API_URL}/store/products/:id`,
   () => HttpResponse.json({ message: 'Rate limit exceeded' }, { status: 429 })
 );
+
+export const orderAssertionHandler = http.get(
+  `${process.env.MEDUSA_API_URL}/store/products`,
+  ({ request }) => {
+    const url = new URL(request.url);
+
+    return HttpResponse.json({
+      products: createMockMedusaProducts(2),
+      count: 2,
+      limit: Number(url.searchParams.get('limit') ?? 20),
+      offset: Number(url.searchParams.get('offset') ?? 0),
+      order: url.searchParams.get('order'),
+    });
+  }
+);

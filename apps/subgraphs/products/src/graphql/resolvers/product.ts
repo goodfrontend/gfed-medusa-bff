@@ -7,7 +7,7 @@ export const productResolvers = {
   Query: {
     products: async (
       _parent: unknown,
-      args: HttpTypes.StoreProductParams & { id?: string },
+      args: HttpTypes.StoreProductListParams,
       { productService, logger }: GraphQLContext
     ) => {
       logger.info({ args }, 'Fetching products');
