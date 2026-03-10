@@ -1,0 +1,140 @@
+name: Reconcile Render Service Schedules
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: render-service-lifecycle-reconciler
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Apply due Render service rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load configured Render service rules
+        id: rules
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          artifact_name="render-service-lifecycle-rules"
+          list_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${artifact_name}&per_page=100"
+
+          list_status="$(curl -sS -o /tmp/render_service_rules_artifacts.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${list_url}")"
+
+          if [ "$list_status" != "200" ]; then
+            echo "::error::Unable to list Render service rule artifacts (HTTP ${list_status})."
+            cat /tmp/render_service_rules_artifacts.json
+            exit 1
+          fi
+
+          artifact_json="$(jq -c '[.artifacts[] | select(.expired == false)] | sort_by(.created_at, .id) | last // empty' /tmp/render_service_rules_artifacts.json)"
+          if [ -z "$artifact_json" ]; then
+            echo "::notice::No Render service rule store found."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          archive_url="$(echo "$artifact_json" | jq -r '.archive_download_url // empty')"
+          if [ -z "$archive_url" ]; then
+            echo "::error::Render service rule artifact is missing archive_download_url."
+            echo "$artifact_json"
+            exit 1
+          fi
+
+          download_status="$(curl -sS -L -o /tmp/render_service_rules.zip -w "%{http_code}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${archive_url}")"
+
+          if [ "$download_status" -ge 300 ]; then
+            echo "::error::Unable to download Render service rule artifact (HTTP ${download_status})."
+            exit 1
+          fi
+
+          if ! unzip -p /tmp/render_service_rules.zip render-service-rules.json > render-service-rules.json 2>/dev/null; then
+            echo "::error::Render service rule artifact does not contain render-service-rules.json."
+            exit 1
+          fi
+
+          jq -e . render-service-rules.json >/dev/null
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
+      - name: Plan due rules
+        if: steps.rules.outputs.configured == 'true'
+        id: plan
+        run: |
+          set -euo pipefail
+
+          ruby .github/scripts/render_service_rules.rb plan render-service-rules.json due-rules.json
+
+          due_count="$(jq -r '.due_rules | length' due-rules.json)"
+          if [ "$due_count" -gt 0 ]; then
+            has_due_rules="true"
+          else
+            has_due_rules="false"
+          fi
+
+          {
+            echo "due_count=${due_count}"
+            echo "has_due_rules=${has_due_rules}"
+          } >> "$GITHUB_OUTPUT"
+
+          jq -r '.summary[]' due-rules.json | while IFS= read -r line; do
+            echo "- ${line}" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Apply due rules
+        if: steps.rules.outputs.configured == 'true' && steps.plan.outputs.has_due_rules == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          overall_status=0
+
+          while IFS= read -r rule_b64; do
+            rule_json="$(printf '%s' "$rule_b64" | base64 --decode)"
+            rule_id="$(jq -r '.rule_id' <<<"$rule_json")"
+            rule_name="$(jq -r '.rule_name' <<<"$rule_json")"
+            action="$(jq -r '.action' <<<"$rule_json")"
+            run_key="$(jq -r '.run_key // empty' <<<"$rule_json")"
+            rule_boundary="$(jq -r '.boundary // empty' <<<"$rule_json")"
+            services_json="$(jq -c '.services' <<<"$rule_json")"
+
+            echo "::notice::Applying due rule '${rule_name}' (${rule_id}) with action '${action}'."
+
+            if ACTION="$action" SERVICES_JSON="$services_json" RENDER_API_KEY="$RENDER_API_KEY" ./.github/scripts/render_service_power.sh; then
+              RULE_STATUS="success" RULE_RUN_KEY="$run_key" RULE_BOUNDARY="$rule_boundary" ruby .github/scripts/render_service_rules.rb record render-service-rules.json "$rule_id"
+            else
+              overall_status=1
+              RULE_STATUS="failed" RULE_RUN_KEY="$run_key" RULE_BOUNDARY="$rule_boundary" ruby .github/scripts/render_service_rules.rb record render-service-rules.json "$rule_id"
+            fi
+          done < <(jq -r '.due_rules[] | @base64' due-rules.json)
+
+          exit "$overall_status"
+
+      - name: Upload updated Render service rule store
+        if: always() && steps.rules.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-service-lifecycle-rules
+          path: render-service-rules.json
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true

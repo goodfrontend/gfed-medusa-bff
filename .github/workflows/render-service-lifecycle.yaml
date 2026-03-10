@@ -1,0 +1,247 @@
+name: Manage Render Service Lifecycle
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Render action to apply. For window schedules, this is the action at the window start."
+        required: true
+        type: choice
+        options:
+          - suspend
+          - resume
+      schedule_type:
+        description: "Run now, once later, repeatedly, or as a paired start/end window"
+        required: true
+        default: immediate
+        type: choice
+        options:
+          - immediate
+          - scheduled
+          - recurring
+          - window_scheduled
+          - window_recurring
+      services:
+        description: "Comma-separated service names from render.yaml, or all"
+        required: false
+        default: all
+        type: string
+      rule_name:
+        description: "Required for any saved schedule. Reusing the same name updates that saved schedule."
+        required: false
+        type: string
+      enabled:
+        description: "Set false to disable an existing saved schedule identified by rule_name."
+        required: false
+        default: true
+        type: boolean
+      scheduled_at:
+        description: "For scheduled or window_scheduled: local start time in timezone, YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS]"
+        required: false
+        type: string
+      scheduled_end_at:
+        description: "For window_scheduled: local end time in timezone, same format as scheduled_at"
+        required: false
+        type: string
+      recurring_cron:
+        description: "For recurring: 5-field numeric cron in timezone. Minute values must align to 5-minute boundaries."
+        required: false
+        type: string
+      window_start_cron:
+        description: "For window_recurring: cron for the window start action"
+        required: false
+        type: string
+      window_end_cron:
+        description: "For window_recurring: cron for the opposite action at the window end"
+        required: false
+        type: string
+      timezone:
+        description: "IANA timezone for scheduled_at and cron evaluation, for example UTC or Asia/Manila"
+        required: false
+        default: UTC
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: render-service-lifecycle-config
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: Validate request and save schedule
+    runs-on: ubuntu-latest
+    outputs:
+      run_immediately: ${{ steps.configure.outputs.run_immediately }}
+      persist_store: ${{ steps.configure.outputs.persist_store }}
+      dispatch_watcher: ${{ steps.configure.outputs.dispatch_watcher }}
+      watcher_epochs_json: ${{ steps.configure.outputs.watcher_epochs_json }}
+      action: ${{ steps.configure.outputs.action }}
+      selected_services_json: ${{ steps.configure.outputs.selected_services_json }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load existing Render service rules
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          artifact_name="render-service-lifecycle-rules"
+          list_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${artifact_name}&per_page=100"
+
+          list_status="$(curl -sS -o /tmp/render_service_rule_artifacts.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${list_url}")"
+
+          if [ "$list_status" != "200" ]; then
+            echo "::error::Unable to list Render service rule artifacts (HTTP ${list_status})."
+            cat /tmp/render_service_rule_artifacts.json
+            exit 1
+          fi
+
+          artifact_json="$(jq -c '[.artifacts[] | select(.expired == false)] | sort_by(.created_at, .id) | last // empty' /tmp/render_service_rule_artifacts.json)"
+
+          if [ -z "$artifact_json" ]; then
+            echo "::notice::No existing Render service rule store found."
+            exit 0
+          fi
+
+          archive_url="$(echo "$artifact_json" | jq -r '.archive_download_url // empty')"
+          if [ -z "$archive_url" ]; then
+            echo "::error::Render service rule artifact is missing archive_download_url."
+            echo "$artifact_json"
+            exit 1
+          fi
+
+          download_status="$(curl -sS -L -o /tmp/render_service_rules.zip -w "%{http_code}" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${archive_url}")"
+
+          if [ "$download_status" -ge 300 ]; then
+            echo "::error::Unable to download Render service rule artifact (HTTP ${download_status})."
+            exit 1
+          fi
+
+          if ! unzip -p /tmp/render_service_rules.zip render-service-rules.json > render-service-rules.json 2>/dev/null; then
+            echo "::error::Render service rule artifact does not contain render-service-rules.json."
+            exit 1
+          fi
+
+          jq -e . render-service-rules.json >/dev/null
+
+      - name: Validate request
+        id: configure
+        env:
+          RULE_ACTION: ${{ inputs.action }}
+          SCHEDULE_TYPE: ${{ inputs.schedule_type }}
+          SERVICES_INPUT: ${{ inputs.services }}
+          RULE_NAME: ${{ inputs.rule_name }}
+          RULE_ENABLED: ${{ inputs.enabled }}
+          SCHEDULED_AT: ${{ inputs.scheduled_at }}
+          SCHEDULED_END_AT: ${{ inputs.scheduled_end_at }}
+          RECURRING_CRON: ${{ inputs.recurring_cron }}
+          WINDOW_START_CRON: ${{ inputs.window_start_cron }}
+          WINDOW_END_CRON: ${{ inputs.window_end_cron }}
+          RULE_TIMEZONE: ${{ inputs.timezone }}
+        run: |
+          set -euo pipefail
+
+          ruby .github/scripts/render_service_rules.rb configure render.yaml render-service-rules.json configure-result.json
+
+          {
+            jq -r '"run_immediately=\(.run_immediately)"' configure-result.json
+            jq -r '"persist_store=\(.persist_store)"' configure-result.json
+            jq -r '"dispatch_watcher=\(.dispatch_watcher)"' configure-result.json
+            jq -r '"watcher_epochs_json=\(.watcher_epochs | @json)"' configure-result.json
+            jq -r '"action=\(.action)"' configure-result.json
+            jq -r '"selected_services_json=\(.selected_services | @json)"' configure-result.json
+          } >> "$GITHUB_OUTPUT"
+
+          jq -r '.summary[]' configure-result.json | while IFS= read -r line; do
+            echo "- ${line}" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload Render service rule store
+        if: steps.configure.outputs.persist_store == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-service-lifecycle-rules
+          path: render-service-rules.json
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true
+
+      - name: Dispatch one-time watcher
+        if: steps.configure.outputs.dispatch_watcher == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          WATCHER_EPOCHS_JSON: ${{ steps.configure.outputs.watcher_epochs_json }}
+        run: |
+          set -euo pipefail
+
+          if ! jq -e 'type == "array" and length > 0' >/dev/null 2>&1 <<<"${WATCHER_EPOCHS_JSON}"; then
+            echo "::error::watcher_epochs_json must be a non-empty JSON array."
+            exit 1
+          fi
+
+          dispatch_ref="${DEFAULT_BRANCH:-${GITHUB_REF_NAME}}"
+
+          dispatch_workflow() {
+            local workflow_file="$1"
+            local payload="$2"
+            local out_file="$3"
+
+            curl -sS -o "$out_file" -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches"
+          }
+
+          while IFS= read -r watcher_epoch; do
+            [ -n "${watcher_epoch}" ] || continue
+
+            payload="$(jq -cn \
+              --arg ref "${dispatch_ref}" \
+              --arg target_epoch "${watcher_epoch}" \
+              --arg parent_run_id "${GITHUB_RUN_ID}" \
+              '{ref:$ref,inputs:{target_epoch:$target_epoch,parent_run_id:$parent_run_id}}')"
+
+            dispatch_status="$(dispatch_workflow "render-service-lifecycle-trigger.yaml" "${payload}" /tmp/render_service_trigger_dispatch.json)"
+
+            if [ "$dispatch_status" != "204" ]; then
+              echo "::error::Could not dispatch the one-time watcher for epoch ${watcher_epoch} (HTTP ${dispatch_status})."
+              cat /tmp/render_service_trigger_dispatch.json
+              exit 1
+            fi
+
+            echo "::notice::Queued one-time watcher for epoch ${watcher_epoch}."
+          done < <(jq -r '.[]' <<<"${WATCHER_EPOCHS_JSON}")
+
+  apply-immediately:
+    name: Apply Render service action now
+    if: needs.configure.outputs.run_immediately == 'true'
+    needs: configure
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply requested action
+        env:
+          ACTION: ${{ needs.configure.outputs.action }}
+          SERVICES_JSON: ${{ needs.configure.outputs.selected_services_json }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: ./.github/scripts/render_service_power.sh
