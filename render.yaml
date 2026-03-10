@@ -61,6 +61,12 @@ projects:
             envVars:
               - fromGroup: bff-prod-env-group
 
+          - type: keyvalue
+            name: redis-prod
+            plan: free
+            region: frankfurt
+            maxmemoryPolicy: allkeys-lru
+            ipAllowList: []
       - name: smoke
         services:
           - type: web
