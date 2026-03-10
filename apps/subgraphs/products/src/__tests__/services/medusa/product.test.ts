@@ -5,6 +5,7 @@ import {
   invalidProductDataHandler,
   largeDataSetsHandler,
   networkTimeoutErrorHandler,
+  orderAssertionHandler,
   productNotFoundHandler,
   publishableKeyRequiredHandler,
   rateLimitExceededErrorHandler,
@@ -111,6 +112,19 @@ describe('ProductService', () => {
       const result = await productService.getProducts();
       expect(result.products).toHaveLength(1000);
       expect(result.count).toBe(1000);
+    });
+
+    it('should forward order to Medusa', async () => {
+      server.use(orderAssertionHandler);
+
+      const result = await productService.getProducts({
+        limit: 12,
+        offset: 24,
+        order: '-created_at',
+      });
+
+      expect(result.products).toHaveLength(2);
+      expect(result.count).toBe(2);
     });
   });
 

@@ -41,6 +41,11 @@ describe('Product Resolvers', () => {
       categoryService: mockCategoryService,
       collectionService: mockCollectionService,
       algoliaSearchService: mockAlgoliaSearchService,
+      logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      },
     } as unknown as GraphQLContext;
   });
 
@@ -110,6 +115,29 @@ describe('Product Resolvers', () => {
         mockContext
       );
       expect(result.products).toHaveLength(1000);
+    });
+
+    it('should forward order to the product service', async () => {
+      const mockResponse = {
+        products: createMockProducts(2),
+        count: 2,
+        limit: 20,
+        offset: 0,
+      };
+      mockProductService.getProducts.mockResolvedValue(mockResponse);
+
+      const result = await productResolvers.Query.products(
+        {},
+        { limit: 20, offset: 0, order: '-created_at' },
+        mockContext
+      );
+
+      expect(mockProductService.getProducts).toHaveBeenCalledWith({
+        limit: 20,
+        offset: 0,
+        order: '-created_at',
+      });
+      expect(result).toEqual(mockResponse);
     });
 
     it('should handle all error scenarios', async () => {
