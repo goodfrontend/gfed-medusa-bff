@@ -58,7 +58,7 @@ on:
       timezone:
         description: "IANA timezone for scheduled_at and cron evaluation, for example UTC or Asia/Manila"
         required: false
-        default: UTC
+        default: Asia/Manila
         type: string
 
 permissions:
