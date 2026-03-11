@@ -1,9 +1,9 @@
-name: Reconcile Render Service Schedules
+name: Reconcile Suspend/Resume Render Services Schedules
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: read

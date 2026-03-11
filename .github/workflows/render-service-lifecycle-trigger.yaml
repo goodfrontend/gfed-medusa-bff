@@ -1,14 +1,14 @@
-name: Trigger Render Service Schedule
+name: Trigger Suspend/Resume Render Services Schedule
 
 on:
   workflow_dispatch:
     inputs:
       target_epoch:
-        description: "Scheduled run time in UTC unix epoch seconds"
+        description: 'Scheduled run time in UTC unix epoch seconds'
         required: true
         type: string
       parent_run_id:
-        description: "Configure workflow run that created this watcher"
+        description: 'Configure workflow run that created this watcher'
         required: false
         type: string
 

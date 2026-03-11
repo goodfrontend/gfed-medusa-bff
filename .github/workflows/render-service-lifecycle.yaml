@@ -1,17 +1,17 @@
-name: Manage Render Service Lifecycle
+name: Suspend/Resume Render Services
 
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: "Render action to apply. For window schedules, this is the action at the window start."
+        description: 'Render action to apply. For window schedules, this is the action at the window start.'
         required: true
         type: choice
         options:
           - suspend
           - resume
       schedule_type:
-        description: "Run now, once later, repeatedly, or as a paired start/end window"
+        description: 'Run now, once later, repeatedly, or as a paired start/end window'
         required: true
         default: immediate
         type: choice
@@ -22,41 +22,41 @@ on:
           - window_scheduled
           - window_recurring
       services:
-        description: "Comma-separated service names from render.yaml, or all"
+        description: 'Comma-separated service names from render.yaml, or all'
         required: false
         default: all
         type: string
       rule_name:
-        description: "Required for any saved schedule. Reusing the same name updates that saved schedule."
+        description: 'Required for any saved schedule. Reusing the same name updates that saved schedule.'
         required: false
         type: string
       enabled:
-        description: "Set false to disable an existing saved schedule identified by rule_name."
+        description: 'Set false to disable an existing saved schedule identified by rule_name.'
         required: false
         default: true
         type: boolean
       scheduled_at:
-        description: "For scheduled or window_scheduled: local start time in timezone, YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS]"
+        description: 'For scheduled or window_scheduled: local start time in timezone, YYYY-MM-DDTHH:MM[:SS] or YYYY-MM-DD HH:MM[:SS]'
         required: false
         type: string
       scheduled_end_at:
-        description: "For window_scheduled: local end time in timezone, same format as scheduled_at"
+        description: 'For window_scheduled: local end time in timezone, same format as scheduled_at'
         required: false
         type: string
       recurring_cron:
-        description: "For recurring: 5-field numeric cron in timezone. Minute values must align to 5-minute boundaries."
+        description: 'For recurring: 5-field numeric cron in timezone. Minute values must align to 5-minute boundaries.'
         required: false
         type: string
       window_start_cron:
-        description: "For window_recurring: cron for the window start action"
+        description: 'For window_recurring: cron for the window start action'
         required: false
         type: string
       window_end_cron:
-        description: "For window_recurring: cron for the opposite action at the window end"
+        description: 'For window_recurring: cron for the opposite action at the window end'
         required: false
         type: string
       timezone:
-        description: "IANA timezone for scheduled_at and cron evaluation, for example UTC or Asia/Manila"
+        description: 'IANA timezone for scheduled_at and cron evaluation, for example UTC or Asia/Manila'
         required: false
         default: Asia/Manila
         type: string
