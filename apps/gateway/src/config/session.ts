@@ -13,7 +13,7 @@ export const sessionConfig: (req: any, res: any, next: any) => void = session({
   cookie: {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'none',
+    sameSite: isProd ? 'none' : 'lax',
     domain: isProd ? '.justgood.win' : undefined,
     maxAge: 1000 * 60 * 60 * 24,
   },

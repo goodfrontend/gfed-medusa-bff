@@ -330,6 +330,23 @@ async function startServer() {
 
     const medusaToken = (medusaRes as { token?: string }).token;
 
+    const cookies = (req.headers.cookie || '').split(';').reduce(
+      (acc, cookie) => {
+        const [key, ...rest] = cookie.trim().split('=');
+        if (key) acc[key] = rest.join('=');
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+
+    const cartId = cookies['_medusa_cart_id'];
+    if (cartId && medusaToken)
+      await medusa.store.cart.transferCart(
+        cartId,
+        {},
+        { Authorization: `Bearer ${medusaToken}` }
+      );
+
     // Add session information + persist
     req.session.authId = sub;
     req.session.user = { email: emailAddress, firstName, lastName };
@@ -378,12 +395,9 @@ async function startServer() {
         else {
           res.clearCookie('storefront.sid', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            domain:
-              process.env.NODE_ENV === 'production'
-                ? '.justgood.win'
-                : undefined,
+            secure: !isDev,
+            sameSite: !isDev ? 'none' : 'lax',
+            domain: !isDev ? '.justgood.win' : undefined,
           });
           resolve();
         }
