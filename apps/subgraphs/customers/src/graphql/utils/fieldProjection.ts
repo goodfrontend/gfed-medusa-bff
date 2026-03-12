@@ -1,0 +1,26 @@
+import type { GraphQLResolveInfo } from 'graphql';
+
+import { getSelectedPaths, hasSelectedPath } from './selection';
+
+function buildCustomerFieldsFromPaths(selectedPaths: Set<string>) {
+  const fields = new Set<string>([
+    'id',
+    'email',
+    'default_billing_address_id',
+    'default_shipping_address_id',
+    'company_name',
+    'first_name',
+    'last_name',
+    'phone',
+  ]);
+
+  if (hasSelectedPath(selectedPaths, 'addresses')) {
+    fields.add('+addresses.*');
+  }
+
+  return Array.from(fields).join(',');
+}
+
+export function buildCustomerFields(info: GraphQLResolveInfo) {
+  return buildCustomerFieldsFromPaths(getSelectedPaths(info));
+}

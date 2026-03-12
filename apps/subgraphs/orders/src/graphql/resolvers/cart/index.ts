@@ -1,5 +1,7 @@
 import { GraphQLContext } from '@graphql/types/context';
 import type { HttpTypes } from '@medusajs/types';
+import { GraphQLResolveInfo } from 'graphql';
+import { buildCartFields } from '@graphql/utils/fieldProjection';
 
 import {
   camelToSnakeCase,
@@ -7,16 +9,24 @@ import {
   normalizeCompleteCartResponse,
 } from './util/transforms';
 
+function logProjectedFields(operation: string, fields: string) {
+  if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+    console.info(`[medusa-fields] ${operation}: ${fields}`);
+  }
+}
+
 export const cartResolvers = {
   Query: {
     cart: async (
       _parent: unknown,
       { id }: { id: string },
-      { medusa }: GraphQLContext
+      { medusa }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const fields = buildCartFields(info);
+      logProjectedFields('Query.cart', fields);
       const { cart } = await medusa.store.cart.retrieve(id, {
-        fields:
-          '+items.*,items.variant.*,items.variant.product.*,shipping_methods.*,+payment_collection.*,+payment_collection.payment_sessions.*,+payment_collection.payment_providers.*',
+        fields,
       });
 
       return normalizeCart(cart);
