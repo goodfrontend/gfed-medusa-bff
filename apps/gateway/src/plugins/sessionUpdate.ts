@@ -47,7 +47,8 @@ export const sessionUpdatePlugin: ApolloServerPlugin<{
                 contextValue.res.clearCookie('storefront.sid', {
                   httpOnly: true,
                   secure: process.env.NODE_ENV === 'production',
-                  sameSite: 'lax',
+                  sameSite:
+                    process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                   domain:
                     process.env.NODE_ENV === 'production'
                       ? '.justgood.win'
