@@ -33,7 +33,7 @@ export function transformCustomer(customer: StoreCustomer): Customer {
     companyName: customer.company_name,
     firstName: customer.first_name,
     lastName: customer.last_name,
-    addresses: customer.addresses.map((address) =>
+    addresses: (customer.addresses ?? []).map((address) =>
       transformCustomerAddress(address)
     ),
     phone: customer.phone,

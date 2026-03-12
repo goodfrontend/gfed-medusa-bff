@@ -1,22 +1,30 @@
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
+import { buildShippingOptionFields } from '@graphql/utils/fieldProjection';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { transformShippingOption } from './util/transforms';
 
-const SHIPPING_OPTION_FIELDS =
-  '+service_zone.fulfillment_set.type,*service_zone.fulfillment_set.location.address,+calculated_price,*prices,*prices.price_rules';
+function logProjectedFields(operation: string, fields?: string) {
+  if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+    console.info(`[medusa-fields] ${operation}: ${fields ?? '<default>'}`);
+  }
+}
 
 export const fulfillmentResolvers = {
   Query: {
     shippingOptions: async (
       _: unknown,
       { cartId }: { cartId: string },
-      { medusa }: GraphQLContext
+      { medusa }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
       try {
+        const fields = buildShippingOptionFields(info);
+        logProjectedFields('Query.shippingOptions', fields);
         const { shipping_options } = await medusa.store.fulfillment.listCartOptions({
           cart_id: cartId,
-          fields: SHIPPING_OPTION_FIELDS,
+          ...(fields ? { fields } : {}),
         });
         return shipping_options.map(transformShippingOption);
       } catch (e) {

@@ -1,25 +1,51 @@
 import { QuerySearchProductsArgs } from '@graphql/generated/graphql';
 import { HttpTypes } from '@medusajs/types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { GraphQLContext } from '../types/context';
+import {
+  buildNestedProductListFields,
+  buildProductQueryFields,
+  buildProductsQueryFields,
+} from '../utils/fieldProjection';
 
 export const productResolvers = {
   Query: {
     products: async (
       _parent: unknown,
       args: HttpTypes.StoreProductListParams,
-      { productService, logger }: GraphQLContext
+      { productService, logger }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildProductsQueryFields(info);
       logger.info({ args }, 'Fetching products');
-      return await productService.getProducts(args);
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        logger.info(
+          { projectedFields },
+          'Projected Medusa fields for Query.products'
+        );
+      }
+      return await productService.getProducts(args, projectedFields);
     },
     product: async (
       _parent: unknown,
       params: HttpTypes.StoreProductParams & { id: string },
-      context: GraphQLContext
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildProductQueryFields(info);
       context.logger.info({ productId: params.id }, 'Fetching product by ID');
-      return await context.productService.getProduct(params.id, params);
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        context.logger.info(
+          { projectedFields },
+          'Projected Medusa fields for Query.product'
+        );
+      }
+      return await context.productService.getProduct(
+        params.id,
+        params,
+        projectedFields
+      );
     },
     productCategories: async (
       _parent: unknown,
@@ -83,17 +109,25 @@ export const productResolvers = {
     products: async (
       parent: HttpTypes.StoreCollection,
       args: HttpTypes.StoreProductListParams,
-      context: GraphQLContext
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildNestedProductListFields(info);
       context.logger.info(
         { collectionId: parent.id, args },
         'Fetching products for collection'
       );
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        context.logger.info(
+          { projectedFields },
+          'Projected Medusa fields for Collection.products'
+        );
+      }
       return await context.productService
         .getProducts({
           ...args,
           collection_id: [parent.id],
-        })
+        }, projectedFields)
         .then(({ products, count }) => ({ items: products, count }));
     },
   },
@@ -101,17 +135,25 @@ export const productResolvers = {
     products: async (
       parent: HttpTypes.StoreProductCategory,
       args: HttpTypes.StoreProductListParams,
-      context: GraphQLContext
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildNestedProductListFields(info);
       context.logger.info(
         { categoryId: parent.id, args },
         'Fetching products for category'
       );
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        context.logger.info(
+          { projectedFields },
+          'Projected Medusa fields for ProductCategory.products'
+        );
+      }
       return await context.productService
         .getProducts({
           ...args,
           category_id: [parent.id],
-        })
+        }, projectedFields)
         .then(({ products, count }) => ({ items: products, count }));
     },
   },
