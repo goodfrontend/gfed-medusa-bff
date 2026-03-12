@@ -1,13 +1,18 @@
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
 import { normalizeOrder } from '@graphql/resolvers/cart/util/transforms';
+import {
+  buildOrderFields,
+  buildOrdersListFields,
+} from '@graphql/utils/fieldProjection';
 import { StoreOrder } from '@medusajs/types';
+import { GraphQLResolveInfo } from 'graphql';
 
-const ORDER_FIELDS =
-  '*payment_collections.payments,*items,*items.metadata,*items.variant,*items.product';
-
-const ORDER_LIST_FIELDS =
-  '*items,+items.metadata,*items.variant,*items.product';
+function logProjectedFields(operation: string, fields: string) {
+  if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+    console.info(`[medusa-fields] ${operation}: ${fields}`);
+  }
+}
 
 const STRIPE_API_BASE = (
   process.env.STRIPE_API_BASE || 'https://api.stripe.com/v1'
@@ -96,11 +101,14 @@ export const orderResolvers = {
     order: async (
       _: unknown,
       { id }: { id: string },
-      { medusa }: GraphQLContext
+      { medusa }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
       try {
+        const fields = buildOrderFields(info);
+        logProjectedFields('Query.order', fields);
         const { order } = await medusa.store.order.retrieve(id, {
-          fields: ORDER_FIELDS,
+          fields,
         });
         await enrichOrderStripePaymentLast4(order as StoreOrder);
         return normalizeOrder(order);
@@ -112,15 +120,18 @@ export const orderResolvers = {
     orders: async (
       _: unknown,
       { limit, offset }: { limit?: number; offset?: number },
-      { medusa }: GraphQLContext
+      { medusa }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
       try {
+        const fields = buildOrdersListFields(info);
+        logProjectedFields('Query.orders', fields);
         const { orders, count, limit: resLimit, offset: resOffset } =
           await medusa.store.order.list({
             limit,
             offset,
             order: '-created_at',
-            fields: ORDER_LIST_FIELDS,
+            fields,
           } as any);
         await Promise.all(
           orders.map((order) =>

@@ -11,15 +11,25 @@ import {
   MutationUpdateCustomerArgs,
 } from '@graphql/generated/graphql';
 import { GraphQLContext } from '@graphql/types/context';
+import { GraphQLResolveInfo } from 'graphql';
+
+import { buildCustomerFields } from '../utils/fieldProjection';
 
 import { transformCustomer } from './util/transforms';
+
+function logProjectedFields(operation: string, fields: string) {
+  if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+    console.info(`[medusa-fields] ${operation}: ${fields}`);
+  }
+}
 
 export const customerResolvers = {
   Query: {
     me: async (
       _: unknown,
       __: unknown,
-      { medusa, session }: GraphQLContext
+      { medusa, session }: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
       try {
         if (!session?.isCustomerLoggedIn && !session?.medusaToken) {
@@ -28,8 +38,10 @@ export const customerResolvers = {
           });
         }
 
+        const customerFields = buildCustomerFields(info);
+        logProjectedFields('Query.me', customerFields);
         const { customer } = await medusa.store.customer.retrieve(
-          { fields: '*orders' },
+          { fields: customerFields },
           session?.medusaToken
             ? { Authorization: `Bearer ${session.medusaToken}` }
             : {}
