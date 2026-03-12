@@ -26,7 +26,7 @@ const logger = createLogger({
 });
 
 const healthCheck = new HealthCheck('products-subgraph', '1.0.0');
-const DEPLOY_MARKER = 'prod-region-check-2026-03-02-r4';
+const DEPLOY_MARKER = 'deploy-all-2026-03-12-r1';
 healthCheck.register('self', async () => ({ status: 'healthy' }));
 
 async function startServer() {
