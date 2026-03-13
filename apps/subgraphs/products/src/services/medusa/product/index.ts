@@ -10,14 +10,70 @@ export interface ProductsData {
   products: (Product | null)[];
 }
 
+function mergeMedusaFields(
+  existingFields?: string,
+  projectedFields?: string
+): string | undefined {
+  const merged = new Set<string>();
+
+  if (existingFields) {
+    existingFields
+      .split(',')
+      .map((field) => field.trim())
+      .filter(Boolean)
+      .forEach((field) => merged.add(field));
+  }
+
+  if (projectedFields) {
+    projectedFields
+      .split(',')
+      .map((field) => field.trim())
+      .filter(Boolean)
+      .forEach((field) => merged.add(field));
+  }
+
+  return merged.size > 0 ? Array.from(merged).join(',') : undefined;
+}
+
+function hasPricingContext(params?: {
+  region_id?: string;
+  regionId?: string;
+}) {
+  return Boolean(params?.region_id || params?.regionId);
+}
+
+function sanitizeProductFieldsForContext(
+  fields: string | undefined,
+  params?: HttpTypes.StoreProductListParams | HttpTypes.StoreProductParams
+) {
+  if (!fields) return fields;
+  if (hasPricingContext(params)) return fields;
+
+  // Medusa requires region_id when calculated prices are requested.
+  return fields
+    .split(',')
+    .map((field) => field.trim())
+    .filter((field) => field && field !== '+variants.calculated_price')
+    .join(',');
+}
+
 export class ProductService extends MedusaBaseService {
   async getProducts(
-    params?: HttpTypes.StoreProductListParams
+    params?: HttpTypes.StoreProductListParams,
+    projectedFields?: string
   ): Promise<ProductsData> {
     try {
+      const fields = mergeMedusaFields(
+        (params as (HttpTypes.StoreProductListParams & { fields?: string }) | undefined)
+          ?.fields,
+        projectedFields
+      );
+
       const { products, count } = await this.medusa.store.product.list({
         ...params,
-        fields: '+variants.inventory_quantity',
+        ...(fields
+          ? { fields: sanitizeProductFieldsForContext(fields, params) }
+          : {}),
       });
 
       return {
@@ -31,10 +87,22 @@ export class ProductService extends MedusaBaseService {
 
   async getProduct(
     id: string,
-    params?: HttpTypes.StoreProductParams
+    params?: HttpTypes.StoreProductParams,
+    projectedFields?: string
   ): Promise<Product | null> {
     try {
-      const { product } = await this.medusa.store.product.retrieve(id, params);
+      const fields = mergeMedusaFields(
+        (params as (HttpTypes.StoreProductParams & { fields?: string }) | undefined)
+          ?.fields,
+        projectedFields
+      );
+
+      const { product } = await this.medusa.store.product.retrieve(id, {
+        ...params,
+        ...(fields
+          ? { fields: sanitizeProductFieldsForContext(fields, params) }
+          : {}),
+      });
       return formatProductData(product) || null;
     } catch (error: unknown) {
       handleMedusaError(error, 'fetch product', ['product']);
@@ -43,15 +111,24 @@ export class ProductService extends MedusaBaseService {
 
   async getProductsByIds(
     ids: string[],
-    params?: HttpTypes.StoreProductListParams
+    params?: HttpTypes.StoreProductListParams,
+    projectedFields?: string
   ): Promise<(Product | null)[]> {
     if (!ids.length) return [];
 
     try {
+      const fields = mergeMedusaFields(
+        (params as (HttpTypes.StoreProductListParams & { fields?: string }) | undefined)
+          ?.fields,
+        projectedFields
+      );
+
       const { products } = await this.medusa.store.product.list({
         ...params,
         id: ids,
-        fields: '+variants.inventory_quantity',
+        ...(fields
+          ? { fields: sanitizeProductFieldsForContext(fields, params) }
+          : {}),
       });
 
       const mapped = new Map(
