@@ -372,7 +372,9 @@ async function startServer() {
     let logoutUri: URL | undefined;
 
     try {
-      logoutUri = client.buildEndSessionUrl(config);
+      logoutUri = client.buildEndSessionUrl(config, {
+        post_logout_redirect_uri: `${process.env.BFF_URL}/auth/logout-callback`,
+      });
     } catch (e) {
       res.status(500).json({
         error: 'There was an error building the logout URL',
