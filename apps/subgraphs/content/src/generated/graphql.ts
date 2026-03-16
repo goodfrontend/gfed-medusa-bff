@@ -61,6 +61,7 @@ export type HomeBanner = {
   eyebrow?: Maybe<Scalars['String']['output']>;
   footerNote?: Maybe<Scalars['String']['output']>;
   image?: Maybe<SanityImage>;
+  secondaryBanners?: Maybe<Array<SecondaryBanner>>;
   title?: Maybe<Scalars['String']['output']>;
 };
 
@@ -80,6 +81,13 @@ export type SanityImage = {
 
 export type SanityImageAsset = {
   url?: Maybe<Scalars['String']['output']>;
+};
+
+export type SecondaryBanner = {
+  button?: Maybe<BannerButton>;
+  description?: Maybe<Scalars['String']['output']>;
+  image?: Maybe<SanityImage>;
+  title?: Maybe<Scalars['String']['output']>;
 };
 
 export type SocialLink = {
@@ -217,6 +225,7 @@ export type ResolversTypes = {
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SanityImage: ResolverTypeWrapper<SanityImage>;
   SanityImageAsset: ResolverTypeWrapper<SanityImageAsset>;
+  SecondaryBanner: ResolverTypeWrapper<SecondaryBanner>;
   SocialLink: ResolverTypeWrapper<SocialLink>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
 };
@@ -234,6 +243,7 @@ export type ResolversParentTypes = {
   Query: Record<PropertyKey, never>;
   SanityImage: SanityImage;
   SanityImageAsset: SanityImageAsset;
+  SecondaryBanner: SecondaryBanner;
   SocialLink: SocialLink;
   String: Scalars['String']['output'];
 };
@@ -316,6 +326,11 @@ export type HomeBannerResolvers<
     ParentType,
     ContextType
   >;
+  secondaryBanners?: Resolver<
+    Maybe<Array<ResolversTypes['SecondaryBanner']>>,
+    ParentType,
+    ContextType
+  >;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
@@ -368,6 +383,29 @@ export type SanityImageAssetResolvers<
   url?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
+export type SecondaryBannerResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['SecondaryBanner'] =
+    ResolversParentTypes['SecondaryBanner'],
+> = {
+  button?: Resolver<
+    Maybe<ResolversTypes['BannerButton']>,
+    ParentType,
+    ContextType
+  >;
+  description?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  image?: Resolver<
+    Maybe<ResolversTypes['SanityImage']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
 export type SocialLinkResolvers<
   ContextType = any,
   ParentType extends ResolversParentTypes['SocialLink'] =
@@ -387,5 +425,6 @@ export type Resolvers<ContextType = any> = {
   Query?: QueryResolvers<ContextType>;
   SanityImage?: SanityImageResolvers<ContextType>;
   SanityImageAsset?: SanityImageAssetResolvers<ContextType>;
+  SecondaryBanner?: SecondaryBannerResolvers<ContextType>;
   SocialLink?: SocialLinkResolvers<ContextType>;
 };

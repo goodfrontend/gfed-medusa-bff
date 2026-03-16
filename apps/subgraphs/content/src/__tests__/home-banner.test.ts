@@ -32,6 +32,11 @@ describe('Home Banner Resolvers', () => {
       if (result) {
         expect(result.title).toBe('A simple banner you can edit in Sanity');
         expect(result.buttons).toHaveLength(2);
+        expect(result.secondaryBanners).toHaveLength(2);
+        expect(result.secondaryBanners?.[0]?.button?.label).toBe('Explore the edit');
+        expect(result.secondaryBanners?.[0]?.image?.asset?.url).toContain(
+          'secondary-banner-one'
+        );
         expect(result.image?.asset?.url).toContain('home-banner-sample');
       }
     });

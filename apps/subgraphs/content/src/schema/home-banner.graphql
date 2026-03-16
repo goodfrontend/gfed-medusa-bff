@@ -4,6 +4,13 @@ type BannerButton {
   openInNewTab: Boolean
 }
 
+type SecondaryBanner {
+  title: String
+  description: String
+  button: BannerButton
+  image: SanityImage
+}
+
 type SanityImageAsset {
   url: String
 }
@@ -21,6 +28,7 @@ type HomeBanner @key(fields: "_id") @cacheControl(maxAge: 1800, scope: PUBLIC) {
   description: String
   footerNote: String
   buttons: [BannerButton!]
+  secondaryBanners: [SecondaryBanner!]
   image: SanityImage
 }
 
