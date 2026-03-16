@@ -5,6 +5,8 @@ import { GraphQLResolveInfo } from 'graphql';
 import { GraphQLContext } from '../types/context';
 import {
   buildNestedProductListFields,
+  buildProductCategoriesFields,
+  buildProductCategoryFields,
   buildProductQueryFields,
   buildProductsQueryFields,
 } from '../utils/fieldProjection';
@@ -50,21 +52,40 @@ export const productResolvers = {
     productCategories: async (
       _parent: unknown,
       args: HttpTypes.FindParams & HttpTypes.StoreProductCategoryListParams,
-      context: GraphQLContext
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildProductCategoriesFields(info);
       context.logger.info({ args }, 'Fetching product categories');
-      return await context.categoryService.getCategories(args);
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        context.logger.info(
+          { projectedFields },
+          'Projected Medusa fields for Query.productCategories'
+        );
+      }
+      return await context.categoryService.getCategories(args, projectedFields);
     },
     productCategory: async (
       _parent: unknown,
       params: HttpTypes.StoreProductCategoryParams & { id: string },
-      context: GraphQLContext
+      context: GraphQLContext,
+      info: GraphQLResolveInfo
     ) => {
+      const projectedFields = buildProductCategoryFields(info);
       context.logger.info(
         { categoryId: params.id },
         'Fetching product category by ID'
       );
-      return await context.categoryService.getCategory(params.id);
+      if (process.env.LOG_MEDUSA_FIELDS === 'true') {
+        context.logger.info(
+          { projectedFields },
+          'Projected Medusa fields for Query.productCategory'
+        );
+      }
+      return await context.categoryService.getCategory(
+        params.id,
+        projectedFields
+      );
     },
     collections: async (
       _parent: unknown,
@@ -113,6 +134,7 @@ export const productResolvers = {
       info: GraphQLResolveInfo
     ) => {
       const projectedFields = buildNestedProductListFields(info);
+
       context.logger.info(
         { collectionId: parent.id, args },
         'Fetching products for collection'
