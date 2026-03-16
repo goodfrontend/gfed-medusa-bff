@@ -13,15 +13,11 @@ export const handlers = [
     const url = new URL(request.url);
     const query = url.searchParams.get('query');
 
-    if (query && query.includes('footer')) {
+    if (query && query.includes('footerId')) {
       return HttpResponse.json({
         result: mockFooterData,
       });
     }
-
-    return HttpResponse.json({
-      result: [],
-    });
   }),
 ];
 
@@ -30,45 +26,33 @@ export const emptyFooterHandler = http.get(sanityHttp, ({ request }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('query');
 
-  if (query && query.includes('footer')) {
+  if (query && query.includes('footerId')) {
     return HttpResponse.json({
       result: {},
     });
   }
-
-  return HttpResponse.json({
-    result: [],
-  });
 });
 
 export const nullFooterHandler = http.get(sanityHttp, ({ request }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('query');
 
-  if (query && query.includes('footer')) {
+  if (query && query.includes('footerId')) {
     return HttpResponse.json({
       result: null,
     });
   }
-
-  return HttpResponse.json({
-    result: [],
-  });
 });
 
 export const undefinedFooterHandler = http.get(sanityHttp, ({ request }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('query');
 
-  if (query && query.includes('footer')) {
+  if (query && query.includes('footerId')) {
     return HttpResponse.json({
       result: undefined,
     });
   }
-
-  return HttpResponse.json({
-    result: [],
-  });
 });
 
 export const generalErrorHandler = http.get(sanityHttp, () => {
