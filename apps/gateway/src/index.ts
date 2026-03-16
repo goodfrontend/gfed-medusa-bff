@@ -395,6 +395,12 @@ async function startServer() {
       req.session.destroy((err) => {
         if (err) reject(err);
         else {
+          res.clearCookie('_medusa_cart_id', {
+            httpOnly: true,
+            secure: !isDev,
+            sameSite: !isDev ? 'none' : 'lax',
+            domain: !isDev ? '.justgood.win' : undefined,
+          });
           res.clearCookie('storefront.sid', {
             httpOnly: true,
             secure: !isDev,
