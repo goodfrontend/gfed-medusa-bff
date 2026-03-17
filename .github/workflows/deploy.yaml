@@ -231,13 +231,16 @@ jobs:
       [
         detect-changes,
         build-gateway,
-        smoke-products,
-        smoke-content,
-        smoke-orders,
-        smoke-customers,
         publish-supergraph-smoke,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      ((needs.detect-changes.outputs.products != 'true' &&
+        needs.detect-changes.outputs.content != 'true' &&
+        needs.detect-changes.outputs.orders != 'true' &&
+        needs.detect-changes.outputs.customers != 'true') ||
+       needs.publish-supergraph-smoke.result == 'success')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-smoke
@@ -371,13 +374,17 @@ jobs:
         detect-changes,
         build-gateway,
         smoke-gateway,
-        qa-products,
-        qa-content,
-        qa-orders,
-        qa-customers,
         publish-supergraph-qa,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      needs.smoke-gateway.result == 'success' &&
+      ((needs.detect-changes.outputs.products != 'true' &&
+        needs.detect-changes.outputs.content != 'true' &&
+        needs.detect-changes.outputs.orders != 'true' &&
+        needs.detect-changes.outputs.customers != 'true') ||
+       needs.publish-supergraph-qa.result == 'success')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-qa
@@ -511,13 +518,17 @@ jobs:
         detect-changes,
         build-gateway,
         qa-gateway,
-        prod-products,
-        prod-content,
-        prod-customers,
-        prod-orders,
         publish-supergraph-prod,
       ]
-    if: needs.detect-changes.outputs.gateway == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.gateway == 'true' &&
+      needs.qa-gateway.result == 'success' &&
+      ((needs.detect-changes.outputs.products != 'true' &&
+        needs.detect-changes.outputs.content != 'true' &&
+        needs.detect-changes.outputs.orders != 'true' &&
+        needs.detect-changes.outputs.customers != 'true') ||
+       needs.publish-supergraph-prod.result == 'success')
     uses: ./.github/workflows/_deploy-render.yaml
     with:
       app: gateway-prod
