@@ -25,11 +25,20 @@ export function transformCustomerAddress(
 }
 
 export function transformCustomer(customer: StoreCustomer): Customer {
+  const defaultBillingAddress =
+    customer.addresses?.find((address) => address.is_default_billing)?.id ??
+    null;
+  const defaultShippingAddress =
+    customer.addresses?.find((address) => address.is_default_shipping)?.id ??
+    null;
+
   return {
     id: customer.id,
     email: customer.email,
-    defaultBillingAddressId: customer.default_billing_address_id,
-    defaultShippingAddressId: customer.default_shipping_address_id,
+    defaultBillingAddressId:
+      customer.default_billing_address_id ?? defaultBillingAddress,
+    defaultShippingAddressId:
+      customer.default_shipping_address_id ?? defaultShippingAddress,
     companyName: customer.company_name,
     firstName: customer.first_name,
     lastName: customer.last_name,
