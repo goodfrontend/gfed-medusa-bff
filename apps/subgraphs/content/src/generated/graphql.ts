@@ -38,6 +38,12 @@ export type Scalars = {
   };
 };
 
+export type BannerButton = {
+  href?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  openInNewTab?: Maybe<Scalars['Boolean']['output']>;
+};
+
 export type Footer = {
   _id: Scalars['ID']['output'];
   _type: Scalars['String']['output'];
@@ -47,12 +53,42 @@ export type Footer = {
   storeName?: Maybe<Scalars['String']['output']>;
 };
 
+export type HomeBanner = {
+  _id: Scalars['ID']['output'];
+  _type: Scalars['String']['output'];
+  buttons?: Maybe<Array<BannerButton>>;
+  description?: Maybe<Scalars['String']['output']>;
+  eyebrow?: Maybe<Scalars['String']['output']>;
+  image?: Maybe<SanityImage>;
+  secondaryBanners?: Maybe<Array<SecondaryBanner>>;
+  showPoweredBy?: Maybe<Scalars['Boolean']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+};
+
 export type PartialRichText = {
   text?: Maybe<Scalars['JSON']['output']>;
 };
 
 export type Query = {
   footer?: Maybe<Footer>;
+  homeBanner?: Maybe<HomeBanner>;
+};
+
+export type SanityImage = {
+  alt?: Maybe<Scalars['String']['output']>;
+  asset?: Maybe<SanityImageAsset>;
+};
+
+export type SanityImageAsset = {
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type SecondaryBanner = {
+  button?: Maybe<BannerButton>;
+  description?: Maybe<Scalars['String']['output']>;
+  image?: Maybe<SanityImage>;
+  showPoweredBy?: Maybe<Scalars['Boolean']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
 };
 
 export type SocialLink = {
@@ -179,28 +215,52 @@ export type DirectiveResolverFn<
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  BannerButton: ResolverTypeWrapper<BannerButton>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Footer: ResolverTypeWrapper<Footer>;
+  HomeBanner: ResolverTypeWrapper<HomeBanner>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   PartialRichText: ResolverTypeWrapper<PartialRichText>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
+  SanityImage: ResolverTypeWrapper<SanityImage>;
+  SanityImageAsset: ResolverTypeWrapper<SanityImageAsset>;
+  SecondaryBanner: ResolverTypeWrapper<SecondaryBanner>;
   SocialLink: ResolverTypeWrapper<SocialLink>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  BannerButton: BannerButton;
   Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
   Footer: Footer;
+  HomeBanner: HomeBanner;
   ID: Scalars['ID']['output'];
   JSON: Scalars['JSON']['output'];
   PartialRichText: PartialRichText;
   Query: Record<PropertyKey, never>;
+  SanityImage: SanityImage;
+  SanityImageAsset: SanityImageAsset;
+  SecondaryBanner: SecondaryBanner;
   SocialLink: SocialLink;
   String: Scalars['String']['output'];
+};
+
+export type BannerButtonResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['BannerButton'] =
+    ResolversParentTypes['BannerButton'],
+> = {
+  href?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  label?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  openInNewTab?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
@@ -239,6 +299,42 @@ export type FooterResolvers<
   >;
 };
 
+export type HomeBannerResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['HomeBanner'] =
+    ResolversParentTypes['HomeBanner'],
+> = {
+  _id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  _type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  buttons?: Resolver<
+    Maybe<Array<ResolversTypes['BannerButton']>>,
+    ParentType,
+    ContextType
+  >;
+  description?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  eyebrow?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  image?: Resolver<
+    Maybe<ResolversTypes['SanityImage']>,
+    ParentType,
+    ContextType
+  >;
+  secondaryBanners?: Resolver<
+    Maybe<Array<ResolversTypes['SecondaryBanner']>>,
+    ParentType,
+    ContextType
+  >;
+  showPoweredBy?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
 export interface JsonScalarConfig extends GraphQLScalarTypeConfig<
   ResolversTypes['JSON'],
   any
@@ -260,6 +356,60 @@ export type QueryResolvers<
     ResolversParentTypes['Query'],
 > = {
   footer?: Resolver<Maybe<ResolversTypes['Footer']>, ParentType, ContextType>;
+  homeBanner?: Resolver<
+    Maybe<ResolversTypes['HomeBanner']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type SanityImageResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['SanityImage'] =
+    ResolversParentTypes['SanityImage'],
+> = {
+  alt?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  asset?: Resolver<
+    Maybe<ResolversTypes['SanityImageAsset']>,
+    ParentType,
+    ContextType
+  >;
+};
+
+export type SanityImageAssetResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['SanityImageAsset'] =
+    ResolversParentTypes['SanityImageAsset'],
+> = {
+  url?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
+export type SecondaryBannerResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['SecondaryBanner'] =
+    ResolversParentTypes['SecondaryBanner'],
+> = {
+  button?: Resolver<
+    Maybe<ResolversTypes['BannerButton']>,
+    ParentType,
+    ContextType
+  >;
+  description?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  image?: Resolver<
+    Maybe<ResolversTypes['SanityImage']>,
+    ParentType,
+    ContextType
+  >;
+  showPoweredBy?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
 export type SocialLinkResolvers<
@@ -272,10 +422,15 @@ export type SocialLinkResolvers<
 };
 
 export type Resolvers<ContextType = any> = {
+  BannerButton?: BannerButtonResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Footer?: FooterResolvers<ContextType>;
+  HomeBanner?: HomeBannerResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   PartialRichText?: PartialRichTextResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  SanityImage?: SanityImageResolvers<ContextType>;
+  SanityImageAsset?: SanityImageAssetResolvers<ContextType>;
+  SecondaryBanner?: SecondaryBannerResolvers<ContextType>;
   SocialLink?: SocialLinkResolvers<ContextType>;
 };

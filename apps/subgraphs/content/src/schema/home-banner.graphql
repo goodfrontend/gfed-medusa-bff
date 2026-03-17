@@ -1,0 +1,38 @@
+type BannerButton {
+  label: String
+  href: String
+  openInNewTab: Boolean
+}
+
+type SecondaryBanner {
+  title: String
+  description: String
+  showPoweredBy: Boolean
+  button: BannerButton
+  image: SanityImage
+}
+
+type SanityImageAsset {
+  url: String
+}
+
+type SanityImage {
+  alt: String
+  asset: SanityImageAsset
+}
+
+type HomeBanner @key(fields: "_id") @cacheControl(maxAge: 1800, scope: PUBLIC) {
+  _id: ID!
+  _type: String!
+  eyebrow: String
+  title: String
+  description: String
+  showPoweredBy: Boolean
+  buttons: [BannerButton!]
+  secondaryBanners: [SecondaryBanner!]
+  image: SanityImage
+}
+
+extend type Query {
+  homeBanner: HomeBanner @cacheControl(maxAge: 1800, scope: PUBLIC)
+}
