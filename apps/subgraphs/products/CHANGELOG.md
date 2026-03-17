@@ -1,5 +1,11 @@
 # @gfed-medusa-bff/products
 
+## 1.0.5
+
+### Patch Changes
+
+- f5cf829: update resolvers to specify only necessary Medusa fields
+
 ## 1.0.4
 
 ### Patch Changes
