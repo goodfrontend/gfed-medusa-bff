@@ -88,6 +88,60 @@ describe('customerResolver utility functions', () => {
     expect(result.email).toBe('empty@example.com');
   });
 
+  it('derives default address ids from address flags when top-level ids are missing', () => {
+    const mockCustomer = createMockCustomer({
+      default_billing_address_id: null,
+      default_shipping_address_id: null,
+      addresses: [
+        {
+          id: 'addr_billing',
+          address_name: 'Billing',
+          customer_id: 'cus_derived',
+          company: null,
+          first_name: 'Alice',
+          last_name: 'Buyer',
+          address_1: '1 Billing St',
+          address_2: null,
+          city: 'Billing City',
+          country_code: 'US',
+          province: null,
+          postal_code: '10001',
+          phone: null,
+          is_default_billing: true,
+          is_default_shipping: false,
+          metadata: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: 'addr_shipping',
+          address_name: 'Shipping',
+          customer_id: 'cus_derived',
+          company: null,
+          first_name: 'Alice',
+          last_name: 'Buyer',
+          address_1: '2 Shipping St',
+          address_2: null,
+          city: 'Shipping City',
+          country_code: 'US',
+          province: null,
+          postal_code: '10002',
+          phone: null,
+          is_default_billing: false,
+          is_default_shipping: true,
+          metadata: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+    });
+
+    const result = transformCustomer(mockCustomer as any);
+
+    expect(result.defaultBillingAddressId).toBe('addr_billing');
+    expect(result.defaultShippingAddressId).toBe('addr_shipping');
+  });
+
   it('properly maps partial address fields', () => {
     const partialAddress: BaseCustomerAddress = {
       id: 'addr_partial',
