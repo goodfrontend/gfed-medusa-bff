@@ -7,7 +7,7 @@ export const HOME_BANNER_QUERY = `coalesce(
   eyebrow,
   title,
   description,
-  footerNote,
+  "showPoweredBy": coalesce(showPoweredBy, footerNote == "Powered by Sanity CMS", false),
   buttons[]{
     label,
     href,
@@ -16,6 +16,7 @@ export const HOME_BANNER_QUERY = `coalesce(
   secondaryBanners[]{
     title,
     description,
+    "showPoweredBy": coalesce(showPoweredBy, false),
     image{
       alt,
       asset->{

@@ -5,7 +5,7 @@ export const mockHomeBannerData = {
   title: 'A simple banner you can edit in Sanity',
   description:
     'Highlight a collection, campaign, or store story here without touching code.',
-  footerNote: 'Powered by Sanity CMS',
+  showPoweredBy: true,
   buttons: [
     {
       label: 'Shop new arrivals',
@@ -22,6 +22,7 @@ export const mockHomeBannerData = {
     {
       title: 'Editorial picks for everyday routines',
       description: 'A smaller supporting banner for category highlights or curated edits.',
+      showPoweredBy: true,
       image: {
         alt: 'Editorial lifestyle image for everyday routines',
         asset: {
@@ -37,6 +38,7 @@ export const mockHomeBannerData = {
     {
       title: 'A quick story block for seasonal campaigns',
       description: 'Keep it simple with one short message and one supporting link.',
+      showPoweredBy: false,
       image: {
         alt: 'Seasonal campaign image for the secondary banner',
         asset: {

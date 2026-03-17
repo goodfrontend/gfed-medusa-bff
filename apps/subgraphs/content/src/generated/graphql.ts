@@ -59,9 +59,9 @@ export type HomeBanner = {
   buttons?: Maybe<Array<BannerButton>>;
   description?: Maybe<Scalars['String']['output']>;
   eyebrow?: Maybe<Scalars['String']['output']>;
-  footerNote?: Maybe<Scalars['String']['output']>;
   image?: Maybe<SanityImage>;
   secondaryBanners?: Maybe<Array<SecondaryBanner>>;
+  showPoweredBy?: Maybe<Scalars['Boolean']['output']>;
   title?: Maybe<Scalars['String']['output']>;
 };
 
@@ -87,6 +87,7 @@ export type SecondaryBanner = {
   button?: Maybe<BannerButton>;
   description?: Maybe<Scalars['String']['output']>;
   image?: Maybe<SanityImage>;
+  showPoweredBy?: Maybe<Scalars['Boolean']['output']>;
   title?: Maybe<Scalars['String']['output']>;
 };
 
@@ -316,11 +317,6 @@ export type HomeBannerResolvers<
     ContextType
   >;
   eyebrow?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  footerNote?: Resolver<
-    Maybe<ResolversTypes['String']>,
-    ParentType,
-    ContextType
-  >;
   image?: Resolver<
     Maybe<ResolversTypes['SanityImage']>,
     ParentType,
@@ -328,6 +324,11 @@ export type HomeBannerResolvers<
   >;
   secondaryBanners?: Resolver<
     Maybe<Array<ResolversTypes['SecondaryBanner']>>,
+    ParentType,
+    ContextType
+  >;
+  showPoweredBy?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
     ParentType,
     ContextType
   >;
@@ -400,6 +401,11 @@ export type SecondaryBannerResolvers<
   >;
   image?: Resolver<
     Maybe<ResolversTypes['SanityImage']>,
+    ParentType,
+    ContextType
+  >;
+  showPoweredBy?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
     ParentType,
     ContextType
   >;
