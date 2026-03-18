@@ -12,7 +12,7 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
 
-const DEPLOY_MARKER = 'deploy-all-2026-03-12-r1';
+const DEPLOY_MARKER = 'gateway-deploy-check-2026-03-18-r2';
 
 async function startServer() {
   const app = express();
