@@ -40,12 +40,15 @@ function walkSelection(
 }
 
 export function getSelectedPaths(
-  info: GraphQLResolveInfo,
-  fieldNodes: readonly FieldNode[] = info.fieldNodes
+  info?: GraphQLResolveInfo,
+  fieldNodes?: readonly FieldNode[]
 ) {
   const selectedPaths = new Set<string>();
+  if (!info) return selectedPaths;
 
-  fieldNodes.forEach((fieldNode) => {
+  const nodes = fieldNodes ?? info.fieldNodes;
+
+  nodes.forEach((fieldNode) => {
     fieldNode.selectionSet?.selections.forEach((selection) =>
       walkSelection(selection, info.fragments, [], selectedPaths)
     );
@@ -62,4 +65,3 @@ export function hasSelectedPath(
     (path) => path === pathPrefix || path.startsWith(`${pathPrefix}.`)
   );
 }
-

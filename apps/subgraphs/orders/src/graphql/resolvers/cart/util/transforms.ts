@@ -12,6 +12,79 @@ import {
 
 const normalizeInt = (v: number | null | undefined): number => v ?? 0;
 
+function normalizeVariantPrice(
+  price: any,
+  amountKey: 'amount' | 'originalAmount'
+) {
+  if (!price) return null;
+
+  return {
+    amount:
+      (amountKey === 'originalAmount'
+        ? price.original_amount
+        : price.calculated_amount) ??
+      price.amount ??
+      0,
+    currencyCode: price.currency_code ?? price.currencyCode ?? '',
+    priceType:
+      price.calculated_price?.price_list_type ??
+      price.original_price?.price_list_type ??
+      price.price_type ??
+      price.priceType ??
+      'default',
+  };
+}
+
+function normalizeVariantProduct(product: any) {
+  if (!product) return null;
+
+  return {
+    id: product.id ?? '',
+    title: product.title ?? '',
+    handle: product.handle ?? '',
+    thumbnail: product.thumbnail ?? '',
+  };
+}
+
+function normalizeVariantOption(option: any) {
+  if (!option) return null;
+
+  return {
+    id: option.id ?? '',
+    optionId: option.option_id ?? option.optionId ?? '',
+    value: option.value ?? '',
+  };
+}
+
+function normalizeVariant(variant: any) {
+  if (!variant) return null;
+
+  return {
+    id: variant.id ?? '',
+    title: variant.title ?? '',
+    sku: variant.sku ?? '',
+    inventoryQuantity:
+      variant.inventory_quantity ?? variant.inventoryQuantity ?? 0,
+    allowBackorder:
+      variant.allow_backorder ?? variant.allowBackorder ?? false,
+    manageInventory:
+      variant.manage_inventory ?? variant.manageInventory ?? false,
+    options: (variant.options ?? [])
+      .map(normalizeVariantOption)
+      .filter(Boolean),
+    price: normalizeVariantPrice(
+      variant.calculated_price ?? variant.price ?? null,
+      'amount'
+    ),
+    originalPrice: normalizeVariantPrice(
+      variant.calculated_price ?? variant.originalPrice ?? null,
+      'originalAmount'
+    ),
+    productId: variant.product_id ?? variant.productId ?? '',
+    product: normalizeVariantProduct(variant.product),
+  };
+}
+
 function isOrderResponse(
   response: CompleteCartResponse
 ): response is CompleteCartOrderResult {
@@ -128,7 +201,7 @@ export function normalizeLineItems(items: any[] = [], cartId?: string) {
     productHandle: item.variant?.product?.handle ?? '',
     productTitle: item.variant?.product?.title ?? '',
     createdAt: item.created_at ?? null,
-    variant: item.variant ?? null,
+    variant: normalizeVariant(item.variant),
   }));
 }
 

@@ -31,6 +31,7 @@ export const formatProductData = (
   const formattedVariants = variants?.map((variant) => {
     const {
       id: variantId,
+      title: variantTitle,
       sku,
       options: variantOptions,
       manage_inventory: manageInventory,
@@ -42,6 +43,7 @@ export const formatProductData = (
 
     return {
       id: variantId,
+      title: variantTitle,
       productId,
       sku,
       options:

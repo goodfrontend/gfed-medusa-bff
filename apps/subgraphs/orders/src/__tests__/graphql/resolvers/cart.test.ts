@@ -56,6 +56,38 @@ describe('Cart Resolvers', () => {
         testContext
       );
       expect(result).toEqual(normalizeCart(mockCart));
+      expect(result?.items?.[0]?.variant).toEqual({
+        id: 'variant_123',
+        title: 'Small',
+        sku: 'MOCK-S',
+        inventoryQuantity: 10,
+        allowBackorder: false,
+        manageInventory: true,
+        options: [
+          {
+            id: 'opt_val_1',
+            optionId: 'opt_1',
+            value: 'Small',
+          },
+        ],
+        price: {
+          amount: 1000,
+          currencyCode: 'usd',
+          priceType: 'default',
+        },
+        originalPrice: {
+          amount: 1200,
+          currencyCode: 'usd',
+          priceType: 'default',
+        },
+        productId: 'prod_123',
+        product: {
+          id: 'prod_123',
+          title: 'Mock Product',
+          handle: 'mock-product',
+          thumbnail: 'https://example.com/mock-product.jpg',
+        },
+      });
     });
 
     it('should throw on server error', async () => {

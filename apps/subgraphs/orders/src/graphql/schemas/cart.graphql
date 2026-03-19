@@ -5,6 +5,34 @@ enum ApplicationType {
 
 extend type ProductVariant @key(fields: "id") {
   id: ID! @external
+  title: String @external
+  sku: String @external
+  inventoryQuantity: Int @external
+  allowBackorder: Boolean @external
+  manageInventory: Boolean @external
+  options: [ProductVariantOption] @external
+  price: Price @external
+  originalPrice: Price @external
+  product: Product @external
+}
+
+extend type Product @key(fields: "id") {
+  id: ID! @external
+  title: String! @external
+  handle: String! @external
+  thumbnail: String @external
+}
+
+type ProductVariantOption {
+  id: ID!
+  optionId: ID!
+  value: String!
+}
+
+type Price {
+  amount: Float
+  currencyCode: String
+  priceType: String
 }
 
 type LineItem {
@@ -22,6 +50,9 @@ type LineItem {
   total: Int
   originalTotal: Int
   variant: ProductVariant
+    @provides(
+      fields: "title sku inventoryQuantity allowBackorder manageInventory options { id optionId value } price { amount currencyCode priceType } originalPrice { amount currencyCode priceType } product { id title handle thumbnail }"
+    )
 }
 
 type Address {

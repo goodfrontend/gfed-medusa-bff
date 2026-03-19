@@ -40,6 +40,39 @@ export const createMockCart = (): StoreCart => {
         requiresShipping: true,
         createdAt: new Date().toISOString(),
         metadata: {},
+        variant: {
+          id: 'variant_123',
+          title: 'Small',
+          sku: 'MOCK-S',
+          inventory_quantity: 10,
+          allow_backorder: false,
+          manage_inventory: true,
+          product_id: 'prod_123',
+          options: [
+            {
+              id: 'opt_val_1',
+              option_id: 'opt_1',
+              value: 'Small',
+            },
+          ],
+          calculated_price: {
+            currency_code: 'usd',
+            calculated_amount: 1000,
+            original_amount: 1200,
+            calculated_price: {
+              price_list_type: 'default',
+            },
+            original_price: {
+              price_list_type: 'default',
+            },
+          },
+          product: {
+            id: 'prod_123',
+            title: 'Mock Product',
+            handle: 'mock-product',
+            thumbnail: 'https://example.com/mock-product.jpg',
+          },
+        },
       },
     ],
 

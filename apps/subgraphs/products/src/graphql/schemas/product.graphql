@@ -44,7 +44,7 @@ type ProductListResponse {
   count: Int!
 }
 
-type Product @cacheControl(maxAge: 300, scope: PUBLIC) {
+type Product @key(fields: "id") @cacheControl(maxAge: 300, scope: PUBLIC) {
   id: ID!
   title: String!
   handle: String!
