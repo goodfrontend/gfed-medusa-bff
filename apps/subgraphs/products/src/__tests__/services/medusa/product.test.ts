@@ -136,6 +136,7 @@ describe('ProductService', () => {
 
       expect(result).toEqual(mockProduct);
       expect(result?.variants).toHaveLength(1);
+      expect(result?.variants?.[0]?.title).toBe('S');
     });
 
     it('should throw GraphQL errors for different scenarios', async () => {

@@ -184,6 +184,7 @@ export const createMockProduct = (overrides = {}) => {
     variants: [
       {
         id: 'var_1',
+        title: 'S',
         sku: 'PROD-S',
         allowBackorder: false,
         manageInventory: true,

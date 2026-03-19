@@ -10,7 +10,6 @@ import {
 import {
   internalServerErrorHandler,
   invalidLoginHandler,
-  invalidLogoutHandler,
   invalidRegisterHandler,
 } from '@mocks/msw/handlers/customer';
 import { server } from '@mocks/msw/node';
@@ -140,7 +139,9 @@ describe('Customer Resolvers', () => {
     });
 
     it('should handle logout errors', async () => {
-      server.use(invalidLogoutHandler);
+      jest
+        .spyOn(medusa.auth, 'logout')
+        .mockRejectedValueOnce(new Error('Internal Server Error'));
 
       await expect(
         customerResolvers.Mutation.logout({}, {}, testContext)

@@ -74,7 +74,7 @@ describe('Product Resolvers', () => {
       expect(mockProductService.getProducts).toHaveBeenCalledWith({
         limit: 20,
         offset: 0,
-      });
+      }, undefined);
       expect(result).toEqual(mockResponse);
       expect(result.products).toHaveLength(3);
 
@@ -136,7 +136,7 @@ describe('Product Resolvers', () => {
         limit: 20,
         offset: 0,
         order: '-created_at',
-      });
+      }, undefined);
       expect(result).toEqual(mockResponse);
     });
 
@@ -179,9 +179,13 @@ describe('Product Resolvers', () => {
         mockContext
       );
 
-      expect(mockProductService.getProduct).toHaveBeenCalledWith('prod_123', {
-        id: 'prod_123',
-      });
+      expect(mockProductService.getProduct).toHaveBeenCalledWith(
+        'prod_123',
+        {
+          id: 'prod_123',
+        },
+        undefined
+      );
       expect(mockProductService.getProduct).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockProduct);
       expect(result?.id).toBe('prod_123');
@@ -238,6 +242,24 @@ describe('Product Resolvers', () => {
         mockContext
       );
       expect(result).toBeNull();
+    });
+  });
+
+  describe('Product.__resolveReference', () => {
+    it('should resolve a product entity by id', async () => {
+      const mockProduct = createMockProduct({
+        id: 'prod_123',
+        title: 'Specific Product',
+      });
+      mockProductService.getProduct.mockResolvedValue(mockProduct);
+
+      const result = await productResolvers.Product.__resolveReference(
+        { id: 'prod_123' },
+        mockContext
+      );
+
+      expect(mockProductService.getProduct).toHaveBeenCalledWith('prod_123', {});
+      expect(result).toEqual(mockProduct);
     });
   });
 

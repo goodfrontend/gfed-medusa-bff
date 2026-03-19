@@ -115,6 +115,14 @@ export const productResolvers = {
       return await context.algoliaSearchService.search(args);
     },
   },
+  Product: {
+    __resolveReference: async (
+      parent: { id: string },
+      context: GraphQLContext
+    ) => {
+      return await context.productService.getProduct(parent.id, {});
+    },
+  },
   ProductVariant: {
     product: async (
       parent: { productId?: string; product?: unknown },
