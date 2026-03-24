@@ -354,14 +354,42 @@ export type PaymentStatus =
   | 'requires_action'
   | 'voided';
 
+export type Price = {
+  amount?: Maybe<Scalars['Float']['output']>;
+  currencyCode?: Maybe<Scalars['String']['output']>;
+  priceType?: Maybe<Scalars['String']['output']>;
+};
+
 export type PriceRule = {
   attribute: Scalars['String']['output'];
   operator: Scalars['String']['output'];
   value: Scalars['String']['output'];
 };
 
-export type ProductVariant = {
+export type Product = {
+  handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  thumbnail?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+};
+
+export type ProductVariant = {
+  allowBackorder?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['ID']['output'];
+  inventoryQuantity?: Maybe<Scalars['Int']['output']>;
+  manageInventory?: Maybe<Scalars['Boolean']['output']>;
+  options?: Maybe<Array<Maybe<ProductVariantOption>>>;
+  originalPrice?: Maybe<Price>;
+  price?: Maybe<Price>;
+  product?: Maybe<Product>;
+  sku?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+};
+
+export type ProductVariantOption = {
+  id: Scalars['ID']['output'];
+  optionId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
 };
 
 export type Promotion = {
@@ -618,6 +646,7 @@ export type ResolversTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -633,8 +662,11 @@ export type ResolversTypes = {
   PaymentSessionStatus: PaymentSessionStatus;
   PaymentSessions: ResolverTypeWrapper<PaymentSessions>;
   PaymentStatus: PaymentStatus;
+  Price: ResolverTypeWrapper<Price>;
   PriceRule: ResolverTypeWrapper<PriceRule>;
+  Product: ResolverTypeWrapper<Product>;
   ProductVariant: ResolverTypeWrapper<ProductVariant>;
+  ProductVariantOption: ResolverTypeWrapper<ProductVariantOption>;
   Promotion: ResolverTypeWrapper<Promotion>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Region: ResolverTypeWrapper<Region>;
@@ -666,6 +698,7 @@ export type ResolversParentTypes = {
   CreateCartInput: CreateCartInput;
   CreateLineItemInput: CreateLineItemInput;
   DateTime: Scalars['DateTime']['output'];
+  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
@@ -679,8 +712,11 @@ export type ResolversParentTypes = {
   PaymentCollection: PaymentCollection;
   PaymentProviders: PaymentProviders;
   PaymentSessions: PaymentSessions;
+  Price: Price;
   PriceRule: PriceRule;
+  Product: Product;
   ProductVariant: ProductVariant;
+  ProductVariantOption: ProductVariantOption;
   Promotion: Promotion;
   Query: Record<PropertyKey, never>;
   Region: Region;
@@ -1208,6 +1244,24 @@ export type PaymentSessionsResolvers<
   >;
 };
 
+export type PriceResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['Price'] =
+    ResolversParentTypes['Price'],
+> = {
+  amount?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  currencyCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  priceType?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+};
+
 export type PriceRuleResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['PriceRule'] =
@@ -1218,12 +1272,66 @@ export type PriceRuleResolvers<
   value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
+export type ProductResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['Product'] =
+    ResolversParentTypes['Product'],
+> = {
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  thumbnail?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type ProductVariantResolvers<
   ContextType = GraphQLContext,
   ParentType extends ResolversParentTypes['ProductVariant'] =
     ResolversParentTypes['ProductVariant'],
 > = {
+  allowBackorder?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  inventoryQuantity?: Resolver<
+    Maybe<ResolversTypes['Int']>,
+    ParentType,
+    ContextType
+  >;
+  manageInventory?: Resolver<
+    Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
+  options?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes['ProductVariantOption']>>>,
+    ParentType,
+    ContextType
+  >;
+  originalPrice?: Resolver<
+    Maybe<ResolversTypes['Price']>,
+    ParentType,
+    ContextType
+  >;
+  price?: Resolver<Maybe<ResolversTypes['Price']>, ParentType, ContextType>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  sku?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
+export type ProductVariantOptionResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['ProductVariantOption'] =
+    ResolversParentTypes['ProductVariantOption'],
+> = {
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type PromotionResolvers<
@@ -1465,8 +1573,11 @@ export type Resolvers<ContextType = GraphQLContext> = {
   PaymentCollection?: PaymentCollectionResolvers<ContextType>;
   PaymentProviders?: PaymentProvidersResolvers<ContextType>;
   PaymentSessions?: PaymentSessionsResolvers<ContextType>;
+  Price?: PriceResolvers<ContextType>;
   PriceRule?: PriceRuleResolvers<ContextType>;
+  Product?: ProductResolvers<ContextType>;
   ProductVariant?: ProductVariantResolvers<ContextType>;
+  ProductVariantOption?: ProductVariantOptionResolvers<ContextType>;
   Promotion?: PromotionResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Region?: RegionResolvers<ContextType>;
