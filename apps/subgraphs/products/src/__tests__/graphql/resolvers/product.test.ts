@@ -3,6 +3,7 @@ import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
 import { mockMedusa } from '@mocks/medusa';
 import { createMockProduct, createMockProducts } from '@mocks/products';
+import { AlgoliaBrowseService } from '@services/algolia/browse';
 import { AlgoliaSearchService } from '@services/algolia/search';
 import { CategoryService } from '@services/medusa/category';
 import { CollectionService } from '@services/medusa/collection';
@@ -13,6 +14,7 @@ describe('Product Resolvers', () => {
   let mockCategoryService: jest.Mocked<CategoryService>;
   let mockCollectionService: jest.Mocked<CollectionService>;
   let mockAlgoliaSearchService: jest.Mocked<AlgoliaSearchService>;
+  let mockAlgoliaBrowseService: jest.Mocked<AlgoliaBrowseService>;
   let mockContext: GraphQLContext;
 
   beforeEach(() => {
@@ -35,12 +37,18 @@ describe('Product Resolvers', () => {
       search: jest.fn(),
     } as unknown as jest.Mocked<AlgoliaSearchService>;
 
+    mockAlgoliaBrowseService = {
+      browse: jest.fn(),
+      getBrowseIndexName: jest.fn(),
+    } as unknown as jest.Mocked<AlgoliaBrowseService>;
+
     mockContext = {
       medusa: mockMedusa as unknown as Medusa,
       productService: mockProductService,
       categoryService: mockCategoryService,
       collectionService: mockCollectionService,
       algoliaSearchService: mockAlgoliaSearchService,
+      algoliaBrowseService: mockAlgoliaBrowseService,
       logger: {
         info: jest.fn(),
         warn: jest.fn(),
@@ -71,10 +79,13 @@ describe('Product Resolvers', () => {
       );
 
       expect(mockProductService.getProducts).toHaveBeenCalledTimes(1);
-      expect(mockProductService.getProducts).toHaveBeenCalledWith({
-        limit: 20,
-        offset: 0,
-      }, undefined);
+      expect(mockProductService.getProducts).toHaveBeenCalledWith(
+        {
+          limit: 20,
+          offset: 0,
+        },
+        undefined
+      );
       expect(result).toEqual(mockResponse);
       expect(result.products).toHaveLength(3);
 
@@ -132,11 +143,14 @@ describe('Product Resolvers', () => {
         mockContext
       );
 
-      expect(mockProductService.getProducts).toHaveBeenCalledWith({
-        limit: 20,
-        offset: 0,
-        order: '-created_at',
-      }, undefined);
+      expect(mockProductService.getProducts).toHaveBeenCalledWith(
+        {
+          limit: 20,
+          offset: 0,
+          order: '-created_at',
+        },
+        undefined
+      );
       expect(result).toEqual(mockResponse);
     });
 
@@ -258,7 +272,10 @@ describe('Product Resolvers', () => {
         mockContext
       );
 
-      expect(mockProductService.getProduct).toHaveBeenCalledWith('prod_123', {});
+      expect(mockProductService.getProduct).toHaveBeenCalledWith(
+        'prod_123',
+        {}
+      );
       expect(result).toEqual(mockProduct);
     });
   });
@@ -480,6 +497,128 @@ describe('Product Resolvers', () => {
         expect(mockAlgoliaSearchService.search).toHaveBeenCalledTimes(1);
         jest.clearAllMocks();
       }
+    });
+  });
+
+  describe('Query.browseProducts', () => {
+    it('should browse products with a region-backed PLP query', async () => {
+      const mockBrowseResponse = {
+        total: 2,
+        page: 0,
+        totalPages: 1,
+        hitsPerPage: 24,
+        params:
+          'hitsPerPage=24&page=0&filters=category_handles:rings&facets=category_handles',
+        facets: {
+          category_handles: {
+            rings: 2,
+          },
+        },
+        items: [
+          {
+            id: 'prod_1',
+            title: 'Ring 1',
+            description: 'First ring',
+            handle: 'ring-1',
+            thumbnail: 'https://example.com/ring-1.jpg',
+            collectionId: 'pcol_1',
+            collectionHandle: 'featured-products',
+            categoryIds: ['pcat_1'],
+            categoryHandles: ['rings'],
+            isSellable: true,
+            priceAmount: 129.99,
+            originalPriceAmount: 159.99,
+            currencyCode: 'usd',
+            displayPrice: '$129.99',
+            displayOriginalPrice: '$159.99',
+          },
+        ],
+      };
+
+      mockAlgoliaBrowseService.browse.mockResolvedValue(mockBrowseResponse);
+
+      const browseArgs = {
+        regionId: 'reg_123',
+        sort: 'PRICE_ASC',
+        hitsPerPage: 24,
+        page: 0,
+        filters: 'category_handles:rings',
+        facets: ['category_handles'],
+      };
+
+      const result = await productResolvers.Query.browseProducts(
+        {},
+        browseArgs,
+        mockContext
+      );
+
+      expect(mockAlgoliaBrowseService.browse).toHaveBeenCalledTimes(1);
+      expect(mockAlgoliaBrowseService.browse).toHaveBeenCalledWith(browseArgs);
+      expect(result).toEqual(mockBrowseResponse);
+    });
+
+    it('should forward countryCode browse requests unchanged', async () => {
+      const mockBrowseResponse = {
+        total: 1,
+        page: 0,
+        totalPages: 1,
+        hitsPerPage: 20,
+        params: 'hitsPerPage=20&page=0',
+        facets: null,
+        items: [
+          {
+            id: 'prod_2',
+            title: 'Necklace',
+            description: 'A necklace',
+            handle: 'necklace',
+            thumbnail: 'https://example.com/necklace.jpg',
+            collectionId: null,
+            collectionHandle: null,
+            categoryIds: ['pcat_2'],
+            categoryHandles: ['necklaces'],
+            isSellable: true,
+            priceAmount: 199.99,
+            originalPriceAmount: 199.99,
+            currencyCode: 'usd',
+            displayPrice: '$199.99',
+            displayOriginalPrice: '$199.99',
+          },
+        ],
+      };
+
+      mockAlgoliaBrowseService.browse.mockResolvedValue(mockBrowseResponse);
+
+      const browseArgs = {
+        countryCode: 'us',
+        sort: 'LATEST',
+      };
+
+      const result = await productResolvers.Query.browseProducts(
+        {},
+        browseArgs,
+        mockContext
+      );
+
+      expect(mockAlgoliaBrowseService.browse).toHaveBeenCalledWith(browseArgs);
+      expect(result).toEqual(mockBrowseResponse);
+    });
+
+    it('should surface browse service errors', async () => {
+      const error = new Error('Algolia browse failed');
+      mockAlgoliaBrowseService.browse.mockRejectedValue(error);
+
+      await expect(
+        productResolvers.Query.browseProducts(
+          {},
+          {
+            regionId: 'reg_123',
+            sort: 'LATEST',
+          },
+          mockContext
+        )
+      ).rejects.toThrow('Algolia browse failed');
+
+      expect(mockAlgoliaBrowseService.browse).toHaveBeenCalledTimes(1);
     });
   });
 });

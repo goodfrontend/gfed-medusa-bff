@@ -1,6 +1,10 @@
-import { QuerySearchProductsArgs } from '@graphql/generated/graphql';
-import { HttpTypes } from '@medusajs/types';
 import { GraphQLResolveInfo } from 'graphql';
+
+import {
+  QueryBrowseProductsArgs,
+  QuerySearchProductsArgs,
+} from '@graphql/generated/graphql';
+import { HttpTypes } from '@medusajs/types';
 
 import { GraphQLContext } from '../types/context';
 import {
@@ -114,6 +118,23 @@ export const productResolvers = {
       context.logger.info({ query: args.query }, 'Searching products');
       return await context.algoliaSearchService.search(args);
     },
+    browseProducts: async (
+      _parent: unknown,
+      args: QueryBrowseProductsArgs,
+      context: GraphQLContext
+    ) => {
+      context.logger.info(
+        {
+          regionId: args.regionId,
+          countryCode: args.countryCode,
+          sort: args.sort,
+          page: args.page,
+          hitsPerPage: args.hitsPerPage,
+        },
+        'Browsing products'
+      );
+      return await context.algoliaBrowseService.browse(args);
+    },
   },
   Product: {
     __resolveReference: async (
@@ -154,10 +175,13 @@ export const productResolvers = {
         );
       }
       return await context.productService
-        .getProducts({
-          ...args,
-          collection_id: [parent.id],
-        }, projectedFields)
+        .getProducts(
+          {
+            ...args,
+            collection_id: [parent.id],
+          },
+          projectedFields
+        )
         .then(({ products, count }) => ({ items: products, count }));
     },
   },
@@ -180,10 +204,13 @@ export const productResolvers = {
         );
       }
       return await context.productService
-        .getProducts({
-          ...args,
-          category_id: [parent.id],
-        }, projectedFields)
+        .getProducts(
+          {
+            ...args,
+            category_id: [parent.id],
+          },
+          projectedFields
+        )
         .then(({ products, count }) => ({ items: products, count }));
     },
   },

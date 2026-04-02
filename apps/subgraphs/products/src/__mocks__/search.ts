@@ -16,6 +16,30 @@ export const createMockAlgoliaHits = (count = 3) =>
     })
   );
 
+export const createMockAlgoliaBrowseHit = (overrides = {}) => ({
+  ...createMockAlgoliaHit(),
+  collection_id: 'pcol_1',
+  collection_handle: 'featured-products',
+  category_ids: ['pcat_1'],
+  category_handles: ['rings'],
+  is_sellable: true,
+  price_amount: 129.99,
+  original_price_amount: 159.99,
+  currency_code: 'usd',
+  display_price: '$129.99',
+  display_original_price: '$159.99',
+  ...overrides,
+});
+
+export const createMockAlgoliaBrowseHits = (count = 3) =>
+  Array.from({ length: count }, (_, i) =>
+    createMockAlgoliaBrowseHit({
+      id: `prod_${i + 1}`,
+      title: `Test Product ${i + 1}`,
+      handle: `test-product-${i + 1}`,
+    })
+  );
+
 export const createMockAlgoliaResponse = (
   hits = createMockAlgoliaHits(5),
   overrides = {}
