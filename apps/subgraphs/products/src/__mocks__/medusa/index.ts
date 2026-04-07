@@ -12,6 +12,10 @@ export const mockMedusa = {
       list: jest.fn(),
       retrieve: jest.fn(),
     },
+    region: {
+      list: jest.fn(),
+      retrieve: jest.fn(),
+    },
     customer: {
       list: jest.fn(),
       retrieve: jest.fn(),

@@ -37,6 +37,15 @@ type Query {
     filters: String
     facets: [String!]
   ): SearchProducts! @cacheControl(maxAge: 30, scope: PUBLIC)
+  browseProducts(
+    countryCode: String
+    regionId: String
+    sort: BrowseProductsSort = LATEST
+    hitsPerPage: Int
+    page: Int
+    filters: String
+    facets: [String!]
+  ): BrowseProducts! @cacheControl(maxAge: 30, scope: PUBLIC)
 }
 
 type ProductListResponse {
@@ -143,6 +152,30 @@ type ProductHit {
   thumbnail: String
 }
 
+enum BrowseProductsSort {
+  LATEST
+  PRICE_ASC
+  PRICE_DESC
+}
+
+type BrowseProductHit {
+  id: ID!
+  title: String
+  description: String
+  handle: String!
+  thumbnail: String
+  collectionId: String
+  collectionHandle: String
+  categoryIds: [String!]!
+  categoryHandles: [String!]!
+  isSellable: Boolean!
+  priceAmount: Float
+  originalPriceAmount: Float
+  currencyCode: String
+  displayPrice: String
+  displayOriginalPrice: String
+}
+
 type SearchProducts {
   total: Int!
   page: Int!
@@ -151,4 +184,13 @@ type SearchProducts {
   query: String!
   params: String!
   items: [ProductHit!]! @cacheControl(maxAge: 30, scope: PUBLIC)
+}
+
+type BrowseProducts {
+  total: Int!
+  page: Int!
+  totalPages: Int!
+  hitsPerPage: Int!
+  params: String!
+  items: [BrowseProductHit!]! @cacheControl(maxAge: 30, scope: PUBLIC)
 }

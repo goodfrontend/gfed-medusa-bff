@@ -39,6 +39,35 @@ export type Scalars = {
   DateTime: { input: string; output: string };
 };
 
+export type BrowseProductHit = {
+  categoryHandles: Array<Scalars['String']['output']>;
+  categoryIds: Array<Scalars['String']['output']>;
+  collectionHandle?: Maybe<Scalars['String']['output']>;
+  collectionId?: Maybe<Scalars['String']['output']>;
+  currencyCode?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  displayOriginalPrice?: Maybe<Scalars['String']['output']>;
+  displayPrice?: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  isSellable: Scalars['Boolean']['output'];
+  originalPriceAmount?: Maybe<Scalars['Float']['output']>;
+  priceAmount?: Maybe<Scalars['Float']['output']>;
+  thumbnail?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
+};
+
+export type BrowseProducts = {
+  hitsPerPage: Scalars['Int']['output'];
+  items: Array<BrowseProductHit>;
+  page: Scalars['Int']['output'];
+  params: Scalars['String']['output'];
+  total: Scalars['Int']['output'];
+  totalPages: Scalars['Int']['output'];
+};
+
+export type BrowseProductsSort = 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC';
+
 export type CacheControlScope = 'PRIVATE' | 'PUBLIC';
 
 export type Collection = {
@@ -144,6 +173,7 @@ export type ProductVariantOption = {
 };
 
 export type Query = {
+  browseProducts: BrowseProducts;
   collection?: Maybe<Collection>;
   collections: Array<Collection>;
   product?: Maybe<Product>;
@@ -151,6 +181,16 @@ export type Query = {
   productCategory?: Maybe<ProductCategory>;
   products: ProductListResponse;
   searchProducts: SearchProducts;
+};
+
+export type QueryBrowseProductsArgs = {
+  countryCode?: InputMaybe<Scalars['String']['input']>;
+  facets?: InputMaybe<Array<Scalars['String']['input']>>;
+  filters?: InputMaybe<Scalars['String']['input']>;
+  hitsPerPage?: InputMaybe<Scalars['Int']['input']>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  regionId?: InputMaybe<Scalars['String']['input']>;
+  sort?: InputMaybe<BrowseProductsSort>;
 };
 
 export type QueryCollectionArgs = {
@@ -336,6 +376,9 @@ export type DirectiveResolverFn<
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  BrowseProductHit: ResolverTypeWrapper<BrowseProductHit>;
+  BrowseProducts: ResolverTypeWrapper<BrowseProducts>;
+  BrowseProductsSort: BrowseProductsSort;
   CacheControlScope: CacheControlScope;
   Collection: ResolverTypeWrapper<Collection>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -362,6 +405,8 @@ export type ResolversTypes = {
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
+  BrowseProductHit: BrowseProductHit;
+  BrowseProducts: BrowseProducts;
   Collection: Collection;
   DateTime: Scalars['DateTime']['output'];
   Float: Scalars['Float']['output'];
@@ -395,6 +440,89 @@ export type CacheControlDirectiveResolver<
   ContextType = GraphQLContext,
   Args = CacheControlDirectiveArgs,
 > = DirectiveResolverFn<Result, Parent, ContextType, Args>;
+
+export type BrowseProductHitResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['BrowseProductHit'] =
+    ResolversParentTypes['BrowseProductHit'],
+> = {
+  categoryHandles?: Resolver<
+    Array<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  categoryIds?: Resolver<
+    Array<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  collectionHandle?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  collectionId?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  currencyCode?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  description?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  displayOriginalPrice?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  displayPrice?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isSellable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  originalPriceAmount?: Resolver<
+    Maybe<ResolversTypes['Float']>,
+    ParentType,
+    ContextType
+  >;
+  priceAmount?: Resolver<
+    Maybe<ResolversTypes['Float']>,
+    ParentType,
+    ContextType
+  >;
+  thumbnail?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
+export type BrowseProductsResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ResolversParentTypes['BrowseProducts'] =
+    ResolversParentTypes['BrowseProducts'],
+> = {
+  hitsPerPage?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  items?: Resolver<
+    Array<ResolversTypes['BrowseProductHit']>,
+    ParentType,
+    ContextType
+  >;
+  page?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  params?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  totalPages?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+};
 
 export type CollectionResolvers<
   ContextType = GraphQLContext,
@@ -666,6 +794,12 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
+  browseProducts?: Resolver<
+    ResolversTypes['BrowseProducts'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryBrowseProductsArgs, 'sort'>
+  >;
   collection?: Resolver<
     Maybe<ResolversTypes['Collection']>,
     ParentType,
@@ -729,6 +863,8 @@ export type SearchProductsResolvers<
 };
 
 export type Resolvers<ContextType = GraphQLContext> = {
+  BrowseProductHit?: BrowseProductHitResolvers<ContextType>;
+  BrowseProducts?: BrowseProductsResolvers<ContextType>;
   Collection?: CollectionResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Price?: PriceResolvers<ContextType>;
