@@ -1,5 +1,11 @@
 # @gfed-medusa-bff/products
 
+## 1.1.0
+
+### Minor Changes
+
+- 2113872: add browseProducts query
+
 ## 1.0.5
 
 ### Patch Changes
