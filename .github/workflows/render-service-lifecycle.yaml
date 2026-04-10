@@ -22,7 +22,7 @@ on:
           - window_scheduled
           - window_recurring
       services:
-        description: 'Comma-separated service names from render.yaml, or all'
+        description: 'Comma-separated service names from render.yaml, or all, or environment shorthand smoke/qa'
         required: false
         default: all
         type: string

@@ -15,6 +15,7 @@ STORE_VERSION = 1
 ACTIONS = %w[suspend resume].freeze
 SCHEDULE_TYPES = %w[immediate scheduled recurring window_scheduled window_recurring].freeze
 WINDOW_SCHEDULE_TYPES = %w[window_scheduled window_recurring].freeze
+SERVICE_SCOPE_SHORTHANDS = %w[smoke qa].freeze
 
 def abort_with(message)
   warn(message)
@@ -61,21 +62,38 @@ rescue Psych::Exception => e
   abort_with("Unable to parse #{render_file}: #{e.message}")
 end
 
+def service_scope_shorthand_map(available_services)
+  SERVICE_SCOPE_SHORTHANDS.each_with_object({}) do |scope, map|
+    scoped_services = available_services.select { |service| service.end_with?("-#{scope}") }
+    map[scope] = scoped_services unless scoped_services.empty?
+  end
+end
+
+def supported_service_scope_inputs(available_services)
+  scope_inputs = ["all"] + service_scope_shorthand_map(available_services).keys
+  scope_inputs.map { |value| "'#{value}'" }.join(", ")
+end
+
 def resolve_services(input, available_services)
   raw = input.to_s.strip
   return available_services.dup if raw.empty? || raw.casecmp("all").zero?
 
   selected = raw.split(/[\n,]+/).map(&:strip).reject(&:empty?).uniq
-  abort_with("services must be a comma-separated list or 'all'.") if selected.empty?
+  abort_with("services must be a comma-separated list or one of #{supported_service_scope_inputs(available_services)}.") if selected.empty?
 
-  unknown = selected - available_services
+  shorthand_map = service_scope_shorthand_map(available_services)
+  expanded = selected.flat_map do |service|
+    shorthand_map.fetch(service.downcase, [service])
+  end.uniq
+
+  unknown = expanded - available_services
   unless unknown.empty?
     abort_with(
       "Unknown services: #{unknown.join(', ')}. Available services: #{available_services.join(', ')}."
     )
   end
 
-  selected
+  expanded
 end
 
 def normalize_rule_id(rule_name)
