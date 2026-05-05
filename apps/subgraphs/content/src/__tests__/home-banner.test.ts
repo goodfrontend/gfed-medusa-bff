@@ -26,7 +26,7 @@ describe('Home Banner Resolvers', () => {
 
   describe('Query.homeBanner', () => {
     it('should handle successful home banner retrieval', async () => {
-      const result = await homeBannerResolvers.Query.homeBanner();
+      const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
 
       expect(result).toEqual(mockHomeBannerData);
       if (result) {
@@ -47,7 +47,7 @@ describe('Home Banner Resolvers', () => {
     it('should handle empty home banner content', async () => {
       server.use(emptyHomeBannerHandler);
 
-      const result = await homeBannerResolvers.Query.homeBanner();
+      const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
 
       expect(result).toEqual({});
     });
@@ -55,7 +55,7 @@ describe('Home Banner Resolvers', () => {
     it('should handle null home banner content', async () => {
       server.use(nullHomeBannerHandler);
 
-      const result = await homeBannerResolvers.Query.homeBanner();
+      const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
 
       expect(result).toBeNull();
     });
@@ -64,7 +64,7 @@ describe('Home Banner Resolvers', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       server.use(generalHomeBannerErrorHandler);
 
-      const result = await homeBannerResolvers.Query.homeBanner();
+      const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
       expect(result).toEqual(null);
       expect(consoleSpy).toHaveBeenCalledWith(
         'Error fetching home banner content from Sanity:',
@@ -75,7 +75,7 @@ describe('Home Banner Resolvers', () => {
     });
 
     it('should handle data integrity with JSON serialization', async () => {
-      const result = await homeBannerResolvers.Query.homeBanner();
+      const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
 
       const serialized = JSON.parse(JSON.stringify(result));
       expect(serialized).toEqual(mockHomeBannerData);

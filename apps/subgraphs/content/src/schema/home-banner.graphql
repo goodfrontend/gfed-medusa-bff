@@ -34,5 +34,5 @@ type HomeBanner @key(fields: "_id") @cacheControl(maxAge: 1800, scope: PUBLIC) {
 }
 
 extend type Query {
-  homeBanner: HomeBanner @cacheControl(maxAge: 1800, scope: PUBLIC)
+  homeBanner(audience: String, segment: String): HomeBanner @cacheControl(maxAge: 1800, scope: PUBLIC)
 }

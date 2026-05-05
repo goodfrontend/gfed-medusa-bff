@@ -74,6 +74,11 @@ export type Query = {
   homeBanner?: Maybe<HomeBanner>;
 };
 
+export type QueryHomeBannerArgs = {
+  audience?: InputMaybe<Scalars['String']['input']>;
+  segment?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type SanityImage = {
   alt?: Maybe<Scalars['String']['output']>;
   asset?: Maybe<SanityImageAsset>;
@@ -359,7 +364,8 @@ export type QueryResolvers<
   homeBanner?: Resolver<
     Maybe<ResolversTypes['HomeBanner']>,
     ParentType,
-    ContextType
+    ContextType,
+    Partial<QueryHomeBannerArgs>
   >;
 };
 
