@@ -1,0 +1,14 @@
+type ContextualBanner {
+  title: String!
+  description: String
+  ctaLabel: String
+  ctaHref: String!
+  trigger: String!
+  minPrice: Float
+  isActive: Boolean!
+  priority: Int!
+}
+
+extend type Query {
+  contextualBanners: [ContextualBanner!]! @cacheControl(maxAge: 300, scope: PUBLIC)
+}

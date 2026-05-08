@@ -44,6 +44,17 @@ export type BannerButton = {
   openInNewTab?: Maybe<Scalars['Boolean']['output']>;
 };
 
+export type ContextualBanner = {
+  ctaHref: Scalars['String']['output'];
+  ctaLabel?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  isActive: Scalars['Boolean']['output'];
+  minPrice?: Maybe<Scalars['Float']['output']>;
+  priority: Scalars['Int']['output'];
+  title: Scalars['String']['output'];
+  trigger: Scalars['String']['output'];
+};
+
 export type Footer = {
   _id: Scalars['ID']['output'];
   _type: Scalars['String']['output'];
@@ -70,6 +81,7 @@ export type PartialRichText = {
 };
 
 export type Query = {
+  contextualBanners: Array<ContextualBanner>;
   footer?: Maybe<Footer>;
   homeBanner?: Maybe<HomeBanner>;
 };
@@ -222,10 +234,13 @@ export type DirectiveResolverFn<
 export type ResolversTypes = {
   BannerButton: ResolverTypeWrapper<BannerButton>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  ContextualBanner: ResolverTypeWrapper<ContextualBanner>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   Footer: ResolverTypeWrapper<Footer>;
   HomeBanner: ResolverTypeWrapper<HomeBanner>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   PartialRichText: ResolverTypeWrapper<PartialRichText>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
@@ -240,10 +255,13 @@ export type ResolversTypes = {
 export type ResolversParentTypes = {
   BannerButton: BannerButton;
   Boolean: Scalars['Boolean']['output'];
+  ContextualBanner: ContextualBanner;
   DateTime: Scalars['DateTime']['output'];
+  Float: Scalars['Float']['output'];
   Footer: Footer;
   HomeBanner: HomeBanner;
   ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
   PartialRichText: PartialRichText;
   Query: Record<PropertyKey, never>;
@@ -266,6 +284,25 @@ export type BannerButtonResolvers<
     ParentType,
     ContextType
   >;
+};
+
+export type ContextualBannerResolvers<
+  ContextType = any,
+  ParentType extends ResolversParentTypes['ContextualBanner'] =
+    ResolversParentTypes['ContextualBanner'],
+> = {
+  ctaHref?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  ctaLabel?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  description?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  minPrice?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  priority?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  trigger?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
@@ -360,6 +397,11 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
+  contextualBanners?: Resolver<
+    Array<ResolversTypes['ContextualBanner']>,
+    ParentType,
+    ContextType
+  >;
   footer?: Resolver<Maybe<ResolversTypes['Footer']>, ParentType, ContextType>;
   homeBanner?: Resolver<
     Maybe<ResolversTypes['HomeBanner']>,
@@ -429,6 +471,7 @@ export type SocialLinkResolvers<
 
 export type Resolvers<ContextType = any> = {
   BannerButton?: BannerButtonResolvers<ContextType>;
+  ContextualBanner?: ContextualBannerResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Footer?: FooterResolvers<ContextType>;
   HomeBanner?: HomeBannerResolvers<ContextType>;
