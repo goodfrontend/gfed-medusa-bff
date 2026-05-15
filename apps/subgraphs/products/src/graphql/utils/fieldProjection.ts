@@ -47,7 +47,8 @@ function buildProductFieldExtrasFromPaths(
   }
   if (
     hasSelectedPath(selectedPaths, `${prefix}variants.price`) ||
-    hasSelectedPath(selectedPaths, `${prefix}variants.originalPrice`)
+    hasSelectedPath(selectedPaths, `${prefix}variants.originalPrice`) ||
+    hasSelectedPath(selectedPaths, `${prefix}variants.calculatedPrice`)
   ) {
     extras.add('+variants.calculated_price');
   }
@@ -71,6 +72,9 @@ function buildProductFieldExtrasFromPaths(
   }
   if (hasSelectedPath(selectedPaths, `${prefix}collection`)) {
     extras.add('+collection.*');
+  }
+  if (hasSelectedPath(selectedPaths, `${prefix}categories`)) {
+    extras.add('+categories.*');
   }
   if (hasSelectedPath(selectedPaths, `${prefix}type`)) {
     extras.add('+type.*');

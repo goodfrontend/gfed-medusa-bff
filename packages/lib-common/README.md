@@ -27,7 +27,11 @@ For monorepo or local development (to use what's latest), you can use workspace 
 Create a structured logger for your subgraph:
 
 ```typescript
-import { createLogger, createChildLogger, type LogLevel } from '@gfed-medusa/bff-lib-common';
+import {
+  type LogLevel,
+  createChildLogger,
+  createLogger,
+} from '@gfed-medusa/bff-lib-common';
 
 // Initialize logger for your subgraph
 const logger = createLogger({
@@ -72,8 +76,8 @@ Handle errors consistently across your subgraph:
 import {
   NotFoundError,
   ValidationError,
+  asyncHandler,
   createErrorHandler,
-  asyncHandler
 } from '@gfed-medusa/bff-lib-common';
 
 // In your GraphQL resolvers
@@ -113,7 +117,7 @@ healthCheck.register('database', async () => {
   } catch (error) {
     return {
       status: 'unhealthy',
-      message: error instanceof Error ? error.message : 'Database check failed'
+      message: error instanceof Error ? error.message : 'Database check failed',
     };
   }
 });
@@ -134,7 +138,7 @@ app.get('/health/live', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     service: 'products-subgraph',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 ```
@@ -150,18 +154,19 @@ import cors from 'cors';
 import express from 'express';
 import gql from 'graphql-tag';
 import http from 'http';
+
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 import {
-  createLogger,
-  createErrorHandler,
+  HealthCheck,
   NotFoundError,
   ValidationError,
-  HealthCheck,
   checkHttpEndpoint,
+  createErrorHandler,
+  createLogger,
 } from '@gfed-medusa/bff-lib-common';
 
 // Initialize logger
@@ -201,7 +206,12 @@ const productService = {
     logger.info({ limit, offset }, 'Fetching products from Medusa');
     // Replace with: await medusaClient.products.list({ limit, offset })
     return [
-      { id: 'prod_1', title: 'T-Shirt', handle: 't-shirt', status: 'published' },
+      {
+        id: 'prod_1',
+        title: 'T-Shirt',
+        handle: 't-shirt',
+        status: 'published',
+      },
       { id: 'prod_2', title: 'Hoodie', handle: 'hoodie', status: 'published' },
     ];
   },
@@ -210,20 +220,23 @@ const productService = {
     logger.info({ productId: id }, 'Fetching product by ID');
     // Replace with: await medusaClient.products.retrieve(id)
     const products = await this.getAll(100, 0);
-    return products.find(p => p.id === id);
+    return products.find((p) => p.id === id);
   },
 
   async getByHandle(handle: string) {
     logger.info({ handle }, 'Fetching product by handle');
     // Replace with: await medusaClient.products.list({ handle })
     const products = await this.getAll(100, 0);
-    return products.find(p => p.handle === handle);
+    return products.find((p) => p.handle === handle);
   },
 };
 
 const resolvers = {
   Query: {
-    products: async (_: unknown, { limit, offset }: { limit: number; offset: number }) => {
+    products: async (
+      _: unknown,
+      { limit, offset }: { limit: number; offset: number }
+    ) => {
       if (limit < 1 || limit > 100) {
         throw new ValidationError('Limit must be between 1 and 100', { limit });
       }
@@ -279,7 +292,7 @@ healthCheck.register('database', async () => {
   } catch (error) {
     return {
       status: 'unhealthy',
-      message: error instanceof Error ? error.message : 'Database check failed'
+      message: error instanceof Error ? error.message : 'Database check failed',
     };
   }
 });
@@ -297,7 +310,7 @@ async function startServer() {
     res.status(200).json({
       status: 'healthy',
       service: 'products-subgraph',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -371,6 +384,7 @@ startServer().catch((error) => {
   process.exit(1);
 });
 ```
+
 ### Gateway Integration
 
 Example of using observability in the Apollo Gateway:
@@ -378,15 +392,16 @@ Example of using observability in the Apollo Gateway:
 ```typescript
 import express from 'express';
 import http from 'http';
+
 import { ApolloGateway, IntrospectAndCompose } from '@apollo/gateway';
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { expressMiddleware } from '@as-integrations/express5';
 import {
-  createLogger,
-  createErrorHandler,
   HealthCheck,
   checkHttpEndpoint,
+  createErrorHandler,
+  createLogger,
 } from '@gfed-medusa/bff-lib-common';
 
 const logger = createLogger({
@@ -399,31 +414,19 @@ const logger = createLogger({
 const healthCheck = new HealthCheck('gateway', '1.0.0');
 
 healthCheck.register('products-subgraph', async () => {
-  return await checkHttpEndpoint(
-    process.env.PRODUCTS_URL + '/health',
-    5000
-  );
+  return await checkHttpEndpoint(process.env.PRODUCTS_URL + '/health', 5000);
 });
 
 healthCheck.register('identity-subgraph', async () => {
-  return await checkHttpEndpoint(
-    process.env.IDENTITY_URL + '/health',
-    5000
-  );
+  return await checkHttpEndpoint(process.env.IDENTITY_URL + '/health', 5000);
 });
 
 healthCheck.register('content-subgraph', async () => {
-  return await checkHttpEndpoint(
-    process.env.CONTENT_URL + '/health',
-    5000
-  );
+  return await checkHttpEndpoint(process.env.CONTENT_URL + '/health', 5000);
 });
 
 healthCheck.register('orders-subgraph', async () => {
-  return await checkHttpEndpoint(
-    process.env.ORDERS_URL + '/health',
-    5000
-  );
+  return await checkHttpEndpoint(process.env.ORDERS_URL + '/health', 5000);
 });
 
 async function startGateway() {
@@ -433,10 +436,22 @@ async function startGateway() {
   const gateway = new ApolloGateway({
     supergraphSdl: new IntrospectAndCompose({
       subgraphs: [
-        { name: 'products', url: process.env.PRODUCTS_URL || 'http://localhost:4001/graphql' },
-        { name: 'identity', url: process.env.IDENTITY_URL || 'http://localhost:4002/graphql' },
-        { name: 'content', url: process.env.CONTENT_URL || 'http://localhost:4003/graphql' },
-        { name: 'orders', url: process.env.ORDERS_URL || 'http://localhost:4004/graphql' },
+        {
+          name: 'products',
+          url: process.env.PRODUCTS_URL || 'http://localhost:4001/graphql',
+        },
+        {
+          name: 'identity',
+          url: process.env.IDENTITY_URL || 'http://localhost:4002/graphql',
+        },
+        {
+          name: 'content',
+          url: process.env.CONTENT_URL || 'http://localhost:4003/graphql',
+        },
+        {
+          name: 'orders',
+          url: process.env.ORDERS_URL || 'http://localhost:4004/graphql',
+        },
       ],
     }),
   });
@@ -486,7 +501,10 @@ async function startGateway() {
   const port = process.env.PORT || 4000;
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
 
-  logger.info({ port }, 'Gateway ready at http://localhost:' + port + '/graphql');
+  logger.info(
+    { port },
+    'Gateway ready at http://localhost:' + port + '/graphql'
+  );
 
   process.on('SIGTERM', () => {
     logger.info('Shutting down gateway');
@@ -534,6 +552,7 @@ type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 ```
 
 **Usage:**
+
 ```typescript
 import type { LogLevel } from '@gfed-medusa/bff-lib-common';
 
@@ -547,6 +566,7 @@ const level = (process.env.LOG_LEVEL as LogLevel) || 'info';
 Creates a Pino logger instance.
 
 **Config Options:**
+
 - `serviceName`: Name of the service
 - `level`: Log level (default: 'info') - one of: `'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace'`
 - `pretty`: Enable pretty printing for development (default: false)
@@ -583,6 +603,7 @@ Wraps async route handlers to catch promise rejections.
 Class for managing multiple health checks.
 
 **Methods:**
+
 - `register(name: string, checker: HealthChecker): void`
 - `execute(): Promise<HealthCheckResult>`
 - `getHandler(): RequestHandler`

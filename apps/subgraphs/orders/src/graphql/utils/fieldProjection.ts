@@ -141,7 +141,9 @@ function buildOrderFieldsFromPaths(
     fields.add('+payment_collections.*');
   }
 
-  if (hasSelectedPath(selectedPaths, `${p}paymentCollections.paymentProviders`)) {
+  if (
+    hasSelectedPath(selectedPaths, `${p}paymentCollections.paymentProviders`)
+  ) {
     fields.add('+payment_collections.payment_providers.*');
   }
 

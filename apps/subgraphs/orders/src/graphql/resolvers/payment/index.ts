@@ -9,14 +9,18 @@ export const paymentResolvers = {
       { medusa }: GraphQLContext
     ) => {
       try {
-        const { payment_providers } = await medusa.store.payment.listPaymentProviders({
-          region_id: regionId,
-        });
+        const { payment_providers } =
+          await medusa.store.payment.listPaymentProviders({
+            region_id: regionId,
+          });
         return payment_providers
           .sort((a, b) => a.id.localeCompare(b.id))
           .map((p) => ({ id: p.id }));
       } catch (e) {
-        handleMedusaError(e, 'run Query.paymentProviders', ['Query', 'paymentProviders']);
+        handleMedusaError(e, 'run Query.paymentProviders', [
+          'Query',
+          'paymentProviders',
+        ]);
       }
     },
   },

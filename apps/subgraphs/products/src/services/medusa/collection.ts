@@ -1,7 +1,7 @@
+import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import type { Collection } from '@graphql/generated/graphql';
 import type { HttpTypes } from '@medusajs/types';
 
-import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { MedusaBaseService } from '.';
 import { COLLECTION_FIELDS } from '../../constants/medusa';
 
@@ -27,11 +27,13 @@ export class CollectionService extends MedusaBaseService {
           }
         );
 
-      return collections?.map(({ id, title, handle }) => ({
-        id,
-        title,
-        handle,
-      })) ?? [];
+      return (
+        collections?.map(({ id, title, handle }) => ({
+          id,
+          title,
+          handle,
+        })) ?? []
+      );
     } catch (error: unknown) {
       handleMedusaError(error, 'fetch collections', ['collections']);
     }

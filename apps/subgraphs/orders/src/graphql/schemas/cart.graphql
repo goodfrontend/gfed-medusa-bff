@@ -201,7 +201,7 @@ type CompleteCartOrderResult {
 union CompleteCartResponse = CompleteCartErrorResult | CompleteCartOrderResult
 
 extend type Query {
-  cart(id: ID!): Cart @cacheControl(maxAge: 0)
+  cart(id: String!): Cart @cacheControl(maxAge: 0)
 }
 
 extend type Mutation {

@@ -84,6 +84,7 @@ export type Price = {
 };
 
 export type Product = {
+  categories?: Maybe<Array<ProductCategory>>;
   collection?: Maybe<Collection>;
   collectionId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
@@ -155,6 +156,7 @@ export type ProductTag = {
 
 export type ProductVariant = {
   allowBackorder?: Maybe<Scalars['Boolean']['output']>;
+  calculatedPrice?: Maybe<Price>;
   id: Scalars['ID']['output'];
   inventoryQuantity?: Maybe<Scalars['Int']['output']>;
   manageInventory?: Maybe<Scalars['Boolean']['output']>;
@@ -569,6 +571,11 @@ export type ProductResolvers<
   ParentType extends ResolversParentTypes['Product'] =
     ResolversParentTypes['Product'],
 > = {
+  categories?: Resolver<
+    Maybe<Array<ResolversTypes['ProductCategory']>>,
+    ParentType,
+    ContextType
+  >;
   collection?: Resolver<
     Maybe<ResolversTypes['Collection']>,
     ParentType,
@@ -749,6 +756,11 @@ export type ProductVariantResolvers<
 > = {
   allowBackorder?: Resolver<
     Maybe<ResolversTypes['Boolean']>,
+    ParentType,
+    ContextType
+  >;
+  calculatedPrice?: Resolver<
+    Maybe<ResolversTypes['Price']>,
     ParentType,
     ContextType
   >;

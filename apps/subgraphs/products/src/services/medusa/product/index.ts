@@ -1,7 +1,7 @@
+import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import type { Product } from '@graphql/generated/graphql';
 import type { HttpTypes } from '@medusajs/types';
 
-import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { MedusaBaseService } from '..';
 import { formatProductData } from './util/formatProductData';
 
@@ -35,10 +35,7 @@ function mergeMedusaFields(
   return merged.size > 0 ? Array.from(merged).join(',') : undefined;
 }
 
-function hasPricingContext(params?: {
-  region_id?: string;
-  regionId?: string;
-}) {
+function hasPricingContext(params?: { region_id?: string; regionId?: string }) {
   return Boolean(params?.region_id || params?.regionId);
 }
 
@@ -64,8 +61,11 @@ export class ProductService extends MedusaBaseService {
   ): Promise<ProductsData> {
     try {
       const fields = mergeMedusaFields(
-        (params as (HttpTypes.StoreProductListParams & { fields?: string }) | undefined)
-          ?.fields,
+        (
+          params as
+            | (HttpTypes.StoreProductListParams & { fields?: string })
+            | undefined
+        )?.fields,
         projectedFields
       );
 
@@ -92,8 +92,11 @@ export class ProductService extends MedusaBaseService {
   ): Promise<Product | null> {
     try {
       const fields = mergeMedusaFields(
-        (params as (HttpTypes.StoreProductParams & { fields?: string }) | undefined)
-          ?.fields,
+        (
+          params as
+            | (HttpTypes.StoreProductParams & { fields?: string })
+            | undefined
+        )?.fields,
         projectedFields
       );
 
@@ -118,8 +121,11 @@ export class ProductService extends MedusaBaseService {
 
     try {
       const fields = mergeMedusaFields(
-        (params as (HttpTypes.StoreProductListParams & { fields?: string }) | undefined)
-          ?.fields,
+        (
+          params as
+            | (HttpTypes.StoreProductListParams & { fields?: string })
+            | undefined
+        )?.fields,
         projectedFields
       );
 

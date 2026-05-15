@@ -21,15 +21,16 @@ export const createMockShippingOption = (): HttpTypes.StoreCartShippingOption =>
         },
       },
     },
-  } as any);
+  }) as any;
 
-export const createMockCalculatedShippingOption = (): HttpTypes.StoreCartShippingOption =>
-  ({
-    id: 'so_456',
-    name: 'Express Shipping',
-    price_type: 'calculated',
-    amount: 1200,
-    service_zone_id: 'sz_123',
-    insufficient_inventory: false,
-    service_zone: null,
-  } as any);
+export const createMockCalculatedShippingOption =
+  (): HttpTypes.StoreCartShippingOption =>
+    ({
+      id: 'so_456',
+      name: 'Express Shipping',
+      price_type: 'calculated',
+      amount: 1200,
+      service_zone_id: 'sz_123',
+      insufficient_inventory: false,
+      service_zone: null,
+    }) as any;

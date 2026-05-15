@@ -1,0 +1,144 @@
+# Personalization API (content subgraph)
+
+enum SignalType {
+  PAGE_VIEW
+  TIME_ON_PAGE
+  SCROLL_DEPTH
+  EXIT_INTENT
+  TAB_SWITCH
+  SEARCH_QUERY
+  SEARCH_RESULT_CLICK
+  SEARCH_REFINE
+  FILTER_APPLIED
+  SORT_CHANGED
+  PRODUCT_HOVER
+  QUICK_VIEW_OPEN
+  IMAGE_ZOOM
+  SIZE_GUIDE_VIEW
+  REVIEWS_VIEW
+  CART_ADD
+  CART_REMOVE
+  CART_UPDATE_QUANTITY
+  CHECKOUT_START
+  CHECKOUT_ABANDON
+  TRUST_BADGE_CLICK
+  SECURITY_INFO_VIEW
+  RETURN_POLICY_VIEW
+  PRODUCT_VIEW
+}
+
+input SignalInput {
+  deviceId: String
+  userId: String
+  type: SignalType!
+  payload: JSON
+  url: String
+  """Unix epoch milliseconds"""
+  timestamp: Float
+}
+
+type SendSignalResponse {
+  success: Boolean!
+  profileUpdated: Boolean!
+}
+
+type PriceSensitivity {
+  score: Float!
+  avgViewedPrice: Float!
+  dealClickRate: Float!
+}
+
+type IntentSignals {
+  researchDepth: Float!
+  cartToPurchaseRate: Float!
+  returnRate: Float!
+}
+
+enum EngagementLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum LifecycleStage {
+  NEW
+  RETURNING
+  FREQUENT
+  LOYAL
+}
+
+type UserProfile {
+  deviceId: String!
+  userId: String
+  categoryAffinity: JSON!
+  priceSensitivity: PriceSensitivity!
+  intentSignals: IntentSignals!
+  engagementLevel: EngagementLevel!
+  lifecycleStage: LifecycleStage!
+  firstSeen: Float!
+  lastSeen: Float!
+  sessionCount: Int!
+}
+
+type PersonalizedComponent {
+  component: String!
+  contentId: String
+  propsOverrides: JSON
+  priority: Int!
+  reasoning: String!
+  score: Float!
+}
+
+type DecisionReasoning {
+  intent: String!
+  confidence: Float!
+  factors: [String!]!
+  modelVersion: String!
+}
+
+type PersonalizationResult {
+  components: [PersonalizedComponent!]!
+  reasoning: DecisionReasoning!
+  cacheKey: String!
+  servedAt: String!
+}
+
+input SurfaceContext {
+  surface: String!
+  page: String!
+  productId: String
+  cartValue: Float
+  category: String
+  searchQuery: String
+  price: Float
+}
+
+input ConversionLineItemInput {
+  productId: String!
+  variantId: String
+  quantity: Int!
+  price: Float!
+  category: String
+}
+
+input ConversionInput {
+  deviceId: String!
+  userId: String
+  orderId: String!
+  amount: Float!
+  currency: String!
+  checkoutSignalId: String
+  items: [ConversionLineItemInput!]
+}
+
+extend type Mutation {
+  sendSignal(input: SignalInput!): SendSignalResponse!
+  submitConversion(input: ConversionInput!): Boolean!
+}
+
+extend type Query {
+  personalize(input: SurfaceContext!, deviceId: String!, userId: String): PersonalizationResult!
+  userProfile(deviceId: String!, userId: String): UserProfile!
+  """Debug: current rule-based intent classification."""
+  debugIntent(deviceId: String!, userId: String): DecisionReasoning!
+}

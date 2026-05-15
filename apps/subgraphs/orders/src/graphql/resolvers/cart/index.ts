@@ -1,7 +1,8 @@
-import { GraphQLContext } from '@graphql/types/context';
-import type { HttpTypes } from '@medusajs/types';
 import { GraphQLResolveInfo } from 'graphql';
+
+import { GraphQLContext } from '@graphql/types/context';
 import { buildCartFields } from '@graphql/utils/fieldProjection';
+import type { HttpTypes } from '@medusajs/types';
 
 import {
   camelToSnakeCase,

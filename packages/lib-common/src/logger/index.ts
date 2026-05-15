@@ -1,11 +1,17 @@
 import pino from 'pino';
 import type { Logger } from 'pino';
+
 import type { LoggerConfig } from '../types.js';
 
 export type { Logger };
 
 export function createLogger(config: LoggerConfig): Logger {
-  const { serviceName, level = 'info', pretty = false, redactPaths = [] } = config;
+  const {
+    serviceName,
+    level = 'info',
+    pretty = false,
+    redactPaths = [],
+  } = config;
 
   const pinoConfig: pino.LoggerOptions = {
     name: serviceName,

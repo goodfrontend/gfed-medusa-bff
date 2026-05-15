@@ -1,5 +1,4 @@
 import { mergeResolvers } from '@graphql-tools/merge';
-
 import { Resolvers } from '@graphql/generated/graphql';
 
 import { customerResolvers } from './customers';

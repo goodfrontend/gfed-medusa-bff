@@ -65,8 +65,7 @@ function normalizeVariant(variant: any) {
     sku: variant.sku ?? '',
     inventoryQuantity:
       variant.inventory_quantity ?? variant.inventoryQuantity ?? 0,
-    allowBackorder:
-      variant.allow_backorder ?? variant.allowBackorder ?? false,
+    allowBackorder: variant.allow_backorder ?? variant.allowBackorder ?? false,
     manageInventory:
       variant.manage_inventory ?? variant.manageInventory ?? false,
     options: (variant.options ?? [])
@@ -291,16 +290,17 @@ export function normalizeOrder(order: StoreOrder): any {
     shippingTotal: order.shipping_total ?? null,
     taxTotal: order.tax_total ?? null,
     items: normalizeLineItems(order.items ?? []),
-    shippingMethods:
-      (order.shipping_methods ?? []).map((method) => ({
-        id: method.id,
-        name: method.name,
-        amount: method.amount,
-        shippingOptionId: method.shipping_option_id,
-        createdAt: method.created_at,
-      })),
+    shippingMethods: (order.shipping_methods ?? []).map((method) => ({
+      id: method.id,
+      name: method.name,
+      amount: method.amount,
+      shippingOptionId: method.shipping_option_id,
+      createdAt: method.created_at,
+    })),
     shippingAddress: normalizeAddress(order.shipping_address),
-    paymentCollections: (order.payment_collections ?? []).map(normalizePaymentCollection),
+    paymentCollections: (order.payment_collections ?? []).map(
+      normalizePaymentCollection
+    ),
   };
 }
 

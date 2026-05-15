@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import {
   UnauthorizedError,
   handleMedusaError,
@@ -11,10 +13,8 @@ import {
   MutationUpdateCustomerArgs,
 } from '@graphql/generated/graphql';
 import { GraphQLContext } from '@graphql/types/context';
-import { GraphQLResolveInfo } from 'graphql';
 
 import { buildCustomerFields } from '../utils/fieldProjection';
-
 import { transformCustomer } from './util/transforms';
 
 function logProjectedFields(operation: string, fields: string) {

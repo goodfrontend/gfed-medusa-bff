@@ -21,7 +21,9 @@ export const transformShippingOption = (
     priceType: option.price_type,
     serviceZoneId: option.service_zone_id,
     insufficientInventory: option.insufficient_inventory,
-    calculatedPrice: calculatedPriceRaw ? { amount: calculatedPriceRaw.amount ?? null } : null,
+    calculatedPrice: calculatedPriceRaw
+      ? { amount: calculatedPriceRaw.amount ?? null }
+      : null,
     prices: pricesRaw.map((p) => ({
       amount: p.amount ?? null,
       currencyCode: p.currency_code ?? null,
@@ -38,13 +40,18 @@ export const transformShippingOption = (
             ? {
                 address: serviceZoneRaw.fulfillment_set.location.address
                   ? {
-                      city: serviceZoneRaw.fulfillment_set.location.address.city ?? null,
+                      city:
+                        serviceZoneRaw.fulfillment_set.location.address.city ??
+                        null,
                       countryCode:
-                        serviceZoneRaw.fulfillment_set.location.address.country_code ?? null,
+                        serviceZoneRaw.fulfillment_set.location.address
+                          .country_code ?? null,
                       address1:
-                        serviceZoneRaw.fulfillment_set.location.address.address_1 ?? null,
+                        serviceZoneRaw.fulfillment_set.location.address
+                          .address_1 ?? null,
                       postalCode:
-                        serviceZoneRaw.fulfillment_set.location.address.postal_code ?? null,
+                        serviceZoneRaw.fulfillment_set.location.address
+                          .postal_code ?? null,
                     }
                   : null,
               }

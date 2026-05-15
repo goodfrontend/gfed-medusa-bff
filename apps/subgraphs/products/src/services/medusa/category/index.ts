@@ -1,7 +1,7 @@
+import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { ProductCategory } from '@graphql/generated/graphql';
 import type { HttpTypes } from '@medusajs/types';
 
-import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { MedusaBaseService } from '..';
 import { CATEGORY_DEFAULT_FIELDS } from '../../../constants/medusa';
 import { formatCategoryData } from './util/formatCategoryData';
@@ -40,10 +40,14 @@ export class CategoryService extends MedusaBaseService {
   ): Promise<ProductCategory[]> {
     try {
       const fields = mergeMedusaFields(
-        (params as (HttpTypes.FindParams &
-          HttpTypes.StoreProductCategoryListParams & {
-            fields?: string;
-          }) | undefined)?.fields,
+        (
+          params as
+            | (HttpTypes.FindParams &
+                HttpTypes.StoreProductCategoryListParams & {
+                  fields?: string;
+                })
+            | undefined
+        )?.fields,
         projectedFields
       );
       const { product_categories } = await this.medusa.store.category.list({

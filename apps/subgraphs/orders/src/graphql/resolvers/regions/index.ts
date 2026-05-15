@@ -1,10 +1,11 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
 import {
   buildRegionFields,
   buildRegionsFields,
 } from '@graphql/utils/fieldProjection';
-import { GraphQLResolveInfo } from 'graphql';
 
 import { transformRegion } from './util/transforms';
 

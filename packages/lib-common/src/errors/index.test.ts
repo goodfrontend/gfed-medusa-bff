@@ -1,21 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   AppError,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
   ConflictError,
+  ForbiddenError,
+  NotFoundError,
   ServiceUnavailableError,
-  createErrorHandler,
+  UnauthorizedError,
+  ValidationError,
   asyncHandler,
+  createErrorHandler,
 } from './index';
 
 describe('Error Classes', () => {
   describe('AppError', () => {
     it('should create error with correct properties', () => {
-      const error = new AppError('Test error', 400, 'TEST_ERROR', { field: 'test' });
+      const error = new AppError('Test error', 400, 'TEST_ERROR', {
+        field: 'test',
+      });
 
       expect(error.message).toBe('Test error');
       expect(error.statusCode).toBe(400);
@@ -36,7 +39,13 @@ describe('Error Classes', () => {
     });
 
     it('should allow non-operational errors', () => {
-      const error = new AppError('Critical error', 500, 'CRITICAL', undefined, false);
+      const error = new AppError(
+        'Critical error',
+        500,
+        'CRITICAL',
+        undefined,
+        false
+      );
 
       expect(error.isOperational).toBe(false);
     });
@@ -69,7 +78,9 @@ describe('Error Classes', () => {
     });
 
     it('should use custom message and details', () => {
-      const error = new NotFoundError('Product not found', { productId: '123' });
+      const error = new NotFoundError('Product not found', {
+        productId: '123',
+      });
 
       expect(error.message).toBe('Product not found');
       expect(error.details).toEqual({ productId: '123' });
@@ -167,7 +178,13 @@ describe('createErrorHandler', () => {
 
   it('should handle non-operational AppError and log as error', () => {
     const errorHandler = createErrorHandler(mockLogger);
-    const error = new AppError('Critical error', 500, 'CRITICAL', undefined, false);
+    const error = new AppError(
+      'Critical error',
+      500,
+      'CRITICAL',
+      undefined,
+      false
+    );
 
     errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
@@ -254,7 +271,7 @@ describe('asyncHandler', () => {
 
     handler(mockReq, mockRes, mockNext);
 
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(asyncFn).toHaveBeenCalledWith(mockReq, mockRes, mockNext);
     expect(mockNext).not.toHaveBeenCalled();
@@ -271,7 +288,7 @@ describe('asyncHandler', () => {
 
     handler(mockReq, mockRes, mockNext);
 
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mockNext).toHaveBeenCalledWith(error);
   });
@@ -289,7 +306,7 @@ describe('asyncHandler', () => {
 
     handler(mockReq, mockRes, mockNext);
 
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mockNext).toHaveBeenCalledWith(error);
   });

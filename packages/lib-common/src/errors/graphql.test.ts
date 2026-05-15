@@ -1,12 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
   GraphQLError,
-  MedusaServiceError,
-  GraphQLValidationError,
   GraphQLNotFoundError,
   GraphQLServiceUnavailableError,
-  handleMedusaError,
+  GraphQLValidationError,
+  MedusaServiceError,
   createFieldPath,
+  handleMedusaError,
 } from './graphql.js';
 
 describe('GraphQL Error Classes', () => {

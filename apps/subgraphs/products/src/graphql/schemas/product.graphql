@@ -70,6 +70,7 @@ type Product @key(fields: "id") @cacheControl(maxAge: 300, scope: PUBLIC) {
   options: [ProductOption!] @cacheControl(maxAge: 300, scope: PUBLIC)
   variants: [ProductVariant!] @cacheControl(maxAge: 300, scope: PUBLIC)
   collection: Collection @cacheControl(maxAge: 300, scope: PUBLIC)
+  categories: [ProductCategory!] @cacheControl(maxAge: 600, scope: PUBLIC)
   type: String
   collectionId: String
   createdAt: DateTime!
@@ -106,6 +107,7 @@ type ProductVariant
   options: [ProductVariantOption] @cacheControl(maxAge: 300, scope: PUBLIC)
   price: Price @cacheControl(maxAge: 0)
   originalPrice: Price @cacheControl(maxAge: 0)
+  calculatedPrice: Price @cacheControl(maxAge: 0)
   title: String
   product: Product @cacheControl(maxAge: 300, scope: PUBLIC)
 }

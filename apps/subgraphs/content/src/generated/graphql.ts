@@ -4,6 +4,8 @@ import type {
   GraphQLScalarTypeConfig,
 } from 'graphql';
 
+import type { ContentGraphQLContext } from '../graphql/context';
+
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = {
@@ -24,6 +26,9 @@ export type Incremental<T> =
   | {
       [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never;
     };
+export type RequireFields<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]-?: NonNullable<T[P]>;
+};
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: { input: string; output: string };
@@ -43,6 +48,33 @@ export type BannerButton = {
   label?: Maybe<Scalars['String']['output']>;
   openInNewTab?: Maybe<Scalars['Boolean']['output']>;
 };
+
+export type ConversionInput = {
+  amount: Scalars['Float']['input'];
+  checkoutSignalId?: InputMaybe<Scalars['String']['input']>;
+  currency: Scalars['String']['input'];
+  deviceId: Scalars['String']['input'];
+  items?: InputMaybe<Array<ConversionLineItemInput>>;
+  orderId: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ConversionLineItemInput = {
+  category?: InputMaybe<Scalars['String']['input']>;
+  price: Scalars['Float']['input'];
+  productId: Scalars['String']['input'];
+  quantity: Scalars['Int']['input'];
+  variantId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type DecisionReasoning = {
+  confidence: Scalars['Float']['output'];
+  factors: Array<Scalars['String']['output']>;
+  intent: Scalars['String']['output'];
+  modelVersion: Scalars['String']['output'];
+};
+
+export type EngagementLevel = 'HIGH' | 'LOW' | 'MEDIUM';
 
 export type ContextualBanner = {
   ctaHref: Scalars['String']['output'];
@@ -76,19 +108,82 @@ export type HomeBanner = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+export type IntentSignals = {
+  cartToPurchaseRate: Scalars['Float']['output'];
+  researchDepth: Scalars['Float']['output'];
+  returnRate: Scalars['Float']['output'];
+};
+
+export type LifecycleStage = 'FREQUENT' | 'LOYAL' | 'NEW' | 'RETURNING';
+
+export type Mutation = {
+  sendSignal: SendSignalResponse;
+  submitConversion: Scalars['Boolean']['output'];
+};
+
+export type MutationSendSignalArgs = {
+  input: SignalInput;
+};
+
+export type MutationSubmitConversionArgs = {
+  input: ConversionInput;
+};
+
 export type PartialRichText = {
   text?: Maybe<Scalars['JSON']['output']>;
 };
 
+export type PersonalizationResult = {
+  cacheKey: Scalars['String']['output'];
+  components: Array<PersonalizedComponent>;
+  reasoning: DecisionReasoning;
+  servedAt: Scalars['String']['output'];
+};
+
+export type PersonalizedComponent = {
+  component: Scalars['String']['output'];
+  contentId?: Maybe<Scalars['String']['output']>;
+  priority: Scalars['Int']['output'];
+  propsOverrides?: Maybe<Scalars['JSON']['output']>;
+  reasoning: Scalars['String']['output'];
+  score: Scalars['Float']['output'];
+};
+
+export type PriceSensitivity = {
+  avgViewedPrice: Scalars['Float']['output'];
+  dealClickRate: Scalars['Float']['output'];
+  score: Scalars['Float']['output'];
+};
+
 export type Query = {
+  /** Debug: current rule-based intent classification. */
+  debugIntent: DecisionReasoning;
   contextualBanners: Array<ContextualBanner>;
   footer?: Maybe<Footer>;
   homeBanner?: Maybe<HomeBanner>;
+  personalize: PersonalizationResult;
+  userProfile: UserProfile;
+};
+
+export type QueryDebugIntentArgs = {
+  deviceId: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type QueryHomeBannerArgs = {
   audience?: InputMaybe<Scalars['String']['input']>;
   segment?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type QueryPersonalizeArgs = {
+  deviceId: Scalars['String']['input'];
+  input: SurfaceContext;
+  userId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type QueryUserProfileArgs = {
+  deviceId: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SanityImage = {
@@ -108,9 +203,73 @@ export type SecondaryBanner = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+export type SendSignalResponse = {
+  profileUpdated: Scalars['Boolean']['output'];
+  success: Scalars['Boolean']['output'];
+};
+
+export type SignalInput = {
+  deviceId?: InputMaybe<Scalars['String']['input']>;
+  payload?: InputMaybe<Scalars['JSON']['input']>;
+  /** Unix epoch milliseconds */
+  timestamp?: InputMaybe<Scalars['Float']['input']>;
+  type: SignalType;
+  url?: InputMaybe<Scalars['String']['input']>;
+  userId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SignalType =
+  | 'CART_ADD'
+  | 'CART_REMOVE'
+  | 'CART_UPDATE_QUANTITY'
+  | 'CHECKOUT_ABANDON'
+  | 'CHECKOUT_START'
+  | 'EXIT_INTENT'
+  | 'FILTER_APPLIED'
+  | 'IMAGE_ZOOM'
+  | 'PAGE_VIEW'
+  | 'PRODUCT_HOVER'
+  | 'PRODUCT_VIEW'
+  | 'QUICK_VIEW_OPEN'
+  | 'RETURN_POLICY_VIEW'
+  | 'REVIEWS_VIEW'
+  | 'SCROLL_DEPTH'
+  | 'SEARCH_QUERY'
+  | 'SEARCH_REFINE'
+  | 'SEARCH_RESULT_CLICK'
+  | 'SECURITY_INFO_VIEW'
+  | 'SIZE_GUIDE_VIEW'
+  | 'SORT_CHANGED'
+  | 'TAB_SWITCH'
+  | 'TIME_ON_PAGE'
+  | 'TRUST_BADGE_CLICK';
+
 export type SocialLink = {
   text: Scalars['String']['output'];
   url: Scalars['String']['output'];
+};
+
+export type SurfaceContext = {
+  cartValue?: InputMaybe<Scalars['Float']['input']>;
+  category?: InputMaybe<Scalars['String']['input']>;
+  page: Scalars['String']['input'];
+  price?: InputMaybe<Scalars['Float']['input']>;
+  productId?: InputMaybe<Scalars['String']['input']>;
+  searchQuery?: InputMaybe<Scalars['String']['input']>;
+  surface: Scalars['String']['input'];
+};
+
+export type UserProfile = {
+  categoryAffinity: Scalars['JSON']['output'];
+  deviceId: Scalars['String']['output'];
+  engagementLevel: EngagementLevel;
+  firstSeen: Scalars['Float']['output'];
+  intentSignals: IntentSignals;
+  lastSeen: Scalars['Float']['output'];
+  lifecycleStage: LifecycleStage;
+  priceSensitivity: PriceSensitivity;
+  sessionCount: Scalars['Int']['output'];
+  userId?: Maybe<Scalars['String']['output']>;
 };
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
@@ -234,46 +393,77 @@ export type DirectiveResolverFn<
 export type ResolversTypes = {
   BannerButton: ResolverTypeWrapper<BannerButton>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  ConversionInput: ConversionInput;
+  ConversionLineItemInput: ConversionLineItemInput;
   ContextualBanner: ResolverTypeWrapper<ContextualBanner>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DecisionReasoning: ResolverTypeWrapper<DecisionReasoning>;
+  EngagementLevel: EngagementLevel;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   Footer: ResolverTypeWrapper<Footer>;
   HomeBanner: ResolverTypeWrapper<HomeBanner>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  IntentSignals: ResolverTypeWrapper<IntentSignals>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
+  LifecycleStage: LifecycleStage;
+  Mutation: ResolverTypeWrapper<Record<PropertyKey, never>>;
   PartialRichText: ResolverTypeWrapper<PartialRichText>;
+  PersonalizationResult: ResolverTypeWrapper<PersonalizationResult>;
+  PersonalizedComponent: ResolverTypeWrapper<PersonalizedComponent>;
+  PriceSensitivity: ResolverTypeWrapper<PriceSensitivity>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SanityImage: ResolverTypeWrapper<SanityImage>;
   SanityImageAsset: ResolverTypeWrapper<SanityImageAsset>;
   SecondaryBanner: ResolverTypeWrapper<SecondaryBanner>;
+  SendSignalResponse: ResolverTypeWrapper<SendSignalResponse>;
+  SignalInput: SignalInput;
+  SignalType: SignalType;
   SocialLink: ResolverTypeWrapper<SocialLink>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  SurfaceContext: SurfaceContext;
+  UserProfile: ResolverTypeWrapper<UserProfile>;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   BannerButton: BannerButton;
   Boolean: Scalars['Boolean']['output'];
+  ConversionInput: ConversionInput;
+  ConversionLineItemInput: ConversionLineItemInput;
   ContextualBanner: ContextualBanner;
   DateTime: Scalars['DateTime']['output'];
+  DecisionReasoning: DecisionReasoning;
+  Float: Scalars['Float']['output'];
   Float: Scalars['Float']['output'];
   Footer: Footer;
   HomeBanner: HomeBanner;
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
+  IntentSignals: IntentSignals;
+  Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
+  Mutation: Record<PropertyKey, never>;
   PartialRichText: PartialRichText;
+  PersonalizationResult: PersonalizationResult;
+  PersonalizedComponent: PersonalizedComponent;
+  PriceSensitivity: PriceSensitivity;
   Query: Record<PropertyKey, never>;
   SanityImage: SanityImage;
   SanityImageAsset: SanityImageAsset;
   SecondaryBanner: SecondaryBanner;
+  SendSignalResponse: SendSignalResponse;
+  SignalInput: SignalInput;
   SocialLink: SocialLink;
   String: Scalars['String']['output'];
+  SurfaceContext: SurfaceContext;
+  UserProfile: UserProfile;
 };
 
 export type BannerButtonResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['BannerButton'] =
     ResolversParentTypes['BannerButton'],
 > = {
@@ -312,8 +502,19 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<
   name: 'DateTime';
 }
 
+export type DecisionReasoningResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['DecisionReasoning'] =
+    ResolversParentTypes['DecisionReasoning'],
+> = {
+  confidence?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  factors?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  intent?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  modelVersion?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type FooterResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['Footer'] =
     ResolversParentTypes['Footer'],
 > = {
@@ -342,7 +543,7 @@ export type FooterResolvers<
 };
 
 export type HomeBannerResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['HomeBanner'] =
     ResolversParentTypes['HomeBanner'],
 > = {
@@ -377,6 +578,20 @@ export type HomeBannerResolvers<
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
+export type IntentSignalsResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['IntentSignals'] =
+    ResolversParentTypes['IntentSignals'],
+> = {
+  cartToPurchaseRate?: Resolver<
+    ResolversTypes['Float'],
+    ParentType,
+    ContextType
+  >;
+  researchDepth?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  returnRate?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
 export interface JsonScalarConfig extends GraphQLScalarTypeConfig<
   ResolversTypes['JSON'],
   any
@@ -384,19 +599,94 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<
   name: 'JSON';
 }
 
+export type MutationResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['Mutation'] =
+    ResolversParentTypes['Mutation'],
+> = {
+  sendSignal?: Resolver<
+    ResolversTypes['SendSignalResponse'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationSendSignalArgs, 'input'>
+  >;
+  submitConversion?: Resolver<
+    ResolversTypes['Boolean'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationSubmitConversionArgs, 'input'>
+  >;
+};
+
 export type PartialRichTextResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['PartialRichText'] =
     ResolversParentTypes['PartialRichText'],
 > = {
   text?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
 };
 
+export type PersonalizationResultResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['PersonalizationResult'] =
+    ResolversParentTypes['PersonalizationResult'],
+> = {
+  cacheKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  components?: Resolver<
+    Array<ResolversTypes['PersonalizedComponent']>,
+    ParentType,
+    ContextType
+  >;
+  reasoning?: Resolver<
+    ResolversTypes['DecisionReasoning'],
+    ParentType,
+    ContextType
+  >;
+  servedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
+export type PersonalizedComponentResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['PersonalizedComponent'] =
+    ResolversParentTypes['PersonalizedComponent'],
+> = {
+  component?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  contentId?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  priority?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  propsOverrides?: Resolver<
+    Maybe<ResolversTypes['JSON']>,
+    ParentType,
+    ContextType
+  >;
+  reasoning?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
+export type PriceSensitivityResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['PriceSensitivity'] =
+    ResolversParentTypes['PriceSensitivity'],
+> = {
+  avgViewedPrice?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  dealClickRate?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
 export type QueryResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
+  debugIntent?: Resolver<
+    ResolversTypes['DecisionReasoning'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryDebugIntentArgs, 'deviceId'>
+  >;
   contextualBanners?: Resolver<
     Array<ResolversTypes['ContextualBanner']>,
     ParentType,
@@ -409,10 +699,22 @@ export type QueryResolvers<
     ContextType,
     Partial<QueryHomeBannerArgs>
   >;
+  personalize?: Resolver<
+    ResolversTypes['PersonalizationResult'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryPersonalizeArgs, 'deviceId' | 'input'>
+  >;
+  userProfile?: Resolver<
+    ResolversTypes['UserProfile'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryUserProfileArgs, 'deviceId'>
+  >;
 };
 
 export type SanityImageResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['SanityImage'] =
     ResolversParentTypes['SanityImage'],
 > = {
@@ -425,7 +727,7 @@ export type SanityImageResolvers<
 };
 
 export type SanityImageAssetResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['SanityImageAsset'] =
     ResolversParentTypes['SanityImageAsset'],
 > = {
@@ -433,7 +735,7 @@ export type SanityImageAssetResolvers<
 };
 
 export type SecondaryBannerResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['SecondaryBanner'] =
     ResolversParentTypes['SecondaryBanner'],
 > = {
@@ -460,8 +762,17 @@ export type SecondaryBannerResolvers<
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
+export type SendSignalResponseResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['SendSignalResponse'] =
+    ResolversParentTypes['SendSignalResponse'],
+> = {
+  profileUpdated?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+};
+
 export type SocialLinkResolvers<
-  ContextType = any,
+  ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['SocialLink'] =
     ResolversParentTypes['SocialLink'],
 > = {
@@ -469,17 +780,58 @@ export type SocialLinkResolvers<
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
-export type Resolvers<ContextType = any> = {
+export type UserProfileResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['UserProfile'] =
+    ResolversParentTypes['UserProfile'],
+> = {
+  categoryAffinity?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  deviceId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  engagementLevel?: Resolver<
+    ResolversTypes['EngagementLevel'],
+    ParentType,
+    ContextType
+  >;
+  firstSeen?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  intentSignals?: Resolver<
+    ResolversTypes['IntentSignals'],
+    ParentType,
+    ContextType
+  >;
+  lastSeen?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  lifecycleStage?: Resolver<
+    ResolversTypes['LifecycleStage'],
+    ParentType,
+    ContextType
+  >;
+  priceSensitivity?: Resolver<
+    ResolversTypes['PriceSensitivity'],
+    ParentType,
+    ContextType
+  >;
+  sessionCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  userId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+};
+
+export type Resolvers<ContextType = ContentGraphQLContext> = {
   BannerButton?: BannerButtonResolvers<ContextType>;
   ContextualBanner?: ContextualBannerResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  DecisionReasoning?: DecisionReasoningResolvers<ContextType>;
   Footer?: FooterResolvers<ContextType>;
   HomeBanner?: HomeBannerResolvers<ContextType>;
+  IntentSignals?: IntentSignalsResolvers<ContextType>;
   JSON?: GraphQLScalarType;
+  Mutation?: MutationResolvers<ContextType>;
   PartialRichText?: PartialRichTextResolvers<ContextType>;
+  PersonalizationResult?: PersonalizationResultResolvers<ContextType>;
+  PersonalizedComponent?: PersonalizedComponentResolvers<ContextType>;
+  PriceSensitivity?: PriceSensitivityResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SanityImage?: SanityImageResolvers<ContextType>;
   SanityImageAsset?: SanityImageAssetResolvers<ContextType>;
   SecondaryBanner?: SecondaryBannerResolvers<ContextType>;
+  SendSignalResponse?: SendSignalResponseResolvers<ContextType>;
   SocialLink?: SocialLinkResolvers<ContextType>;
+  UserProfile?: UserProfileResolvers<ContextType>;
 };

@@ -36,7 +36,9 @@ describe('Home Banner Resolvers', () => {
         expect(result.secondaryBanners).toHaveLength(2);
         expect(result.secondaryBanners?.[0]?.showPoweredBy).toBe(true);
         expect(result.secondaryBanners?.[1]?.showPoweredBy).toBe(false);
-        expect(result.secondaryBanners?.[0]?.button?.label).toBe('Explore the edit');
+        expect(result.secondaryBanners?.[0]?.button?.label).toBe(
+          'Explore the edit'
+        );
         expect(result.secondaryBanners?.[0]?.image?.asset?.url).toContain(
           'secondary-banner-one'
         );

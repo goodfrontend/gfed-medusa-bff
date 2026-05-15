@@ -1,9 +1,9 @@
 import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
+import { Session, SessionData } from 'express-session';
 import http from 'http';
 import type { AddressInfo } from 'net';
-import { Session, SessionData } from 'express-session';
 
 import { ApolloServer } from '@apollo/server';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
