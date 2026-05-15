@@ -1,7 +1,8 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
 import { GraphQLContext } from '@graphql/types/context';
 import { buildShippingOptionFields } from '@graphql/utils/fieldProjection';
-import { GraphQLResolveInfo } from 'graphql';
 
 import { transformShippingOption } from './util/transforms';
 
@@ -22,13 +23,17 @@ export const fulfillmentResolvers = {
       try {
         const fields = buildShippingOptionFields(info);
         logProjectedFields('Query.shippingOptions', fields);
-        const { shipping_options } = await medusa.store.fulfillment.listCartOptions({
-          cart_id: cartId,
-          ...(fields ? { fields } : {}),
-        });
+        const { shipping_options } =
+          await medusa.store.fulfillment.listCartOptions({
+            cart_id: cartId,
+            ...(fields ? { fields } : {}),
+          });
         return shipping_options.map(transformShippingOption);
       } catch (e) {
-        handleMedusaError(e, 'run Query.shippingOptions', ['Query', 'shippingOptions']);
+        handleMedusaError(e, 'run Query.shippingOptions', [
+          'Query',
+          'shippingOptions',
+        ]);
       }
     },
   },
@@ -36,7 +41,11 @@ export const fulfillmentResolvers = {
   Mutation: {
     calculateShippingOptionPrice: async (
       _: unknown,
-      { optionId, cartId, data }: { optionId: string; cartId: string; data?: Record<string, unknown> },
+      {
+        optionId,
+        cartId,
+        data,
+      }: { optionId: string; cartId: string; data?: Record<string, unknown> },
       { medusa }: GraphQLContext
     ) => {
       try {

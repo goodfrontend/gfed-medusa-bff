@@ -3,14 +3,14 @@ import { transformShippingOption } from '@graphql/resolvers/fulfillment/util/tra
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
 import {
-  createMockCalculatedShippingOption,
-  createMockShippingOption,
-} from '@mocks/shipping';
-import {
   calculateShippingOptionErrorHandler,
   shippingOptionsErrorHandler,
 } from '@mocks/msw/handlers/fulfillment';
 import { server } from '@mocks/msw/node';
+import {
+  createMockCalculatedShippingOption,
+  createMockShippingOption,
+} from '@mocks/shipping';
 
 const medusa = new Medusa({
   baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
@@ -52,7 +52,11 @@ describe('Fulfillment Resolvers', () => {
     it('should throw on server error', async () => {
       server.use(shippingOptionsErrorHandler);
       await expect(
-        fulfillmentResolvers.Query.shippingOptions({}, { cartId: 'cart_123' }, testContext)
+        fulfillmentResolvers.Query.shippingOptions(
+          {},
+          { cartId: 'cart_123' },
+          testContext
+        )
       ).rejects.toThrow();
     });
   });
@@ -60,20 +64,26 @@ describe('Fulfillment Resolvers', () => {
   describe('Mutation.calculateShippingOptionPrice', () => {
     it('should return the calculated shipping option', async () => {
       const mockOption = createMockCalculatedShippingOption();
-      const result = await fulfillmentResolvers.Mutation.calculateShippingOptionPrice(
-        {},
-        { optionId: 'so_456', cartId: 'cart_123' },
-        testContext
-      );
+      const result =
+        await fulfillmentResolvers.Mutation.calculateShippingOptionPrice(
+          {},
+          { optionId: 'so_456', cartId: 'cart_123' },
+          testContext
+        );
       expect(result).toEqual(transformShippingOption(mockOption));
     });
 
     it('should pass data parameter to Medusa', async () => {
-      const result = await fulfillmentResolvers.Mutation.calculateShippingOptionPrice(
-        {},
-        { optionId: 'so_456', cartId: 'cart_123', data: { custom_field: 'value' } },
-        testContext
-      );
+      const result =
+        await fulfillmentResolvers.Mutation.calculateShippingOptionPrice(
+          {},
+          {
+            optionId: 'so_456',
+            cartId: 'cart_123',
+            data: { custom_field: 'value' },
+          },
+          testContext
+        );
       expect(result).toBeDefined();
       expect(result?.id).toBe('so_456');
     });

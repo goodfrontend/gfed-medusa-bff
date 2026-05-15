@@ -14,11 +14,14 @@ export interface HealthCheckResult {
   timestamp: string;
   service: string;
   version?: string;
-  checks?: Record<string, {
-    status: 'healthy' | 'unhealthy' | 'degraded';
-    message?: string;
-    latency?: number;
-  }>;
+  checks?: Record<
+    string,
+    {
+      status: 'healthy' | 'unhealthy' | 'degraded';
+      message?: string;
+      latency?: number;
+    }
+  >;
 }
 
 export interface AppContext {

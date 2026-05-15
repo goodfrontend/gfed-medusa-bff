@@ -21,7 +21,8 @@ export const mockHomeBannerData = {
   secondaryBanners: [
     {
       title: 'Editorial picks for everyday routines',
-      description: 'A smaller supporting banner for category highlights or curated edits.',
+      description:
+        'A smaller supporting banner for category highlights or curated edits.',
       showPoweredBy: true,
       image: {
         alt: 'Editorial lifestyle image for everyday routines',
@@ -37,7 +38,8 @@ export const mockHomeBannerData = {
     },
     {
       title: 'A quick story block for seasonal campaigns',
-      description: 'Keep it simple with one short message and one supporting link.',
+      description:
+        'Keep it simple with one short message and one supporting link.',
       showPoweredBy: false,
       image: {
         alt: 'Seasonal campaign image for the secondary banner',

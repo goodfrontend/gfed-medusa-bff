@@ -31,9 +31,8 @@ export const handlers = [
   }),
 ];
 
-export const orderNotFoundHandler = http.get(
-  `${BASE}/store/orders/:id`,
-  () => HttpResponse.json({ message: 'Order not found' }, { status: 404 })
+export const orderNotFoundHandler = http.get(`${BASE}/store/orders/:id`, () =>
+  HttpResponse.json({ message: 'Order not found' }, { status: 404 })
 );
 
 export const orderServerErrorHandler = http.get(

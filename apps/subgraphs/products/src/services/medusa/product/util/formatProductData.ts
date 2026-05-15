@@ -23,6 +23,7 @@ export const formatProductData = (
     height,
     length,
     collection,
+    categories,
     collection_id: collectionId,
     tags,
     created_at: createdAt,
@@ -68,6 +69,12 @@ export const formatProductData = (
           priceType:
             calculatedPrice?.original_price?.price_list_type || 'default',
         },
+        calculatedPrice: {
+          currencyCode: calculatedPrice?.currency_code,
+          amount: calculatedPrice?.calculated_amount,
+          priceType:
+            calculatedPrice?.calculated_price?.price_list_type || 'default',
+        },
       }),
     } as unknown as Product['variants'][number];
   });
@@ -95,6 +102,14 @@ export const formatProductData = (
           handle: collection?.handle,
         }
       : null,
+    categories: categories?.map(
+      ({ id, name, description, handle }) => ({
+        id,
+        name,
+        description,
+        handle,
+      })
+    ) || [],
     variants: formattedVariants,
     options: options?.map(({ id, title, values }) => ({
       id,

@@ -1,4 +1,5 @@
-import type { Request, Response, RequestHandler } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
+
 import type { HealthCheckResult } from '../types.js';
 
 export type HealthChecker = () => Promise<{
@@ -33,13 +34,17 @@ export class HealthCheck {
 
         if (result.status === 'unhealthy') {
           overallStatus = 'unhealthy';
-        } else if (result.status === 'degraded' && overallStatus === 'healthy') {
+        } else if (
+          result.status === 'degraded' &&
+          overallStatus === 'healthy'
+        ) {
           overallStatus = 'degraded';
         }
       } catch (error) {
         checks[name] = {
           status: 'unhealthy',
-          message: error instanceof Error ? error.message : 'Health check failed',
+          message:
+            error instanceof Error ? error.message : 'Health check failed',
         };
         overallStatus = 'unhealthy';
       }
@@ -63,7 +68,10 @@ export class HealthCheck {
   }
 }
 
-export function createSimpleHealthCheck(serviceName: string, version?: string): RequestHandler {
+export function createSimpleHealthCheck(
+  serviceName: string,
+  version?: string
+): RequestHandler {
   return (req: Request, res: Response): void => {
     res.status(200).json({
       status: 'healthy',

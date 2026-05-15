@@ -1,8 +1,4 @@
-import type {
-  FieldNode,
-  GraphQLResolveInfo,
-  SelectionNode,
-} from 'graphql';
+import type { FieldNode, GraphQLResolveInfo, SelectionNode } from 'graphql';
 
 function walkSelection(
   node: SelectionNode,

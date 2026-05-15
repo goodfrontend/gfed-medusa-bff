@@ -410,7 +410,7 @@ export type Query = {
 };
 
 export type QueryCartArgs = {
-  id: Scalars['ID']['input'];
+  id: Scalars['String']['input'];
 };
 
 export type QueryOrderArgs = {

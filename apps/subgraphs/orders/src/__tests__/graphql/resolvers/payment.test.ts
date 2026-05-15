@@ -1,12 +1,12 @@
-import { paymentResolvers } from '@graphql/resolvers/payment';
 import { cartResolvers } from '@graphql/resolvers/cart';
 import { normalizeCart } from '@graphql/resolvers/cart/util/transforms';
+import { paymentResolvers } from '@graphql/resolvers/payment';
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
-import { createMockPaymentProviders } from '@mocks/payment';
 import { createMockCart } from '@mocks/cart';
 import { paymentProvidersErrorHandler } from '@mocks/msw/handlers/payment';
 import { server } from '@mocks/msw/node';
+import { createMockPaymentProviders } from '@mocks/payment';
 
 const medusa = new Medusa({
   baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
@@ -51,7 +51,11 @@ describe('Payment Resolvers', () => {
     it('should throw on server error', async () => {
       server.use(paymentProvidersErrorHandler);
       await expect(
-        paymentResolvers.Query.paymentProviders({}, { regionId: 'reg_123' }, testContext)
+        paymentResolvers.Query.paymentProviders(
+          {},
+          { regionId: 'reg_123' },
+          testContext
+        )
       ).rejects.toThrow();
     });
   });

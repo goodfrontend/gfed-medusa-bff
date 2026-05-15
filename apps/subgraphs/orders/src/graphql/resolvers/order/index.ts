@@ -1,12 +1,13 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { handleMedusaError } from '@gfed-medusa/bff-lib-common';
-import { GraphQLContext } from '@graphql/types/context';
 import { normalizeOrder } from '@graphql/resolvers/cart/util/transforms';
+import { GraphQLContext } from '@graphql/types/context';
 import {
   buildOrderFields,
   buildOrdersListFields,
 } from '@graphql/utils/fieldProjection';
 import { StoreOrder } from '@medusajs/types';
-import { GraphQLResolveInfo } from 'graphql';
 
 function logProjectedFields(operation: string, fields: string) {
   if (process.env.LOG_MEDUSA_FIELDS === 'true') {
@@ -126,13 +127,17 @@ export const orderResolvers = {
       try {
         const fields = buildOrdersListFields(info);
         logProjectedFields('Query.orders', fields);
-        const { orders, count, limit: resLimit, offset: resOffset } =
-          await medusa.store.order.list({
-            limit,
-            offset,
-            order: '-created_at',
-            fields,
-          } as any);
+        const {
+          orders,
+          count,
+          limit: resLimit,
+          offset: resOffset,
+        } = await medusa.store.order.list({
+          limit,
+          offset,
+          order: '-created_at',
+          fields,
+        } as any);
         await Promise.all(
           orders.map((order) =>
             enrichOrderStripePaymentLast4(order as unknown as StoreOrder)

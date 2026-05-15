@@ -1,9 +1,10 @@
+import Keyv from 'keyv';
+
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
 import {
-  PrefixingKeyValueCache,
   type KeyValueCache,
+  PrefixingKeyValueCache,
 } from '@apollo/utils.keyvaluecache';
-import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 
 const redisUrl = process.env.REDIS_URL;

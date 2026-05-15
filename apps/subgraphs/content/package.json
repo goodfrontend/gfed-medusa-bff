@@ -33,7 +33,9 @@
     "glob": "^11.0.3",
     "graphql": "^16.12.0",
     "graphql-scalars": "^1.24.2",
-    "graphql-tag": "^2.12.6"
+    "graphql-tag": "^2.12.6",
+    "redis": "^5.10.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@gfed-medusa-bff/eslint-config": "workspace:*",

@@ -1,6 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Request, Response } from 'express';
-import { HealthCheck, createSimpleHealthCheck, checkHttpEndpoint } from './index';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  HealthCheck,
+  checkHttpEndpoint,
+  createSimpleHealthCheck,
+} from './index';
 
 describe('HealthCheck', () => {
   it('should initialize with service name and version', () => {
@@ -21,7 +26,10 @@ describe('HealthCheck', () => {
     const healthCheck = new HealthCheck('test-service', '1.0.0');
 
     healthCheck.register('db', async () => ({ status: 'healthy' }));
-    healthCheck.register('cache', async () => ({ status: 'healthy', latency: 50 }));
+    healthCheck.register('cache', async () => ({
+      status: 'healthy',
+      latency: 50,
+    }));
 
     const result = await healthCheck.execute();
 
@@ -272,7 +280,7 @@ describe('checkHttpEndpoint', () => {
 
     global.fetch = vi.fn().mockImplementation(
       () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
           setTimeout(() => resolve(mockResponse), 1500);
         })
     );

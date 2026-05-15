@@ -1,14 +1,14 @@
-import { orderResolvers } from '@graphql/resolvers/order';
 import { normalizeOrder } from '@graphql/resolvers/cart/util/transforms';
+import { orderResolvers } from '@graphql/resolvers/order';
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
-import { createMockOrder } from '@mocks/order';
 import {
   orderNotFoundHandler,
   orderServerErrorHandler,
   transferErrorHandler,
 } from '@mocks/msw/handlers/order';
 import { server } from '@mocks/msw/node';
+import { createMockOrder } from '@mocks/order';
 
 const medusa = new Medusa({
   baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
@@ -57,7 +57,11 @@ describe('Order Resolvers', () => {
     it('should throw on server error', async () => {
       server.use(orderServerErrorHandler);
       await expect(
-        orderResolvers.Query.order({}, { id: 'order_01JABCDE123456' }, testContext)
+        orderResolvers.Query.order(
+          {},
+          { id: 'order_01JABCDE123456' },
+          testContext
+        )
       ).rejects.toThrow();
     });
   });
