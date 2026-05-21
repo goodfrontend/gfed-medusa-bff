@@ -10,4 +10,6 @@ export const features = {
   aiTemperature: (): number => parseFloat(process.env.AI_TEMPERATURE || '0'),
   aiJsonMode: (): boolean => process.env.AI_JSON_MODE !== 'false',
   aiMaxTokens: (): number => parseInt(process.env.AI_MAX_TOKENS || '2048', 10),
+  aiGeminiApiKey: (): string => process.env.AI_GEMINI_API_KEY || '',
+  aiGeminiModel: (): string => process.env.AI_GEMINI_MODEL || 'gemini-2.0-flash',
 };
