@@ -161,7 +161,7 @@ function scoreCandidate(
   intent: Intent,
   component: ComponentDefinition,
   content: Record<string, unknown> | null,
-  context: DecisionContext
+  _context: DecisionContext
 ): { score: number; reasoning: string } {
   let score = component.weight;
   const reasons: string[] = [];
@@ -185,13 +185,6 @@ function scoreCandidate(
     score += 2.0;
     reasons.push('Hesitant: trust signals');
   }
-  if (
-    profile.intentSignals.researchDepth > 2 &&
-    component.name === 'ReviewCarousel'
-  ) {
-    score += 1.5;
-    reasons.push('Deep researcher: reviews');
-  }
   if (component.name === 'UrgencyBanner' && profile.engagementLevel !== 'LOW') {
     score += 0.8;
     reasons.push('Engaged: urgency banner');
@@ -200,16 +193,6 @@ function scoreCandidate(
     score += 1.2;
     reasons.push('New user: email capture');
   }
-  if (
-    component.name === 'UpsellBlock' &&
-    context.cartValue != null &&
-    context.cartValue > 20 &&
-    context.cartValue < 200
-  ) {
-    score += 1.0;
-    reasons.push(`Cart $${context.cartValue}: upsell candidate`);
-  }
-
   return {
     score: Math.max(0, Math.round(score * 100) / 100),
     reasoning: reasons.length ? reasons.join('; ') : 'Baseline score',
@@ -225,17 +208,8 @@ function scoreIntentMatch(comp: string, intent: Intent): number {
       hesitant: 0.5,
       bounce: 0.1,
     },
-    ProductCarousel: {
-      buy_now: 0.7,
-      research: 0.8,
-      browse: 0.9,
-      bounce: 0.3,
-    },
     TrustBar: { hesitant: 1.5, return: 0.8, price_shop: 0.3 },
-    CategoryGrid: { browse: 1.2, research: 0.4, price_shop: 0.6 },
     SocialProofBanner: { buy_now: 0.5, hesitant: 0.8, return: 0.4 },
-    ReviewCarousel: { research: 1.0, hesitant: 1.0, return: 0.5 },
-    UpsellBlock: { buy_now: 1.2, price_shop: 0.8 },
     EmailCapture: {},
     UrgencyBanner: { buy_now: 0.8, price_shop: 0.7, hesitant: 0.5 },
   };
@@ -259,19 +233,6 @@ function buildPropsOverrides(
     o.ctaText = 'Compare Options';
   }
 
-  if (comp.name === 'ProductCarousel') {
-    const topCat = getTopCategory(profile);
-    o.strategy = topCat ? 'category_affinity' : 'trending';
-    if (topCat) {
-      o.category = topCat.category;
-    }
-  }
-  if (comp.name === 'UpsellBlock') {
-    o.message =
-      profile.lifecycleStage === 'LOYAL'
-        ? 'As a valued customer, you might also like…'
-        : 'Complete your order with these';
-  }
   if (comp.name === 'TrustBar' && intent === 'hesitant') {
     o.message = 'Secure checkout • 30-day money-back guarantee • Free returns';
     o.badges = [

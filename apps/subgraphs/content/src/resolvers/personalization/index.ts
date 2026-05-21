@@ -22,6 +22,14 @@ import {
 import { resolveAudienceFields } from '../../services/personalization/sanity-content';
 import { signalProcessor } from '../../services/personalization/signal-ingestion';
 
+function requireAuthorizedClient(context: ContentGraphQLContext): void {
+  if (!context.isAuthorizedClient) {
+    throw new GraphQLError('Unauthorized', {
+      extensions: { code: 'UNAUTHORIZED' },
+    });
+  }
+}
+
 const DEVICE_COOKIE = '_jg_device_id';
 
 function resolveDeviceIdFromCookie(
@@ -78,16 +86,19 @@ function toPersonalizationResult(
   servedAt: string
 ): PersonalizationResult {
   return {
-    components: decision.components.map((c) => ({
-      component: c.component,
-      contentId: c.contentId ?? null,
-      propsOverrides: c.propsOverrides
+    components: decision.components.map((c) => {
+      const overrides = c.propsOverrides
         ? resolveAudienceFields(c.propsOverrides)
-        : {},
-      priority: c.priority,
-      reasoning: c.reasoning,
-      score: c.score,
-    })),
+        : {};
+      return {
+        component: c.component,
+        contentId: c.contentId ?? null,
+        propsOverrides: overrides,
+        priority: c.priority,
+        reasoning: c.reasoning,
+        score: c.score,
+      };
+    }),
     reasoning: {
       intent: decision.reasoning.intent,
       confidence: decision.reasoning.confidence,
@@ -102,6 +113,7 @@ function toPersonalizationResult(
 export const personalizationResolvers: Resolvers = {
   Mutation: {
     sendSignal: async (_parent, { input }, context) => {
+      requireAuthorizedClient(context);
       const deviceId = requireDeviceId(input, context);
       await signalProcessor.process(
         {
@@ -116,7 +128,8 @@ export const personalizationResolvers: Resolvers = {
       return { success: true, profileUpdated: true };
     },
 
-    submitConversion: async (_parent, { input }) => {
+    submitConversion: async (_parent, { input }, context) => {
+      requireAuthorizedClient(context);
       const profile = await featureStore.getOrCreate(input.deviceId);
       profile.orderCount = (profile.orderCount ?? 0) + 1;
       const totalOrders = profile.orderCount;
@@ -193,7 +206,8 @@ export const personalizationResolvers: Resolvers = {
   },
 
   Query: {
-    userProfile: async (_parent, { deviceId, userId }) => {
+    userProfile: async (_parent, { deviceId, userId }, context) => {
+      requireAuthorizedClient(context);
       if (userId?.trim()) {
         const byUser = await featureStore.getByUserId(userId);
         if (byUser) return byUser;
@@ -201,7 +215,8 @@ export const personalizationResolvers: Resolvers = {
       return featureStore.getOrCreate(deviceId);
     },
 
-    personalize: async (_parent, { input, deviceId, userId }) => {
+    personalize: async (_parent, { input, deviceId, userId }, context) => {
+      requireAuthorizedClient(context);
       let profile = await featureStore.getOrCreate(deviceId);
       if (userId) {
         profile = await featureStore.mergeToUser(deviceId, userId);
@@ -294,11 +309,15 @@ export const personalizationResolvers: Resolvers = {
         console.error('[Personalization] Decision error:', err);
         const fb = getFallbackDecision(input.surface, deviceId);
         const servedAt = new Date().toISOString();
-        return toPersonalizationResult({ ...fb, servedAt }, servedAt);
+        return toPersonalizationResult(
+          { ...fb, servedAt },
+          servedAt
+        );
       }
     },
 
-    debugIntent: async (_parent, { deviceId, userId }) => {
+    debugIntent: async (_parent, { deviceId, userId }, context) => {
+      requireAuthorizedClient(context);
       let profile =
         userId != null && userId !== ''
           ? await featureStore.getByUserId(userId)
