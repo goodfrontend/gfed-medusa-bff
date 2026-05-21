@@ -20,22 +20,6 @@ export const componentRegistry: ComponentDefinition[] = [
     weight: 1.0,
   },
   {
-    name: 'ProductCarousel',
-    description:
-      'Horizontal scrollable carousel of product cards for recommendations or showcases.',
-    requiredProps: ['productIds', 'title'],
-    optionalProps: ['strategy', 'maxItems', 'layout'],
-    contentTypes: [],
-    surfaces: [
-      'homepage_hero',
-      'category_page',
-      'product_detail',
-      'cart_page',
-      'search_results',
-    ],
-    weight: 1.0,
-  },
-  {
     name: 'TrustBar',
     description:
       'Trust badges — free shipping, returns, security icons to reduce purchase anxiety.',
@@ -43,16 +27,6 @@ export const componentRegistry: ComponentDefinition[] = [
     optionalProps: ['message', 'layout'],
     contentTypes: ['trustBadge'],
     surfaces: ['checkout', 'product_detail', 'cart_page'],
-    weight: 0.8,
-  },
-  {
-    name: 'CategoryGrid',
-    description:
-      'Grid of category tiles with images for browsing-oriented surfaces.',
-    requiredProps: ['categories'],
-    optionalProps: ['layout', 'maxColumns'],
-    contentTypes: ['categoryTile'],
-    surfaces: ['homepage_hero', 'category_page'],
     weight: 0.8,
   },
   {
@@ -64,24 +38,6 @@ export const componentRegistry: ComponentDefinition[] = [
     contentTypes: ['socialProof'],
     surfaces: ['product_detail', 'checkout'],
     weight: 0.6,
-  },
-  {
-    name: 'ReviewCarousel',
-    description: 'Customer reviews and ratings carousel.',
-    requiredProps: ['reviewIds'],
-    optionalProps: ['productId', 'layout'],
-    contentTypes: [],
-    surfaces: ['product_detail', 'checkout'],
-    weight: 0.6,
-  },
-  {
-    name: 'UpsellBlock',
-    description: 'Related or frequently-bought-together products.',
-    requiredProps: ['productIds', 'title'],
-    optionalProps: ['strategy', 'message'],
-    contentTypes: [],
-    surfaces: ['product_detail', 'cart_page'],
-    weight: 0.7,
   },
   {
     name: 'EmailCapture',

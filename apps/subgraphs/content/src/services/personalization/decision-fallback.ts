@@ -20,50 +20,6 @@ const FALLBACKS: Record<
       reasoning: 'Generic hero',
       score: 0,
     },
-    {
-      component: 'ProductCarousel',
-      contentId: null,
-      propsOverrides: { title: 'Trending Now', strategy: 'trending' },
-      priority: 2,
-      reasoning: 'Trending products',
-      score: 0,
-    },
-  ],
-  category_page: [
-    {
-      component: 'CategoryGrid',
-      contentId: null,
-      propsOverrides: {},
-      priority: 1,
-      reasoning: 'Category grid',
-      score: 0,
-    },
-    {
-      component: 'ProductCarousel',
-      contentId: null,
-      propsOverrides: { strategy: 'bestsellers' },
-      priority: 2,
-      reasoning: 'Bestsellers',
-      score: 0,
-    },
-  ],
-  product_detail: [
-    {
-      component: 'ReviewCarousel',
-      contentId: null,
-      propsOverrides: {},
-      priority: 1,
-      reasoning: 'Reviews',
-      score: 0,
-    },
-    {
-      component: 'UpsellBlock',
-      contentId: null,
-      propsOverrides: { strategy: 'also_viewed' },
-      priority: 2,
-      reasoning: 'Also viewed',
-      score: 0,
-    },
   ],
   checkout: [
     {
@@ -84,31 +40,13 @@ const FALLBACKS: Record<
   ],
   cart_page: [
     {
-      component: 'UpsellBlock',
-      contentId: null,
-      propsOverrides: { strategy: 'frequently_bought_together' },
-      priority: 1,
-      reasoning: 'Upsell',
-      score: 0,
-    },
-    {
       component: 'TrustBar',
       contentId: null,
       propsOverrides: {
         badges: [{ label: 'Secure Payment' }, { label: 'Easy Returns' }],
       },
-      priority: 2,
-      reasoning: 'Trust',
-      score: 0,
-    },
-  ],
-  search_results: [
-    {
-      component: 'ProductCarousel',
-      contentId: null,
-      propsOverrides: { strategy: 'relevance' },
       priority: 1,
-      reasoning: 'Relevance sort',
+      reasoning: 'Trust',
       score: 0,
     },
   ],
