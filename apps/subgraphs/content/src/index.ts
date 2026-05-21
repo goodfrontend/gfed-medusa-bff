@@ -50,7 +50,11 @@ async function startServer() {
   app.use(
     '/graphql',
     expressMiddleware(server, {
-      context: async ({ req }): Promise<ContentGraphQLContext> => ({ req }),
+      context: async ({ req }): Promise<ContentGraphQLContext> => ({
+        req,
+        isAuthorizedClient:
+          req.headers['x-bff-api-key'] === process.env.BFF_API_KEY,
+      }),
     })
   );
 

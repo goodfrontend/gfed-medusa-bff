@@ -47,6 +47,7 @@ async function callChatCompletion(
         ? { response_format: { type: 'json_object' } }
         : {}),
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -66,6 +67,65 @@ async function callChatCompletion(
   }
 
   return text;
+}
+
+async function callGeminiCompletion(
+  prompt: string,
+  system: string
+): Promise<string> {
+  const apiKey = features.aiGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured (AI_GEMINI_API_KEY)');
+  }
+
+  const model = features.aiGeminiModel();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+  const body: Record<string, unknown> = {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: prompt }],
+      },
+    ],
+    systemInstruction: {
+      parts: [{ text: system }],
+    },
+    generationConfig: {
+      maxOutputTokens: features.aiMaxTokens(),
+      temperature: features.aiTemperature(),
+    },
+  };
+
+  if (features.aiJsonMode()) {
+    (body.generationConfig as Record<string, unknown>).responseMimeType = 'application/json';
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Gemini API error (${response.status}): ${text}`);
+  }
+
+  const data: unknown = await response.json();
+  const candidate = (data as Record<string, unknown>)?.candidates as
+    | Array<Record<string, unknown>>
+    | undefined;
+  const text = candidate?.[0]?.content as Record<string, unknown> | undefined;
+  const parts = text?.parts as Array<Record<string, unknown>> | undefined;
+  const result = parts?.[0]?.text as string | undefined;
+
+  if (!result) {
+    throw new Error('Gemini returned empty response');
+  }
+
+  return result;
 }
 
 function buildPrompt(
@@ -109,7 +169,7 @@ ${context.price != null ? `- Product price: $${context.price}` : ''}
 ## Available Components
 ${availableComponents.map((c) => `- ${c.name}: ${c.description}`).join('\n')}
 
-## Available Content (spread these fields into propsOverrides)
+## Available Content
 ${
   availableContent.length > 0
     ? availableContent
@@ -129,7 +189,7 @@ ${
           ];
           const present = fields
             .filter((f) => c[f] != null)
-            .map((f) => `${f}: ${JSON.stringify(c[f]).slice(0, 80)}`)
+            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
             .join(', ');
           return `- ID:${String(c._id)} Type:${String(c._type)} fields={${present || 'none'}}`;
         })
@@ -149,10 +209,10 @@ ${(profile.recentProducts ?? []).slice(-5).map(p => `- ${p.productId} (${p.categ
 - "reasoning" is REQUIRED on every component — write a brief explanation even if obvious
 - "contentId" must match a valid ID from Available Content, or null
 - "priority" must be an integer 1-10
-- Spread Sanity content fields (headline, imageUrl, cta, badge, subheadline, message, incentive, deadline, badges, title) into propsOverrides
+- "propsOverrides" is for dynamic overrides only (e.g., theme, layout, variant). Content fields (headline, imageUrl, cta, etc.) will be auto-populated from the matched contentId.
 
-Return ONLY valid JSON matching this exact shape (use real values from Available Content):
-{"components":[{"component":"HeroBanner","contentId":"abc123","priority":5,"propsOverrides":{"headline":"Up to 50% Off","imageUrl":"https://cdn.sanity.io/...","cta":{"label":"Shop Sale","href":"/collections/sale"},"badge":"Limited Time","theme":"dark"},"reasoning":"Matched user intent and top category"}],"overallReasoning":"Selected hero banner for strong intent match"}
+Return ONLY valid JSON matching this exact shape (use contentId from Available Content):
+{"components":[{"component":"HeroBanner","contentId":"abc123","priority":5,"propsOverrides":{"theme":"dark"},"reasoning":"Matched user intent and top category"}],"overallReasoning":"Selected hero banner for strong intent match"}
 
 Your JSON:
 `.trim();
@@ -202,39 +262,113 @@ export async function aiPersonalize(
   );
 
   const systemPrompt = 'Output ONLY valid JSON. No markdown fences.';
-  let currentPrompt = prompt;
-  let lastError: unknown;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await callChatCompletion(currentPrompt, systemPrompt);
+  async function attemptProvider(
+    providerCall: (prompt: string, system: string) => Promise<string>,
+    providerName: string
+  ): Promise<{
+    components: Array<{
+      component: string;
+      contentId: string | null;
+      priority: number;
+      propsOverrides: Record<string, unknown>;
+      reasoning: string;
+    }>;
+    reasoning: string;
+    intent: string;
+    confidence: number;
+  }> {
+    let currentPrompt = prompt;
+    let lastParseError: unknown;
 
-    try {
-      const cleaned = raw
-        .replace(/^```json\s*/i, '')
-        .replace(/```\s*$/i, '')
-        .trim();
-      const parsed: unknown = JSON.parse(cleaned);
-      const validated = personalizationSchema.parse(parsed);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const raw = await providerCall(currentPrompt, systemPrompt);
 
-      return {
-        components: validated.components.map((c) => ({
-          ...c,
-          propsOverrides: (c.propsOverrides ?? {}) as Record<string, unknown>,
-        })),
-        reasoning: validated.overallReasoning,
-        intent: dominantIntent,
-        confidence: 0.7,
-      };
-    } catch (err) {
-      lastError = err;
-      if (attempt === 0) {
-        console.warn('[Personalization] AI response invalid, retrying:', err);
-        currentPrompt =
-          prompt +
-          '\n\nCRITICAL: Previous response was rejected. EVERY component MUST include a "reasoning" field with a non-empty string. Do not omit any field.';
+      try {
+        const cleaned = raw
+          .replace(/^```json\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        const parsed: unknown = JSON.parse(cleaned);
+        const validated = personalizationSchema.parse(parsed);
+
+        const contentById = new Map(
+          content.map((c) => [String(c._id), c])
+        );
+
+        const fieldsToSpread = [
+          'headline',
+          'subheadline',
+          'imageUrl',
+          'cta',
+          'badge',
+          'backgroundColor',
+          'message',
+          'incentive',
+          'deadline',
+          'badges',
+          'title',
+        ];
+
+        const resolved = validated.components.map((c) => {
+          const contentEntry = c.contentId ? contentById.get(c.contentId) : undefined;
+          const contentFields: Record<string, unknown> = {};
+          if (contentEntry) {
+            for (const f of fieldsToSpread) {
+              if (contentEntry[f] != null) {
+                contentFields[f] = contentEntry[f];
+              }
+            }
+          }
+          return {
+            ...c,
+            propsOverrides: { ...contentFields, ...(c.propsOverrides ?? {}) },
+          };
+        });
+
+        return {
+          components: resolved.map((c) => ({
+            ...c,
+            propsOverrides: c.propsOverrides as Record<string, unknown>,
+          })),
+          reasoning: validated.overallReasoning,
+          intent: dominantIntent,
+          confidence: 0.7,
+        };
+      } catch (err) {
+        lastParseError = err;
+        if (attempt === 0) {
+          console.warn(`[Personalization] ${providerName} response invalid, retrying:`, err);
+          currentPrompt =
+            prompt +
+            '\n\nCRITICAL: Previous response was rejected. EVERY component MUST include a "reasoning" field with a non-empty string. Do not omit any field.';
+        }
       }
     }
+    throw lastParseError;
   }
 
-  throw lastError;
+  let groqError: unknown;
+
+  // Try Groq first
+  try {
+    return await attemptProvider(callChatCompletion, 'Groq');
+  } catch (err) {
+    groqError = err;
+    console.warn('[Personalization] Groq failed, trying Gemini:', err);
+  }
+
+  // Fallback to Gemini
+  if (!features.aiGeminiApiKey()) {
+    throw groqError;
+  }
+
+  try {
+    return await attemptProvider(callGeminiCompletion, 'Gemini');
+  } catch (geminiError) {
+    throw new AggregateError(
+      [groqError, geminiError],
+      'Both AI providers failed: Groq then Gemini'
+    );
+  }
 }
