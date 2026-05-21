@@ -129,6 +129,7 @@ type ProductCategory @cacheControl(maxAge: 600, scope: PUBLIC) {
   name: String!
   description: String
   handle: String!
+  thumbnail: String
   parentCategory: ProductCategory @cacheControl(maxAge: 600, scope: PUBLIC)
   categoryChildren: [ProductCategory!] @cacheControl(maxAge: 600, scope: PUBLIC)
   products: ProductList @cacheControl(maxAge: 300, scope: PUBLIC)

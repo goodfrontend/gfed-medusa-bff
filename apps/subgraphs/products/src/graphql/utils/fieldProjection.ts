@@ -120,6 +120,10 @@ function buildCategoryFieldsFromPaths(
   if (hasSelectedPath(selectedPaths, `${prefix}description`))
     fields.add('description');
   if (hasSelectedPath(selectedPaths, `${prefix}handle`)) fields.add('handle');
+  if (hasSelectedPath(selectedPaths, `${prefix}thumbnail`)) {
+    fields.add('thumbnail');
+    fields.add('metadata');
+  }
 
   if (hasSelectedPath(selectedPaths, `${prefix}parentCategory`)) {
     fields.add('parent_category.id');
@@ -128,11 +132,19 @@ function buildCategoryFieldsFromPaths(
     fields.add('parent_category.handle');
   }
 
+  if (hasSelectedPath(selectedPaths, `${prefix}parentCategory.thumbnail`)) {
+    fields.add('parent_category.metadata');
+  }
+
   if (hasSelectedPath(selectedPaths, `${prefix}categoryChildren`)) {
     fields.add('category_children.id');
     fields.add('category_children.name');
     fields.add('category_children.description');
     fields.add('category_children.handle');
+  }
+
+  if (hasSelectedPath(selectedPaths, `${prefix}categoryChildren.thumbnail`)) {
+    fields.add('category_children.metadata');
   }
 
   return Array.from(fields).join(',');

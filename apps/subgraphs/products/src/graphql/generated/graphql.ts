@@ -114,6 +114,7 @@ export type ProductCategory = {
   name: Scalars['String']['output'];
   parentCategory?: Maybe<ProductCategory>;
   products?: Maybe<ProductList>;
+  thumbnail?: Maybe<Scalars['String']['output']>;
 };
 
 export type ProductHit = {
@@ -658,6 +659,11 @@ export type ProductCategoryResolvers<
   >;
   products?: Resolver<
     Maybe<ResolversTypes['ProductList']>,
+    ParentType,
+    ContextType
+  >;
+  thumbnail?: Resolver<
+    Maybe<ResolversTypes['String']>,
     ParentType,
     ContextType
   >;
