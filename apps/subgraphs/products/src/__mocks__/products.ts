@@ -181,6 +181,15 @@ export const createMockProduct = (overrides = {}) => {
         ],
       },
     ],
+    categories: [
+      {
+        id: 'cat_1',
+        name: 'Clothing',
+        description: 'Clothing category',
+        handle: 'clothing',
+        thumbnail: null,
+      },
+    ],
     variants: [
       {
         id: 'var_1',

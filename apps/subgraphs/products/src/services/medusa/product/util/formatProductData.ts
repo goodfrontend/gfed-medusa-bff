@@ -71,7 +71,7 @@ export const formatProductData = (
         },
         calculatedPrice: {
           currencyCode: calculatedPrice?.currency_code,
-          amount: calculatedPrice?.calculated_amount,
+          amount: calculatedPrice?.original_amount ?? calculatedPrice?.calculated_amount,
           priceType:
             calculatedPrice?.calculated_price?.price_list_type || 'default',
         },
@@ -103,12 +103,16 @@ export const formatProductData = (
         }
       : null,
     categories: categories?.map(
-      ({ id, name, description, handle }) => ({
-        id,
-        name,
-        description,
-        handle,
-      })
+      ({ id, name, description, handle, thumbnail, metadata }) => {
+        const catMetadata = metadata as Record<string, unknown> | null | undefined;
+        return {
+          id,
+          name,
+          description,
+          handle,
+          thumbnail: thumbnail ?? (catMetadata?.thumbnail != null ? String(catMetadata.thumbnail) : null),
+        };
+      }
     ) || [],
     variants: formattedVariants,
     options: options?.map(({ id, title, values }) => ({
