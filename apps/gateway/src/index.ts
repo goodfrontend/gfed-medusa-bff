@@ -102,9 +102,16 @@ async function startServer() {
     return new RemoteGraphQLDataSource({
       url,
       willSendRequest({ request, context }) {
-        // Pass cookie and session data to subgraphs
+        // Pass headers to subgraphs
         if (context.req?.headers.cookie) {
           request.http?.headers.set('cookie', context.req.headers.cookie);
+        }
+
+        if (context.req?.headers['x-bff-api-key']) {
+          request.http?.headers.set(
+            'x-bff-api-key',
+            context.req.headers['x-bff-api-key'] as string
+          );
         }
 
         if (context.session) {
