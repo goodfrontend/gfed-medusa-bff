@@ -7,6 +7,7 @@ import {
 import { server } from '@mocks/msw/node';
 import { homeBannerResolvers } from '@resolvers/home-banner';
 import { createClient } from '@sanity/client';
+import { logger } from '../services/logger';
 
 describe('Home Banner Resolvers', () => {
   let mockContext: any;
@@ -63,17 +64,17 @@ describe('Home Banner Resolvers', () => {
     });
 
     it('should handle service errors properly', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
       server.use(generalHomeBannerErrorHandler);
 
       const result = await homeBannerResolvers.Query.homeBanner(undefined, {});
       expect(result).toEqual(null);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error fetching home banner content from Sanity:',
-        expect.any(Error)
+      expect(loggerSpy).toHaveBeenCalledWith(
+        { err: expect.any(Error) },
+        'Error fetching home banner content from Sanity'
       );
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
 
     it('should handle data integrity with JSON serialization', async () => {
