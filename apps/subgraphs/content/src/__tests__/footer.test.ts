@@ -7,6 +7,7 @@ import {
 import { server } from '@mocks/msw/node';
 import { footerResolvers } from '@resolvers/footer';
 import { createClient } from '@sanity/client';
+import { logger } from '../services/logger';
 
 describe('Footer Resolvers', () => {
   let mockContext: any;
@@ -52,17 +53,17 @@ describe('Footer Resolvers', () => {
     });
 
     it('should handle service errors properly', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
       server.use(generalErrorHandler);
 
       const result = await footerResolvers.Query.footer();
       expect(result).toEqual(null);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error fetching footer content from Sanity:',
-        expect.any(Error)
+      expect(loggerSpy).toHaveBeenCalledWith(
+        { err: expect.any(Error) },
+        'Error fetching footer content from Sanity'
       );
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
 
     it('should handle data integrity with JSON serialization', async () => {

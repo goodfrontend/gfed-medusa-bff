@@ -1,5 +1,6 @@
 import { getComponentsForSurface } from '../../config/component-registry';
 import { sanityClient } from '../../config/sanity';
+import { logger } from './logger';
 
 /**
  * Recursively walks Sanity data and resolves audience-enabled fields
@@ -61,11 +62,7 @@ export async function fetchAvailableContent(
       "imageUrl": coalesce(image.default.asset->url, image.asset->url, ""),
       "badge": coalesce(badge.default, badge, ""),
       "subheadline": coalesce(subheadline.default, subheadline, ""),
-      "message": coalesce(message.default, message, ""),
-      "incentive": coalesce(incentive.default, incentive, ""),
-      cta,
-      deadline,
-      badges[] { label, icon }
+      cta
     }`;
 
   try {
@@ -75,7 +72,7 @@ export async function fetchAvailableContent(
     });
     return (result as Array<Record<string, unknown>>) ?? [];
   } catch (error) {
-    console.error('[Personalization] Sanity fetch failed:', error);
+    logger.error({ err: error }, 'Sanity fetch failed');
     return [];
   }
 }

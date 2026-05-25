@@ -8,6 +8,7 @@ import { features } from '../../config/features';
 import type { UserProfile } from './feature-store';
 import { type Intent, classifyIntent } from './intent-classifier';
 import { fetchAvailableContent } from './sanity-content';
+import { logger } from './logger';
 
 const componentChoiceSchema = z.object({
   component: z.string(),
@@ -181,10 +182,6 @@ ${
             'cta',
             'badge',
             'backgroundColor',
-            'message',
-            'incentive',
-            'deadline',
-            'badges',
             'title',
           ];
           const present = fields
@@ -204,7 +201,7 @@ ${(profile.searchHistory ?? []).slice(-3).map(s => `- "${s.query}"`).join('\n') 
 ${(profile.recentProducts ?? []).slice(-5).map(p => `- ${p.productId} (${p.category}${p.price ? ', $' + p.price : ''})`).join('\n') || 'None'}
 
 ## Rules (MUST follow exactly)
-- Pick 1-3 components from Available Components
+- Pick 1-4 components from Available Components. It can have duplicate components as long as their content are different (e.g. multiple hero banners)
 - EVERY component MUST include ALL fields: component, contentId, priority, propsOverrides, reasoning
 - "reasoning" is REQUIRED on every component — write a brief explanation even if obvious
 - "contentId" must match a valid ID from Available Content, or null
@@ -303,10 +300,6 @@ export async function aiPersonalize(
           'cta',
           'badge',
           'backgroundColor',
-          'message',
-          'incentive',
-          'deadline',
-          'badges',
           'title',
         ];
 
@@ -338,7 +331,7 @@ export async function aiPersonalize(
       } catch (err) {
         lastParseError = err;
         if (attempt === 0) {
-          console.warn(`[Personalization] ${providerName} response invalid, retrying:`, err);
+          logger.warn({ err, provider: providerName }, `AI response invalid, retrying`);
           currentPrompt =
             prompt +
             '\n\nCRITICAL: Previous response was rejected. EVERY component MUST include a "reasoning" field with a non-empty string. Do not omit any field.';
@@ -355,7 +348,7 @@ export async function aiPersonalize(
     return await attemptProvider(callChatCompletion, 'Groq');
   } catch (err) {
     groqError = err;
-    console.warn('[Personalization] Groq failed, trying Gemini:', err);
+    logger.warn({ err }, 'AI provider (Groq) failed, trying Gemini');
   }
 
   // Fallback to Gemini
