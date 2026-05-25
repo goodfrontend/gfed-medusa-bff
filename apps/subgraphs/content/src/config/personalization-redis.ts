@@ -22,7 +22,10 @@ export async function getPersonalizationRedis(): Promise<RedisClientType> {
 
   const next = createClient({ url });
   next.on('error', (err) => {
-    logger.error({ err }, 'Personalization Redis error');
+    logger.error(
+      { err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err },
+      'Personalization Redis error'
+    );
   });
   await next.connect();
   client = next as RedisClientType;
