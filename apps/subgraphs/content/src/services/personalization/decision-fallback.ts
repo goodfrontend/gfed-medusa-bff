@@ -21,35 +21,6 @@ const FALLBACKS: Record<
       score: 0,
     },
   ],
-  checkout: [
-    {
-      component: 'TrustBar',
-      contentId: null,
-      propsOverrides: {
-        badges: [
-          { label: 'Secure Payment' },
-          { label: 'Money-Back Guarantee' },
-          { label: 'Free Shipping' },
-          { label: 'Easy Returns' },
-        ],
-      },
-      priority: 1,
-      reasoning: 'Trust at checkout',
-      score: 0,
-    },
-  ],
-  cart_page: [
-    {
-      component: 'TrustBar',
-      contentId: null,
-      propsOverrides: {
-        badges: [{ label: 'Secure Payment' }, { label: 'Easy Returns' }],
-      },
-      priority: 1,
-      reasoning: 'Trust',
-      score: 0,
-    },
-  ],
 };
 
 export function getFallbackDecision(
