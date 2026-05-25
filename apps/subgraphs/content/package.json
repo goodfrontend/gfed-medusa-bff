@@ -22,6 +22,7 @@
   "dependencies": {
     "@apollo/server": "^5.4.0",
     "@apollo/subgraph": "^2.12.1",
+    "@gfed-medusa/bff-lib-common": "workspace:*",
     "@graphql-tools/load": "^8.0.2",
     "@graphql-tools/merge": "^9.1.5",
     "@graphql-tools/url-loader": "^8.0.2",
@@ -34,6 +35,7 @@
     "graphql": "^16.12.0",
     "graphql-scalars": "^1.24.2",
     "graphql-tag": "^2.12.6",
+    "pino": "^10.1.0",
     "redis": "^5.10.0",
     "zod": "^3.24.2"
   },

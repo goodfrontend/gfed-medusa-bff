@@ -3,6 +3,7 @@ import {
   getPersonalizationRedis,
 } from '../config/personalization-redis';
 import { signalProcessor } from '../services/personalization/signal-ingestion';
+import { logger } from '../services/personalization/logger';
 
 const FLUSH_INTERVAL_MS = 30_000;
 const BATCH_SIZE = 50;
@@ -27,6 +28,7 @@ export function startFlushSignalsJob(): NodeJS.Timeout {
       }
 
       if (deviceIds.length === 0) {
+        logger.debug({}, 'No pending signals to flush');
         return;
       }
 
@@ -36,21 +38,19 @@ export function startFlushSignalsJob(): NodeJS.Timeout {
           const count = await signalProcessor.flushQueue(deviceId);
           totalFlushed += count;
         } catch (err) {
-          console.error(
-            `[FlushSignals] Flush failed for ${deviceId}, re-queuing:`,
-            err
-          );
+          logger.error({ err, deviceId }, 'Flush failed, re-queuing device');
           await redis.sAdd(indexKey, deviceId);
         }
       }
 
       if (totalFlushed > 0) {
-        console.log(
-          `[FlushSignals] Flushed ${totalFlushed} signals for ${deviceIds.length} device(s)`
+        logger.info(
+          { signalCount: totalFlushed, deviceCount: deviceIds.length },
+          'Flush cycle complete'
         );
       }
     } catch (err) {
-      console.error('[FlushSignals] Error:', err);
+      logger.error({ err }, 'Flush cycle error');
     }
   }, FLUSH_INTERVAL_MS);
 }

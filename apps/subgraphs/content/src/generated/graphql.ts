@@ -155,6 +155,13 @@ export type PriceSensitivity = {
   score: Scalars['Float']['output'];
 };
 
+export type ProductViewEntry = {
+  category: Scalars['String']['output'];
+  price?: Maybe<Scalars['Float']['output']>;
+  productId: Scalars['String']['output'];
+  timestamp: Scalars['Float']['output'];
+};
+
 export type Query = {
   /** Debug: current rule-based intent classification. */
   debugIntent: DecisionReasoning;
@@ -193,6 +200,11 @@ export type SanityImage = {
 
 export type SanityImageAsset = {
   url?: Maybe<Scalars['String']['output']>;
+};
+
+export type SearchHistoryEntry = {
+  query: Scalars['String']['output'];
+  timestamp: Scalars['Float']['output'];
 };
 
 export type SecondaryBanner = {
@@ -260,14 +272,20 @@ export type SurfaceContext = {
 };
 
 export type UserProfile = {
+  cartActivity?: Maybe<Scalars['Int']['output']>;
   categoryAffinity: Scalars['JSON']['output'];
   deviceId: Scalars['String']['output'];
   engagementLevel: EngagementLevel;
   firstSeen: Scalars['Float']['output'];
+  hesitationCount?: Maybe<Scalars['Int']['output']>;
   intentSignals: IntentSignals;
   lastSeen: Scalars['Float']['output'];
+  lastSignalTimestamp?: Maybe<Scalars['Float']['output']>;
   lifecycleStage: LifecycleStage;
+  orderCount?: Maybe<Scalars['Int']['output']>;
   priceSensitivity: PriceSensitivity;
+  recentProducts?: Maybe<Array<ProductViewEntry>>;
+  searchHistory?: Maybe<Array<SearchHistoryEntry>>;
   sessionCount: Scalars['Int']['output'];
   userId?: Maybe<Scalars['String']['output']>;
 };
@@ -414,9 +432,11 @@ export type ResolversTypes = {
   PersonalizationResult: ResolverTypeWrapper<PersonalizationResult>;
   PersonalizedComponent: ResolverTypeWrapper<PersonalizedComponent>;
   PriceSensitivity: ResolverTypeWrapper<PriceSensitivity>;
+  ProductViewEntry: ResolverTypeWrapper<ProductViewEntry>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SanityImage: ResolverTypeWrapper<SanityImage>;
   SanityImageAsset: ResolverTypeWrapper<SanityImageAsset>;
+  SearchHistoryEntry: ResolverTypeWrapper<SearchHistoryEntry>;
   SecondaryBanner: ResolverTypeWrapper<SecondaryBanner>;
   SendSignalResponse: ResolverTypeWrapper<SendSignalResponse>;
   SignalInput: SignalInput;
@@ -450,9 +470,11 @@ export type ResolversParentTypes = {
   PersonalizationResult: PersonalizationResult;
   PersonalizedComponent: PersonalizedComponent;
   PriceSensitivity: PriceSensitivity;
+  ProductViewEntry: ProductViewEntry;
   Query: Record<PropertyKey, never>;
   SanityImage: SanityImage;
   SanityImageAsset: SanityImageAsset;
+  SearchHistoryEntry: SearchHistoryEntry;
   SecondaryBanner: SecondaryBanner;
   SendSignalResponse: SendSignalResponse;
   SignalInput: SignalInput;
@@ -676,6 +698,17 @@ export type PriceSensitivityResolvers<
   score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
 };
 
+export type ProductViewEntryResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['ProductViewEntry'] =
+    ResolversParentTypes['ProductViewEntry'],
+> = {
+  category?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  price?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  timestamp?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
 export type QueryResolvers<
   ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['Query'] =
@@ -734,6 +767,15 @@ export type SanityImageAssetResolvers<
   url?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 };
 
+export type SearchHistoryEntryResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['SearchHistoryEntry'] =
+    ResolversParentTypes['SearchHistoryEntry'],
+> = {
+  query?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  timestamp?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
 export type SecondaryBannerResolvers<
   ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['SecondaryBanner'] =
@@ -785,6 +827,11 @@ export type UserProfileResolvers<
   ParentType extends ResolversParentTypes['UserProfile'] =
     ResolversParentTypes['UserProfile'],
 > = {
+  cartActivity?: Resolver<
+    Maybe<ResolversTypes['Int']>,
+    ParentType,
+    ContextType
+  >;
   categoryAffinity?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   deviceId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   engagementLevel?: Resolver<
@@ -793,19 +840,40 @@ export type UserProfileResolvers<
     ContextType
   >;
   firstSeen?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  hesitationCount?: Resolver<
+    Maybe<ResolversTypes['Int']>,
+    ParentType,
+    ContextType
+  >;
   intentSignals?: Resolver<
     ResolversTypes['IntentSignals'],
     ParentType,
     ContextType
   >;
   lastSeen?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  lastSignalTimestamp?: Resolver<
+    Maybe<ResolversTypes['Float']>,
+    ParentType,
+    ContextType
+  >;
   lifecycleStage?: Resolver<
     ResolversTypes['LifecycleStage'],
     ParentType,
     ContextType
   >;
+  orderCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   priceSensitivity?: Resolver<
     ResolversTypes['PriceSensitivity'],
+    ParentType,
+    ContextType
+  >;
+  recentProducts?: Resolver<
+    Maybe<Array<ResolversTypes['ProductViewEntry']>>,
+    ParentType,
+    ContextType
+  >;
+  searchHistory?: Resolver<
+    Maybe<Array<ResolversTypes['SearchHistoryEntry']>>,
     ParentType,
     ContextType
   >;
@@ -827,9 +895,11 @@ export type Resolvers<ContextType = ContentGraphQLContext> = {
   PersonalizationResult?: PersonalizationResultResolvers<ContextType>;
   PersonalizedComponent?: PersonalizedComponentResolvers<ContextType>;
   PriceSensitivity?: PriceSensitivityResolvers<ContextType>;
+  ProductViewEntry?: ProductViewEntryResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SanityImage?: SanityImageResolvers<ContextType>;
   SanityImageAsset?: SanityImageAssetResolvers<ContextType>;
+  SearchHistoryEntry?: SearchHistoryEntryResolvers<ContextType>;
   SecondaryBanner?: SecondaryBannerResolvers<ContextType>;
   SendSignalResponse?: SendSignalResponseResolvers<ContextType>;
   SocialLink?: SocialLinkResolvers<ContextType>;

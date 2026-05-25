@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+import { logger } from './logger';
+
 function requireWebhookSecret(): string {
   const secret = process.env.PERSONALIZATION_WEBHOOK_SECRET?.trim();
   if (!secret) {
@@ -33,6 +35,8 @@ export async function postPersonalizationWebhook(
   const signature = signPersonalizationBody(body);
   const url = `${medusaBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
 
+  logger.info({ path, url }, 'Webhook POST starting');
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -43,11 +47,20 @@ export async function postPersonalizationWebhook(
   });
 
   if (!response.ok) {
+    logger.error(
+      { path, statusCode: response.status, statusText: response.statusText },
+      'Webhook POST failed'
+    );
     const text = await response.text();
     throw new Error(
       `Medusa personalization webhook failed: ${response.status} ${response.statusText} ${text}`
     );
   }
+
+  logger.info(
+    { path, statusCode: response.status },
+    'Webhook POST succeeded'
+  );
 }
 
 export const MEDUSA_PERSONALIZATION_PATHS = {
