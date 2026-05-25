@@ -55,6 +55,7 @@ async function startServer() {
       context: async ({ req }): Promise<ContentGraphQLContext> => ({
         req,
         isAuthorizedClient:
+          !!process.env.BFF_API_KEY &&
           req.headers['x-bff-api-key'] === process.env.BFF_API_KEY,
       }),
     })
