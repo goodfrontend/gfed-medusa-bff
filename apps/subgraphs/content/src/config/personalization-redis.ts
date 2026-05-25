@@ -1,5 +1,7 @@
 import { type RedisClientType, createClient } from 'redis';
 
+import { logger } from '../services/personalization/logger';
+
 let client: RedisClientType | undefined;
 
 /**
@@ -20,7 +22,7 @@ export async function getPersonalizationRedis(): Promise<RedisClientType> {
 
   const next = createClient({ url });
   next.on('error', (err) => {
-    console.error('[Personalization Redis]', err);
+    logger.error({ err }, 'Personalization Redis error');
   });
   await next.connect();
   client = next as RedisClientType;

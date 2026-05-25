@@ -67,6 +67,18 @@ enum LifecycleStage {
   LOYAL
 }
 
+type SearchHistoryEntry {
+  query: String!
+  timestamp: Float!
+}
+
+type ProductViewEntry {
+  productId: String!
+  category: String!
+  price: Float
+  timestamp: Float!
+}
+
 type UserProfile {
   deviceId: String!
   userId: String
@@ -78,6 +90,12 @@ type UserProfile {
   firstSeen: Float!
   lastSeen: Float!
   sessionCount: Int!
+  orderCount: Int
+  searchHistory: [SearchHistoryEntry!]
+  cartActivity: Int
+  hesitationCount: Int
+  recentProducts: [ProductViewEntry!]
+  lastSignalTimestamp: Float
 }
 
 type PersonalizedComponent {

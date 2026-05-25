@@ -10,6 +10,8 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 
+import { logger } from './services/logger';
+
 import type { ContentGraphQLContext } from './graphql/context';
 import { startFlushSignalsJob } from './jobs/flush-signals';
 import { resolvers } from './resolvers';
@@ -64,7 +66,7 @@ async function startServer() {
   if (process.env.REDIS_URL?.trim()) {
     startFlushSignalsJob();
   } else {
-    console.warn(
+    logger.warn(
       '[content-subgraph] REDIS_URL not set — personalization flush job disabled'
     );
   }
@@ -72,10 +74,10 @@ async function startServer() {
   const { address } = httpServer.address() as AddressInfo;
   const hostname = address === '' || address === '::' ? 'localhost' : address;
 
-  console.log(`Content subgraph server ready at ${hostname}:${port}/graphql`);
+  logger.info(`Content subgraph server ready at ${hostname}:${port}/graphql`);
 }
 
 startServer().catch((error) => {
-  console.error('Error starting content subgraph server:', error);
+  logger.error({ err: error }, 'Error starting content subgraph server');
   process.exit(1);
 });

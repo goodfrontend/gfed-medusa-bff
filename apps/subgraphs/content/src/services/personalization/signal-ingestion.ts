@@ -7,6 +7,7 @@ import {
   MEDUSA_PERSONALIZATION_PATHS,
   postPersonalizationWebhook,
 } from './medusa-webhooks';
+import { logger } from './logger';
 
 export interface QueuedSignal {
   type: string;
@@ -23,8 +24,18 @@ export class SignalProcessor {
   ): Promise<boolean> {
     const redis = await getPersonalizationRedis();
     const queueKey = `${KEY_NS}signal-queue:${deviceId}`;
-    await redis.rPush(queueKey, JSON.stringify(signal));
+    const queueLength = await redis.rPush(queueKey, JSON.stringify(signal));
     await redis.sAdd(`${KEY_NS}signal-queue:index`, deviceId);
+
+    logger.info(
+      {
+        signalType: signal.type,
+        deviceId,
+        userId: userId ?? undefined,
+        queueLength,
+      },
+      'Signal queued'
+    );
 
     if (userId) {
       await featureStore.mergeToUser(deviceId, userId);
@@ -35,6 +46,15 @@ export class SignalProcessor {
     await featureStore.save(profile);
 
     await this.invalidateDecisionCache(deviceId);
+
+    logger.info(
+      {
+        signalType: signal.type,
+        deviceId,
+        engagementLevel: profile.engagementLevel,
+      },
+      'Signal processed'
+    );
     return true;
   }
 
@@ -92,6 +112,16 @@ export class SignalProcessor {
       payload
     );
     await redis.del(key);
+
+    const uniqueSignalTypes = [...new Set(signals.map((s) => s.type))];
+    logger.info(
+      {
+        deviceId,
+        signalCount: signals.length,
+        signalTypes: uniqueSignalTypes,
+      },
+      'Queue flushed'
+    );
     return signals.length;
   }
 

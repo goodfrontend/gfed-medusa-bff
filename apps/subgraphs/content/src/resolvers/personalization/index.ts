@@ -15,6 +15,7 @@ import {
   featureStore,
 } from '../../services/personalization/feature-store';
 import { classifyIntent } from '../../services/personalization/intent-classifier';
+import { logger } from '../../services/personalization/logger';
 import {
   MEDUSA_PERSONALIZATION_PATHS,
   postPersonalizationWebhook,
@@ -115,6 +116,17 @@ export const personalizationResolvers: Resolvers = {
     sendSignal: async (_parent, { input }, context) => {
       requireAuthorizedClient(context);
       const deviceId = requireDeviceId(input, context);
+
+      logger.info(
+        {
+          signalType: input.type,
+          deviceId,
+          userId: input.userId ?? undefined,
+          timestamp: input.timestamp ?? Date.now(),
+        },
+        'Signal received'
+      );
+
       await signalProcessor.process(
         {
           type: input.type,
@@ -130,6 +142,19 @@ export const personalizationResolvers: Resolvers = {
 
     submitConversion: async (_parent, { input }, context) => {
       requireAuthorizedClient(context);
+
+      logger.info(
+        {
+          deviceId: input.deviceId,
+          orderId: input.orderId,
+          userId: input.userId ?? undefined,
+          amount: input.amount ?? undefined,
+          currency: input.currency ?? undefined,
+          itemCount: input.items?.length ?? 0,
+        },
+        'Conversion submitted'
+      );
+
       const profile = await featureStore.getOrCreate(input.deviceId);
       profile.orderCount = (profile.orderCount ?? 0) + 1;
       const totalOrders = profile.orderCount;
@@ -274,10 +299,7 @@ export const personalizationResolvers: Resolvers = {
               cacheKey: `decision:${deviceId}:${input.surface}`,
             };
           } catch (aiError) {
-            console.error(
-              '[Personalization] AI error, using rules:',
-              aiError instanceof Error ? aiError.message : String(aiError)
-            );
+            logger.warn({ err: aiError }, 'AI personalization failed, falling back to rules');
             decision = await makeDecision(profile, ctx);
           }
         } else {
@@ -306,7 +328,7 @@ export const personalizationResolvers: Resolvers = {
 
         return result;
       } catch (err) {
-        console.error('[Personalization] Decision error:', err);
+        logger.error({ err }, 'Decision engine error, using fallback');
         const fb = getFallbackDecision(input.surface, deviceId);
         const servedAt = new Date().toISOString();
         return toPersonalizationResult(
