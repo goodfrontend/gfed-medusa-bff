@@ -181,18 +181,7 @@ function scoreCandidate(
     score += 1.0;
     reasons.push('Price-sensitive + deal content');
   }
-  if (intent === 'hesitant' && component.name === 'TrustBar') {
-    score += 2.0;
-    reasons.push('Hesitant: trust signals');
-  }
-  if (component.name === 'UrgencyBanner' && profile.engagementLevel !== 'LOW') {
-    score += 0.8;
-    reasons.push('Engaged: urgency banner');
-  }
-  if (profile.lifecycleStage === 'NEW' && component.name === 'EmailCapture') {
-    score += 1.2;
-    reasons.push('New user: email capture');
-  }
+
   return {
     score: Math.max(0, Math.round(score * 100) / 100),
     reasoning: reasons.length ? reasons.join('; ') : 'Baseline score',
@@ -208,10 +197,7 @@ function scoreIntentMatch(comp: string, intent: Intent): number {
       hesitant: 0.5,
       bounce: 0.1,
     },
-    TrustBar: { hesitant: 1.5, return: 0.8, price_shop: 0.3 },
-    SocialProofBanner: { buy_now: 0.5, hesitant: 0.8, return: 0.4 },
-    EmailCapture: {},
-    UrgencyBanner: { buy_now: 0.8, price_shop: 0.7, hesitant: 0.5 },
+
   };
   return map[comp]?.[intent] ?? 0.3;
 }
@@ -231,16 +217,6 @@ function buildPropsOverrides(
     o.ctaText = 'See the Deal';
   } else if (intent === 'research') {
     o.ctaText = 'Compare Options';
-  }
-
-  if (comp.name === 'TrustBar' && intent === 'hesitant') {
-    o.message = 'Secure checkout • 30-day money-back guarantee • Free returns';
-    o.badges = [
-      { label: 'Money-Back Guarantee' },
-      { label: 'Secure Payment' },
-      { label: 'Free Shipping' },
-      { label: 'Easy Returns' },
-    ];
   }
 
   return o;
