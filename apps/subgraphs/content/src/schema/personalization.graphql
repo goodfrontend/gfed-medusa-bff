@@ -155,7 +155,7 @@ extend type Mutation {
 }
 
 extend type Query {
-  personalize(input: SurfaceContext!, deviceId: String!, userId: String): PersonalizationResult!
+  personalize(input: SurfaceContext!, deviceId: String!, userId: String): PersonalizationResult! @cacheControl(maxAge: 0)
   userProfile(deviceId: String!, userId: String): UserProfile!
   """Debug: current rule-based intent classification."""
   debugIntent(deviceId: String!, userId: String): DecisionReasoning!
