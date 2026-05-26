@@ -3,7 +3,6 @@ import { GraphQLError } from 'graphql';
 import { features } from '../../config/features';
 import type {
   PersonalizationResult,
-  PersonalizedComponent,
   Resolvers,
 } from '../../generated/graphql';
 import type { ContentGraphQLContext } from '../../graphql/context';
@@ -57,13 +56,6 @@ function requireDeviceId(
     extensions: { code: 'BAD_USER_INPUT' },
   });
 }
-
-type CachedPersonalization = {
-  components: PersonalizedComponent[];
-  reasoning: PersonalizationResult['reasoning'];
-  cacheKey: string;
-  servedAt?: string;
-};
 
 function toPersonalizationResult(
   decision: {
@@ -248,20 +240,6 @@ export const personalizationResolvers: Resolvers = {
       if (userId) {
         profile = await featureStore.mergeToUser(deviceId, userId);
       }
-
-      const cachedRaw = await featureStore.getCachedDecision(
-        deviceId,
-        input.surface
-      );
-      // if (cachedRaw) {
-      //   const cached = structuredClone(cachedRaw) as CachedPersonalization;
-      //   cached.reasoning = {
-      //     ...cached.reasoning,
-      //     modelVersion: `${cached.reasoning.modelVersion}:cached`,
-      //   };
-      //   const servedAt = new Date().toISOString();
-      //   return toPersonalizationResult(cached, servedAt);
-      // }
 
       const ctx = {
         surface: input.surface,

@@ -9,6 +9,40 @@ import {
 } from './medusa-webhooks';
 import { logger } from './logger';
 
+const MAX_RESEARCH_DEPTH = 5;
+const MAX_CART_ACTIVITY = 50;
+const MAX_CATEGORY_SCORE = 5.0;
+const MAX_HISTORY_LENGTH = 20;
+const MAX_RECENT_PRODUCTS = 20;
+
+const RESEARCH_DEPTH_QUERY_INCREMENT = 0.15;
+const RESEARCH_DEPTH_CLICK_INCREMENT = 0.1;
+const DEAL_CLICK_RATE_INCREMENT = 0.12;
+const CART_TO_PURCHASE_INCREMENT = 0.15;
+const CART_TO_PURCHASE_DECREMENT = 0.1;
+const RETURN_RATE_INCREMENT = 0.08;
+const PRODUCT_VIEW_WEIGHT = 0.25;
+const DEFAULT_CATEGORY_VIEW_WEIGHT = 0.15;
+const PURCHASE_BONUS = 0.5;
+
+const DEFAULT_AVG_VIEWED_PRICE = 50;
+const DEAL_CLICK_RATE_WEIGHT = 0.5;
+const PRICE_SENSITIVITY_HIGH_THRESHOLD = 80;
+const PRICE_SENSITIVITY_MED_THRESHOLD = 40;
+const PRICE_SENSITIVITY_HIGH_SCORE = 0.3;
+const PRICE_SENSITIVITY_MED_SCORE = 0.2;
+
+const LOW_ENGAGEMENT_MAX_SESSIONS = 2;
+const LOW_ENGAGEMENT_MAX_VIEWS = 3;
+const HIGH_ENGAGEMENT_MIN_SESSIONS = 10;
+const HIGH_ENGAGEMENT_MIN_CART = 5;
+const HIGH_ENGAGEMENT_MIN_VIEWS = 20;
+
+const SCORE_DECAY_FACTOR = 0.95;
+const MS_PER_HOUR = 1000 * 60 * 60;
+const HOURS_PER_DAY = 24;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 export interface QueuedSignal {
   type: string;
   payload: Record<string, unknown>;
@@ -132,12 +166,12 @@ export class SignalProcessor {
     );
     const cartActivity = profile.cartActivity ?? 0;
 
-    if (profile.sessionCount <= 2 && cartActivity === 0 && totalViews < 3) {
+    if (profile.sessionCount <= LOW_ENGAGEMENT_MAX_SESSIONS && cartActivity === 0 && totalViews < LOW_ENGAGEMENT_MAX_VIEWS) {
       profile.engagementLevel = 'LOW';
     } else if (
-      profile.sessionCount > 10 ||
-      cartActivity > 5 ||
-      totalViews > 20
+      profile.sessionCount > HIGH_ENGAGEMENT_MIN_SESSIONS ||
+      cartActivity > HIGH_ENGAGEMENT_MIN_CART ||
+      totalViews > HIGH_ENGAGEMENT_MIN_VIEWS
     ) {
       profile.engagementLevel = 'HIGH';
     } else {
@@ -146,8 +180,8 @@ export class SignalProcessor {
 
     const { dealClickRate, avgViewedPrice } = profile.priceSensitivity;
     profile.priceSensitivity.score = Math.min(
-      dealClickRate * 0.5 +
-        (avgViewedPrice > 80 ? 0.3 : avgViewedPrice > 40 ? 0.2 : 0),
+      dealClickRate * DEAL_CLICK_RATE_WEIGHT +
+        (avgViewedPrice > PRICE_SENSITIVITY_HIGH_THRESHOLD ? PRICE_SENSITIVITY_HIGH_SCORE : avgViewedPrice > PRICE_SENSITIVITY_MED_THRESHOLD ? PRICE_SENSITIVITY_MED_SCORE : 0),
       1
     );
   }
@@ -164,8 +198,8 @@ export class SignalProcessor {
 
       case 'SEARCH_QUERY':
         profile.intentSignals.researchDepth = Math.min(
-          5,
-          (profile.intentSignals.researchDepth ?? 0) + 0.15
+          MAX_RESEARCH_DEPTH,
+          (profile.intentSignals.researchDepth ?? 0) + RESEARCH_DEPTH_QUERY_INCREMENT
         );
         if (!profile.searchHistory) {
           profile.searchHistory = [];
@@ -174,13 +208,13 @@ export class SignalProcessor {
           query: String(signal.payload.query ?? ''),
           timestamp: signal.timestamp,
         });
-        profile.searchHistory = profile.searchHistory.slice(-20);
+        profile.searchHistory = profile.searchHistory.slice(-MAX_HISTORY_LENGTH);
         break;
 
       case 'SEARCH_RESULT_CLICK':
         profile.intentSignals.researchDepth = Math.min(
-          5,
-          (profile.intentSignals.researchDepth ?? 0) + 0.1
+          MAX_RESEARCH_DEPTH,
+          (profile.intentSignals.researchDepth ?? 0) + RESEARCH_DEPTH_CLICK_INCREMENT
         );
         break;
 
@@ -192,7 +226,7 @@ export class SignalProcessor {
         ) {
           profile.priceSensitivity.dealClickRate = Math.min(
             1,
-            (profile.priceSensitivity.dealClickRate ?? 0) + 0.12
+            (profile.priceSensitivity.dealClickRate ?? 0) + DEAL_CLICK_RATE_INCREMENT
           );
         }
         const priceRange = signal.payload.priceRange as
@@ -200,13 +234,13 @@ export class SignalProcessor {
           | undefined;
         if (priceRange?.max != null && typeof priceRange.max === 'number') {
           const ps = profile.priceSensitivity;
-          ps.avgViewedPrice = ((ps.avgViewedPrice ?? 50) + priceRange.max) / 2;
+          ps.avgViewedPrice = ((ps.avgViewedPrice ?? DEFAULT_AVG_VIEWED_PRICE) + priceRange.max) / 2;
         }
         break;
       }
 
       case 'CART_ADD':
-        profile.cartActivity = Math.min(50, (profile.cartActivity ?? 0) + 1);
+        profile.cartActivity = Math.min(MAX_CART_ACTIVITY, (profile.cartActivity ?? 0) + 1);
         break;
 
       case 'CART_REMOVE':
@@ -216,14 +250,14 @@ export class SignalProcessor {
       case 'CHECKOUT_START':
         profile.intentSignals.cartToPurchaseRate = Math.min(
           1,
-          (profile.intentSignals.cartToPurchaseRate ?? 0) + 0.15
+          (profile.intentSignals.cartToPurchaseRate ?? 0) + CART_TO_PURCHASE_INCREMENT
         );
         break;
 
       case 'CHECKOUT_ABANDON':
         profile.intentSignals.cartToPurchaseRate = Math.max(
           0,
-          (profile.intentSignals.cartToPurchaseRate ?? 0) - 0.1
+          (profile.intentSignals.cartToPurchaseRate ?? 0) - CART_TO_PURCHASE_DECREMENT
         );
         profile.hesitationCount = (profile.hesitationCount ?? 0) + 1;
         break;
@@ -233,7 +267,7 @@ export class SignalProcessor {
       case 'SECURITY_INFO_VIEW':
         profile.intentSignals.returnRate = Math.min(
           1,
-          (profile.intentSignals.returnRate ?? 0) + 0.08
+          (profile.intentSignals.returnRate ?? 0) + RETURN_RATE_INCREMENT
         );
         break;
 
@@ -245,7 +279,7 @@ export class SignalProcessor {
         const category = String(signal.payload.category ?? '');
         const productId = String(signal.payload.productId ?? '');
         if (category && productId) {
-          this.addCategoryView(profile, signal, 0.25);
+          this.addCategoryView(profile, signal, PRODUCT_VIEW_WEIGHT);
           if (!profile.recentProducts) profile.recentProducts = [];
           profile.recentProducts.push({
             productId,
@@ -253,7 +287,7 @@ export class SignalProcessor {
             price: signal.payload.price as number | undefined,
             timestamp: signal.timestamp,
           });
-          profile.recentProducts = profile.recentProducts.slice(-20);
+          profile.recentProducts = profile.recentProducts.slice(-MAX_RECENT_PRODUCTS);
         }
         break;
       }
@@ -262,7 +296,6 @@ export class SignalProcessor {
         break;
     }
 
-    const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
     if (
       signal.type === 'PAGE_VIEW' &&
       profile.lastSignalTimestamp &&
@@ -284,7 +317,7 @@ export class SignalProcessor {
   private addCategoryView(
     profile: UserProfile,
     signal: QueuedSignal,
-    weight = 0.15
+    weight = DEFAULT_CATEGORY_VIEW_WEIGHT
   ): void {
     const category =
       (signal.payload.category as string | undefined) ||
@@ -305,9 +338,9 @@ export class SignalProcessor {
 
     if (aff.score > 0 && previousLastViewed > 0) {
       const hoursSinceLastView =
-        (signal.timestamp - previousLastViewed) / (1000 * 60 * 60);
-      const daysSinceLastView = hoursSinceLastView / 24;
-      const decayFactor = Math.pow(0.95, Math.max(0, daysSinceLastView));
+        (signal.timestamp - previousLastViewed) / MS_PER_HOUR;
+      const daysSinceLastView = hoursSinceLastView / HOURS_PER_DAY;
+      const decayFactor = Math.pow(SCORE_DECAY_FACTOR, Math.max(0, daysSinceLastView));
       aff.score = aff.score * decayFactor;
     }
 
@@ -315,8 +348,8 @@ export class SignalProcessor {
     aff.lastViewed = signal.timestamp;
 
     const viewIncrement = weight;
-    const purchaseBonus = aff.purchases > 0 ? 0.5 : 0;
-    aff.score = Math.min(aff.score + viewIncrement + purchaseBonus, 5.0);
+    const purchaseBonus = aff.purchases > 0 ? PURCHASE_BONUS : 0;
+    aff.score = Math.min(aff.score + viewIncrement + purchaseBonus, MAX_CATEGORY_SCORE);
   }
 
   private extractCategoryFromUrl(url: string): string | null {
