@@ -79,7 +79,7 @@ export async function makeDecision(
       candidates.push({
         component: comp,
         content: null,
-        ...scoreCandidate(profile, primaryIntent, comp, null, context),
+        ...scoreCandidate(profile, primaryIntent, comp, null),
       });
       continue;
     }
@@ -93,7 +93,7 @@ export async function makeDecision(
       candidates.push({
         component: comp,
         content,
-        ...scoreCandidate(profile, primaryIntent, comp, content, context),
+        ...scoreCandidate(profile, primaryIntent, comp, content),
       });
     }
   }
@@ -111,9 +111,7 @@ export async function makeDecision(
         ...resolvedContent,
         ...buildPropsOverrides(
           c.component,
-          resolvedContent,
           profile,
-          context,
           primaryIntent
         ),
       },
@@ -161,7 +159,6 @@ function scoreCandidate(
   intent: Intent,
   component: ComponentDefinition,
   content: Record<string, unknown> | null,
-  _context: DecisionContext
 ): { score: number; reasoning: string } {
   let score = component.weight;
   const reasons: string[] = [];
@@ -204,9 +201,7 @@ function scoreIntentMatch(comp: string, intent: Intent): number {
 
 function buildPropsOverrides(
   comp: ComponentDefinition,
-  _content: Record<string, unknown> | null,
   profile: UserProfile,
-  _ctx: DecisionContext,
   intent: Intent
 ): Record<string, unknown> {
   const o: Record<string, unknown> = {};
