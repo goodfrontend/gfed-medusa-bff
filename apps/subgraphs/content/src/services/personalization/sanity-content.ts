@@ -62,6 +62,7 @@ export async function fetchAvailableContent(
       "imageUrl": coalesce(image.default.asset->url, image.asset->url, ""),
       "badge": coalesce(badge.default, badge, ""),
       "subheadline": coalesce(subheadline.default, subheadline, ""),
+      "backgroundColor": coalesce(backgroundColor.default, backgroundColor, ""),
       cta
     }`;
 
