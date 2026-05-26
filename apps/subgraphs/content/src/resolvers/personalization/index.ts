@@ -157,6 +157,8 @@ export const personalizationResolvers: Resolvers = {
 
       const profile = await featureStore.getOrCreate(input.deviceId);
       profile.orderCount = (profile.orderCount ?? 0) + 1;
+      profile.cartActivity = 0;
+      profile.hesitationCount = 0;
       const totalOrders = profile.orderCount;
 
       if (totalOrders >= 5) {
@@ -251,15 +253,15 @@ export const personalizationResolvers: Resolvers = {
         deviceId,
         input.surface
       );
-      if (cachedRaw) {
-        const cached = structuredClone(cachedRaw) as CachedPersonalization;
-        cached.reasoning = {
-          ...cached.reasoning,
-          modelVersion: `${cached.reasoning.modelVersion}:cached`,
-        };
-        const servedAt = new Date().toISOString();
-        return toPersonalizationResult(cached, servedAt);
-      }
+      // if (cachedRaw) {
+      //   const cached = structuredClone(cachedRaw) as CachedPersonalization;
+      //   cached.reasoning = {
+      //     ...cached.reasoning,
+      //     modelVersion: `${cached.reasoning.modelVersion}:cached`,
+      //   };
+      //   const servedAt = new Date().toISOString();
+      //   return toPersonalizationResult(cached, servedAt);
+      // }
 
       const ctx = {
         surface: input.surface,
