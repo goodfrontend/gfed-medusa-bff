@@ -237,7 +237,7 @@ ${recentProducts || 'None'}
 
 Match the user to the best banner using these criteria, in priority order:
 
-1. CATEGORY MATCH — If user has strong affinity for a category (e.g. "rings"), prefer a banner whose headline or badge references that category. This is the strongest signal.
+1. CATEGORY MATCH — If user has strong affinity for a category (e.g. "womens"), prefer a banner whose headline or badge references that category. Also check the user's Recent Searches — repeated queries for a category (e.g. "womens shoe", "womens dasher") often reveal current intent even if category affinity scores are low. This is the strongest signal.
 
 2. LIFECYCLE MATCH — NEW users → welcome/onboarding banners with first-order incentives. RETURNING/FREQUENT → banners that acknowledge returning (e.g. "Welcome back", "Continue shopping"). LOYAL → VIP/exclusive/premium banners.
 
@@ -248,15 +248,13 @@ Match the user to the best banner using these criteria, in priority order:
 5. ENGAGEMENT MATCH — HIGH engagement and loyal → new arrivals, trending, exclusive. LOW engagement → strong general value prop, free shipping.
 
 ## Rules (MUST follow exactly)
-- Pick 1-3 HeroBanners from Available HeroBanners. You can pick multiple IF their content is meaningfully different (e.g. different categories or intents they target). Do NOT pick duplicates of the same content.
-- component MUST always be "HeroBanner"
-- contentId must match a valid ID from Available HeroBanners, or null if none exist
+- Pick 1-4 items from Available HeroBanners. You can pick multiple IF their content is meaningfully different (e.g. different categories or intents they target). Do NOT pick duplicates of the same content.
+- contentId must match the document's _id from Available HeroBanners
 - priority must be an integer 1-10 (1 = most important)
 - propsOverrides is optional — use it ONLY for dynamic overrides like theme or layout variant. Do NOT override content fields — they auto-populate from contentId.
-- reasoning is REQUIRED on every component. Explain which signal drove the pick (e.g. "Category match: top affinity for rings" or "Intent match: price_shop intent → deal banner").
+- reasoning is REQUIRED on every component. Explain which signal drove the pick (e.g. "Category match: user searches for womens shoes" or "Intent match: buy_now + cartActivity > 0 and hesitationCount > 0").
 
-Return ONLY valid JSON following this exact shape (contentId from Available HeroBanners):
-{"components":[{"component":"HeroBanner","contentId":"abc123","priority":1,"propsOverrides":{},"reasoning":"Category match: user has strong rings affinity"}],"overallReasoning":"Picked ring-focused hero banner matching user's top category"}
+Return ONLY valid JSON. Use the component and contentId values that correspond to the chosen banner from Available HeroBanners.
 
 Your JSON:
 `.trim();
