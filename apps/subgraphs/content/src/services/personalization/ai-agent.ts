@@ -254,7 +254,8 @@ Match the user to the best banner using these criteria, in priority order:
 - propsOverrides is optional — use it ONLY for dynamic overrides like theme or layout variant. Do NOT override content fields — they auto-populate from contentId.
 - reasoning is REQUIRED on every component. Explain which signal drove the pick (e.g. "Category match: user searches for womens shoes" or "Intent match: buy_now + cartActivity > 0 and hesitationCount > 0").
 
-Return ONLY valid JSON. Use the component and contentId values that correspond to the chosen banner from Available HeroBanners.
+Return ONLY valid JSON following this exact shape:
+{"components":[{"component":"HeroBanner","contentId":"abc123","priority":1,"propsOverrides":{},"reasoning":"Category match: user searches for womens shoes"}],"overallReasoning":"Picked womens-focused banner matching search history"}
 
 Your JSON:
 `.trim();
