@@ -147,15 +147,6 @@ export class FeatureStore {
     );
   }
 
-  async getCachedDecision(
-    deviceId: string,
-    surface: string
-  ): Promise<unknown | null> {
-    const redis = await getPersonalizationRedis();
-    const data = await redis.get(`${DECISION_KEY}${deviceId}:${surface}`);
-    return data ? JSON.parse(data) : null;
-  }
-
   async recordDecision(
     deviceId: string,
     decision: Record<string, unknown>
@@ -187,28 +178,6 @@ export class FeatureStore {
       })
     );
     await redis.lTrim(key, -500, -1);
-  }
-
-  async getAllUpdatedProfiles(sinceSeconds = 3600): Promise<UserProfile[]> {
-    const redis = await getPersonalizationRedis();
-    const cutoff = Date.now() - sinceSeconds * 1000;
-    const profiles: UserProfile[] = [];
-
-    for await (const key of redis.scanIterator({
-      MATCH: `${PROFILE_KEY}*`,
-      COUNT: 200,
-    })) {
-      const data = await redis.get(String(key));
-      if (!data) {
-        continue;
-      }
-      const profile = JSON.parse(data) as UserProfile;
-      if (profile.lastSeen >= cutoff) {
-        profiles.push(profile);
-      }
-    }
-
-    return profiles;
   }
 }
 

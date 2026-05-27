@@ -20,7 +20,7 @@ function medusaBaseUrl(): string {
   return base;
 }
 
-export function signPersonalizationBody(body: string): string {
+function signPersonalizationBody(body: string): string {
   return crypto
     .createHmac('sha256', requireWebhookSecret())
     .update(body)

@@ -42,6 +42,8 @@ export const formatProductData = (
       product_id: productId,
     } = variant;
 
+      const priceListType = calculatedPrice?.calculated_price?.price_list_type || 'default';
+
     return {
       id: variantId,
       title: variantTitle,
@@ -60,8 +62,7 @@ export const formatProductData = (
         price: {
           currencyCode: calculatedPrice?.currency_code,
           amount: calculatedPrice?.calculated_amount,
-          priceType:
-            calculatedPrice?.calculated_price?.price_list_type || 'default',
+          priceType: priceListType,
         },
         originalPrice: {
           currencyCode: calculatedPrice?.currency_code,
@@ -72,8 +73,7 @@ export const formatProductData = (
         calculatedPrice: {
           currencyCode: calculatedPrice?.currency_code,
           amount: calculatedPrice?.original_amount ?? calculatedPrice?.calculated_amount,
-          priceType:
-            calculatedPrice?.calculated_price?.price_list_type || 'default',
+          priceType: priceListType,
         },
       }),
     } as unknown as Product['variants'][number];

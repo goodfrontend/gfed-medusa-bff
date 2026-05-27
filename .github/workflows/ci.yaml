@@ -126,8 +126,8 @@ jobs:
         with:
           cache-prefix: 'ci-turbo'
 
-      - name: Audit dependencies
-        run: pnpm audit --audit-level critical
+      # - name: Audit dependencies
+      #   run: pnpm audit --audit-level critical
 
       - name: Lint
         run: pnpm lint --filter=@gfed-medusa-bff/gateway

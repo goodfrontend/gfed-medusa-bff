@@ -44,6 +44,7 @@ const POLL_INTERVAL = 10000;
 const SUPERGRAPH_FETCH_TIMEOUT_MS = 10000;
 const RELOAD_ROUTE = '/admin/reload-supergraph';
 const DEPLOY_MARKER = 'gateway-deploy-check-2026-03-18-r2';
+const CONTENT_SUBGRAPH_NAME = 'content';
 
 async function fetchSupergraphSdl(url: string) {
   const controller = new AbortController();
@@ -107,7 +108,7 @@ async function startServer() {
         }
 
         if (
-          name === 'content' &&
+          name === CONTENT_SUBGRAPH_NAME &&
           context.req?.headers['x-bff-api-key']
         ) {
           request.http?.headers.set(
