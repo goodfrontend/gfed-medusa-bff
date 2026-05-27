@@ -1,5 +1,13 @@
 # @gfed-medusa-bff/content
 
+## 1.1.1
+
+### Patch Changes
+
+- 9cd8258: Update packages
+- Updated dependencies [9cd8258]
+  - @gfed-medusa/bff-lib-common@1.1.1
+
 ## 1.1.0
 
 ### Minor Changes

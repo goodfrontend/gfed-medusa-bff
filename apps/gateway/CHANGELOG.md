@@ -1,5 +1,11 @@
 # @gfed-medusa-bff/gateway
 
+## 1.1.1
+
+### Patch Changes
+
+- 9cd8258: Update packages
+
 ## 1.1.0
 
 ### Minor Changes
