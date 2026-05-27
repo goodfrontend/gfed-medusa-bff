@@ -7,6 +7,17 @@ import { classifyIntent } from './intent-classifier';
 import { fetchAvailableContent } from './sanity-content';
 import { logger } from './logger';
 
+const AI_REQUEST_TIMEOUT_MS = 15_000;
+const HERO_BANNER_FIELDS = [
+  'headline',
+  'subheadline',
+  'imageUrl',
+  'cta',
+  'badge',
+  'backgroundColor',
+  'title',
+] as const;
+
 const componentChoiceSchema = z.object({
   component: z.string(),
   contentId: z.string().nullable(),
@@ -45,7 +56,7 @@ async function callChatCompletion(
         ? { response_format: { type: 'json_object' } }
         : {}),
     }),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -103,7 +114,7 @@ async function callGeminiCompletion(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -143,7 +154,6 @@ function buildPrompt(
     surface: string;
     page: string;
     productId?: string;
-    cartValue?: number;
     category?: string;
     price?: number;
   },
@@ -216,15 +226,7 @@ ${
   availableContent.length > 0
     ? availableContent
         .map((c) => {
-          const fields = [
-            'headline',
-            'subheadline',
-            'imageUrl',
-            'cta',
-            'badge',
-            'backgroundColor',
-            'title',
-          ];
+          const fields = HERO_BANNER_FIELDS;
           const present = fields
             .filter((f) => c[f] != null)
             .map((f) => `${f}: ${JSON.stringify(c[f])}`)
@@ -258,7 +260,6 @@ export async function aiPersonalize(
     surface: string;
     page: string;
     productId?: string;
-    cartValue?: number;
     category?: string;
     price?: number;
   }
@@ -328,15 +329,7 @@ export async function aiPersonalize(
           content.map((c) => [String(c._id), c])
         );
 
-        const fieldsToSpread = [
-          'headline',
-          'subheadline',
-          'imageUrl',
-          'cta',
-          'badge',
-          'backgroundColor',
-          'title',
-        ];
+        const fieldsToSpread = HERO_BANNER_FIELDS;
 
         const resolved = validated.components.map((c) => {
           const contentEntry = c.contentId ? contentById.get(c.contentId) : undefined;

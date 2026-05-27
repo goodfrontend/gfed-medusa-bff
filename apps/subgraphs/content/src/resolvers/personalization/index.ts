@@ -245,9 +245,7 @@ export const personalizationResolvers: Resolvers = {
         surface: input.surface,
         page: input.page,
         productId: input.productId ?? undefined,
-        cartValue: input.cartValue ?? undefined,
         category: input.category ?? undefined,
-        searchQuery: input.searchQuery ?? undefined,
         price: input.price ?? undefined,
       };
 

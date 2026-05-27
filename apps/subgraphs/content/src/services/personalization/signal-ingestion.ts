@@ -43,7 +43,7 @@ const MS_PER_HOUR = 1000 * 60 * 60;
 const HOURS_PER_DAY = 24;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
-export interface QueuedSignal {
+interface QueuedSignal {
   type: string;
   payload: Record<string, unknown>;
   url: string;

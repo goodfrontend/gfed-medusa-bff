@@ -10,7 +10,7 @@ import {
 } from './intent-classifier';
 import { fetchAvailableContent, resolveAudienceFields } from './sanity-content';
 
-export interface DecisionComponent {
+interface DecisionComponent {
   component: string;
   contentId: string | null;
   propsOverrides: Record<string, unknown>;
@@ -31,13 +31,8 @@ export interface PersonalizationDecision {
   servedAt?: string;
 }
 
-export interface DecisionContext {
+interface DecisionContext {
   surface: string;
-  page: string;
-  productId?: string;
-  cartValue?: number;
-  category?: string;
-  searchQuery?: string;
 }
 
 export async function makeDecision(
