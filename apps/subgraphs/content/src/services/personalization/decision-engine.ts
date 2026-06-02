@@ -43,7 +43,7 @@ export async function makeDecision(
 
   const intentScores = classifyIntent(profile);
   const primaryIntentScore = intentScores[0] ?? {
-    intent: 'browse' as Intent,
+    intent: 'exploring' as Intent,
     score: 0,
   };
   const primaryIntent = primaryIntentScore.intent;
@@ -184,10 +184,9 @@ function scoreIntentMatch(comp: string, intent: Intent): number {
   const map: Record<string, Partial<Record<Intent, number>>> = {
     HeroBanner: {
       buy_now: 1.0,
-      browse: 0.8,
+      exploring: 0.7,
       price_shop: 0.9,
-      hesitant: 0.5,
-      bounce: 0.1,
+      uncertain: 0.3,
     },
 
   };
@@ -205,8 +204,8 @@ function buildPropsOverrides(
     o.ctaText = 'Buy Now — Free Shipping';
   } else if (intent === 'price_shop') {
     o.ctaText = 'See the Deal';
-  } else if (intent === 'research') {
-    o.ctaText = 'Compare Options';
+  } else if (intent === 'exploring') {
+    o.ctaText = 'Explore More';
   }
 
   return o;

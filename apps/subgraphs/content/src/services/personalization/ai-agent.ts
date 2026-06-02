@@ -157,7 +157,8 @@ function buildPrompt(
     category?: string;
     price?: number;
   },
-  availableContent: Array<Record<string, unknown>>
+  availableContent: Array<Record<string, unknown>>,
+  intent: string
 ): string {
   const sortedAffinities = Object.entries(profile.categoryAffinity || {})
     .sort(([, a], [, b]) => b.score - a.score);
@@ -168,51 +169,43 @@ function buildPrompt(
 
   const recentProducts = (profile.recentProducts ?? [])
     .slice(-5)
-    .map(p => `{product:${sanitizeForPrompt(p.productId)}, category:${sanitizeForPrompt(p.category)}${p.price ? ', $' + p.price : ''}}`)
+    .map(p => `{product:${sanitizeForPrompt(p.productId)}:${sanitizeForPrompt(p.productName)}, category:${sanitizeForPrompt(p.category)}${p.price ? ', $' + p.price : ''}}`)
     .join(', ');
+
+  const intentDescription: Record<string, string> = {
+    buy_now: 'Ready to purchase — high conversion intent and cart activity',
+    exploring: 'Browsing and researching — broad category interest, exploring options',
+    price_shop: 'Deal-seeking — price-conscious, looking for discounts',
+    uncertain: 'At risk — hesitant or low engagement, may need reassurance',
+  };
 
   return `
 You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select the best 1-4 HeroBanner entries for the ${context.surface} surface.
 
-## User Profile (every field has an explanation of what it reveals)
+## Classified Intent
+${intent} — ${intentDescription[intent] ?? 'General browsing'}
 
-### Relationship & Identity
+## User Profile
 - lifecycleStage = "${profile.lifecycleStage}"
-  → NEW = first visit, no purchases yet. RETURNING = has purchased before and came back. FREQUENT = shops regularly. LOYAL = highest value, most engaged.
 - engagementLevel = "${profile.engagementLevel}"
-  → How actively the user browses, adds to cart, and purchases. HIGH = very active, responsive to marketing. LOW = needs stronger motivation.
 - orderCount = ${profile.orderCount ?? 0}
-  → Number of completed purchases. 0 = never bought. 1+ = has purchase history.
 - sessionCount = ${profile.sessionCount ?? 0}
-  → Total browsing sessions. Higher = more familiar with the store.
-
-### Shopping Behavior
 - cartActivity = ${profile.cartActivity ?? 0}
-  → Items actively in cart (incremented on add, decremented on remove, reset to 0 on purchase). >0 means active purchase intent.
 - hesitationCount = ${profile.hesitationCount ?? 0}
-  → Number of times user started checkout and abandoned. >0 suggests purchase friction or barriers at checkout (price, shipping, trust). Reset to 0 on successful purchase.
-- cartToPurchaseRate = ${profile.intentSignals.cartToPurchaseRate ?? 'N/A'}
-  → Historical rate of cart → purchase conversion for this user. 0.9 means they complete 90% of carts. Low rate + high hesitation = high friction.
-- returnRate = ${profile.intentSignals.returnRate ?? 'N/A'}
-  → How often they return purchased products. 0 = never returns (trustworthy). High = may need better product fit info.
+- checkoutConversion = ${profile.intentSignals.checkoutConversion ?? 'N/A'}
 - researchDepth = ${profile.intentSignals.researchDepth ?? 'N/A'}
-  → How much they browse/research before buying. Higher = needs educational or reassurance content. Lower = more impulsive.
+- priceSensitivityScore = ${profile.priceSensitivity?.score ?? 0.5}
+- avgViewedPrice = $${profile.priceSensitivity?.avgViewedPrice ?? 0}
+- dealClickRate = ${profile.priceSensitivity?.dealClickRate ?? 0}
 
-### Category Affinity (sorted by score, higher = stronger interest)
-${sortedAffinities.length ? sortedAffinities.map(([c, d]) => `  ${c}: score=${d.score.toFixed(2)} (${d.views} views, ${d.purchases} purchases, ${d.lastViewed ? 'recently viewed' : ''})`).join('\n') : '  (none recorded)'}
+### Category Affinity
+${sortedAffinities.length ? sortedAffinities.map(([c, d]) => `  ${c}: score=${d.score.toFixed(2)} (${d.views} views, ${d.purchases} purchases)`).join('\n') : '  (none recorded)'}
 
-### Search History (chronological)
-${allSearches || '(no searches in this session)'}
-  → Search queries reveal current, real-time intent. Repeated searches for similar terms indicate strong category interest. The most recent searches are the most predictive.
+### Search History
+${allSearches || '(none)'}
 
 ### Recently Viewed Products
 ${recentProducts || '(none)'}
-  → Products browsed recently, with categories and prices. Reveals what categories and price ranges the user is currently considering.
-
-### Price Sensitivity
-- score = ${profile.priceSensitivity?.score ?? 0.5} ← (0=not price sensitive, 1=extremely price sensitive)
-- avgViewedPrice = $${profile.priceSensitivity?.avgViewedPrice ?? 0} ← (average price of products they browse)
-- dealClickRate = ${profile.priceSensitivity?.dealClickRate ?? 0} ← (how often they click on deals/sales. >0.3 = deal-seeker)
 
 ## Context
 - Surface: ${context.surface}
@@ -237,17 +230,24 @@ ${
     : 'None for this surface'
 }
 
-## Your Task
+## Decision Steps
+1. Analyze the user's classified intent and profile — what do they need right now?
+2. For each banner, evaluate: does it match the intent, categories, lifecycle stage, and engagement of this user?
+3. Rank the best 2-4 banners, with priority 1 being the strongest match.
+4. For each choice, write a reasoning that specifically references profile data and banner content.
 
-Read the available HeroBanners and the user's profile above. Think about what this user needs right now based on their lifecycle, search history, behavior signals, and interests. Choose the HeroBanner(s) that best serve them. Be thorough with analyzing the user's profile statistics, in order to enhance the quality of your decision on what components to choose.
+## Examples
 
-- Pick 2-4 banners. Each must have a distinct contentId.
-- contentId must match a document _id from Available HeroBanners.
-- Priority 1 = best pick, 2 = second best, etc. (integer 1-10).
-- propsOverrides is optional.
-- Every component needs a reasoning field explaining why you chose it — reference the specific profile data and banner content that drove your choice.
+Example 1: User is LOYAL, high engagement, browsing womens category
+Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"Loyal, high-engagement shopper browsing womens — this banner features new arrivals in that category"}],"overallReasoning":"..."}
 
-Return valid JSON matching this shape:
+Example 2: User is NEW, low engagement, no cart activity
+Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"New user needs a welcoming value prop to encourage first purchase"}],"overallReasoning":"..."}
+
+Example 3: User is price_shop intent, dealClickRate > 0.4
+Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"Price-sensitive shopper — this banner has a deal badge and promotes a sale"}],"overallReasoning":"..."}
+
+## Output Format
 {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"..."}],"overallReasoning":"..."}
 
 Your JSON:
@@ -280,21 +280,22 @@ export async function aiPersonalize(
     return {
       components: [],
       reasoning: 'No components',
-      intent: 'browse',
+      intent: 'exploring',
       confidence: 0,
     };
   }
 
   const dominantIntent =
-    classifyIntent(profile)[0]?.intent ?? ('browse' as const);
+    classifyIntent(profile)[0]?.intent ?? 'exploring';
   const content = await fetchAvailableContent(context.surface);
   const prompt = buildPrompt(
     profile,
     context,
-    content
+    content,
+    dominantIntent
   );
 
-  const systemPrompt = 'Output ONLY valid JSON. No markdown fences.';
+  const systemPrompt = 'You are a personalization AI for an e-commerce storefront. Your job is to select the most relevant hero banners for a given shopper based on their profile, current intent, and available content.\n\nDecision criteria (in priority order):\n1. Intent match — Does the banner match the user\'s current shopping intent?\n2. Category relevance — Does the banner content match the user\'s category interests?\n3. Lifecycle fit — Is the banner appropriate for the user\'s relationship stage (new vs loyal)?\n4. Urgency/relevance — Does the user need reassurance, a deal, or a purchase nudge?\n\nOutput ONLY valid JSON. No markdown fences. No commentary outside the JSON.';
 
   async function attemptProvider(
     providerCall: (prompt: string, system: string) => Promise<string>,

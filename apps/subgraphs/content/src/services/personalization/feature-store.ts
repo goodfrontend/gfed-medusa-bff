@@ -5,7 +5,6 @@ import {
 
 const PROFILE_KEY = `${KEY_NS}profile:`;
 const PROFILE_TTL = 90 * 24 * 60 * 60;
-const OUTCOMES_KEY = `${KEY_NS}outcomes:`;
 
 export interface CategoryAffinityEntry {
   views: number;
@@ -16,9 +15,19 @@ export interface CategoryAffinityEntry {
 
 export interface ProductViewEntry {
   productId: string;
+  productName: string;
   category: string;
   price?: number;
   timestamp: number;
+}
+
+export interface CurrentSession {
+  startedAt: number;
+  signalCount: number;
+  searches: string[];
+  productViews: string[];
+  cartAdds: number;
+  firstCategory?: string;
 }
 
 export interface UserProfile {
@@ -32,21 +41,24 @@ export interface UserProfile {
   };
   intentSignals: {
     researchDepth: number;
-    cartToPurchaseRate: number;
-    returnRate: number;
+    checkoutConversion: number;
   };
   engagementLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   lifecycleStage: 'NEW' | 'RETURNING' | 'FREQUENT' | 'LOYAL';
   firstSeen: number;
   lastSeen: number;
   sessionCount: number;
-  /** Completed orders attributed to this profile (conversion webhooks). */
+  /** Completed orders attributed to this profile. */
   orderCount?: number;
   searchHistory?: Array<{ query: string; timestamp: number }>;
   cartActivity?: number;
   hesitationCount?: number;
   recentProducts?: ProductViewEntry[];
   lastSignalTimestamp?: number;
+  currentSession?: CurrentSession;
+  lastPurchaseDate?: number;
+  totalSpent?: number;
+  averageOrderValue?: number;
 }
 
 export class FeatureStore {
@@ -54,17 +66,17 @@ export class FeatureStore {
     const redis = await getPersonalizationRedis();
     const data = await redis.get(`${PROFILE_KEY}${deviceId}`);
     if (data) {
-      return JSON.parse(data) as UserProfile;
+      const raw = JSON.parse(data);
+      return this.migrateProfile(raw);
     }
 
     const profile: UserProfile = {
       deviceId,
       categoryAffinity: {},
-      priceSensitivity: { score: 0.5, avgViewedPrice: 0, dealClickRate: 0 },
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
       intentSignals: {
         researchDepth: 0,
-        cartToPurchaseRate: 0,
-        returnRate: 0,
+        checkoutConversion: 0,
       },
       engagementLevel: 'LOW',
       lifecycleStage: 'NEW',
@@ -74,6 +86,9 @@ export class FeatureStore {
       orderCount: 0,
       recentProducts: [],
       lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
     };
     await this.save(profile);
     return profile;
@@ -89,6 +104,27 @@ export class FeatureStore {
         EX: PROFILE_TTL,
       }
     );
+  }
+
+  private migrateProfile(raw: Record<string, unknown>): UserProfile {
+    if (raw.intentSignals && typeof raw.intentSignals === 'object') {
+      const is = raw.intentSignals as Record<string, unknown>;
+      if ('cartToPurchaseRate' in is && !('checkoutConversion' in is)) {
+        is.checkoutConversion = is.cartToPurchaseRate;
+      }
+      delete is.cartToPurchaseRate;
+      delete is.returnRate;
+    }
+
+    if (Array.isArray(raw.recentProducts)) {
+      for (const entry of raw.recentProducts as Record<string, unknown>[]) {
+        if (!('productName' in entry)) {
+          entry.productName = '';
+        }
+      }
+    }
+
+    return raw as unknown as UserProfile;
   }
 
   async getByUserId(userId: string): Promise<UserProfile | null> {
@@ -132,25 +168,6 @@ export class FeatureStore {
     return profile;
   }
 
-  async recordOutcome(
-    deviceId: string,
-    surface: string,
-    components: unknown[],
-    converted: boolean
-  ): Promise<void> {
-    const redis = await getPersonalizationRedis();
-    const key = `${OUTCOMES_KEY}${deviceId}`;
-    await redis.rPush(
-      key,
-      JSON.stringify({
-        surface,
-        components,
-        converted,
-        timestamp: Date.now(),
-      })
-    );
-    await redis.lTrim(key, -500, -1);
-  }
 }
 
 export const featureStore = new FeatureStore();

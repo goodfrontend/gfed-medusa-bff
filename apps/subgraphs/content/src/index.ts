@@ -13,7 +13,6 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { logger } from './services/logger';
 
 import type { ContentGraphQLContext } from './graphql/context';
-import { startFlushSignalsJob } from './jobs/flush-signals';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
 
@@ -63,14 +62,6 @@ async function startServer() {
 
   const port = process.env.PORT || 4003;
   await new Promise<void>((resolve) => httpServer.listen({ port }, resolve));
-
-  if (process.env.REDIS_URL?.trim()) {
-    startFlushSignalsJob();
-  } else {
-    logger.warn(
-      '[content-subgraph] REDIS_URL not set — personalization flush job disabled'
-    );
-  }
 
   const { address } = httpServer.address() as AddressInfo;
   const hostname = address === '' || address === '::' ? 'localhost' : address;

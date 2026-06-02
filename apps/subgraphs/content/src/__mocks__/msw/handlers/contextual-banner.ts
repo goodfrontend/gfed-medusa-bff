@@ -2,6 +2,7 @@ import { HttpResponse, http } from 'msw';
 
 import {
   mockContextualBannerData,
+  mockContextualBannerHighPriorityData,
   mockContextualBannerNoMinPriceData,
 } from '@mocks/data/contextual-banner';
 
