@@ -5,9 +5,12 @@ import { features } from '../../config/features';
 import type { UserProfile } from './feature-store';
 import { classifyIntent } from './intent-classifier';
 import { fetchAvailableContent } from './sanity-content';
+import { type ProductPreview, fetchCategoryProducts } from '../medusa/category-products';
+import { type CategoryOption, getRelevantCategories } from './decision-engine';
 import { logger } from './logger';
 
 const AI_REQUEST_TIMEOUT_MS = 15_000;
+
 const HERO_BANNER_FIELDS = [
   'headline',
   'subheadline',
@@ -17,6 +20,21 @@ const HERO_BANNER_FIELDS = [
   'backgroundColor',
   'title',
 ] as const;
+
+const HOME_BANNER_FIELDS = [
+  'title',
+  'eyebrow',
+  'description',
+  'imageUrl',
+  'buttons',
+  'secondaryBanners',
+  'showPoweredBy',
+] as const;
+
+const COMPONENT_CONTENT_FIELDS: Record<string, readonly string[]> = {
+  HeroBanner: HERO_BANNER_FIELDS,
+  PersonalizedBanner: HOME_BANNER_FIELDS,
+};
 
 const componentChoiceSchema = z.object({
   component: z.string(),
@@ -158,7 +176,9 @@ function buildPrompt(
     price?: number;
   },
   availableContent: Array<Record<string, unknown>>,
-  intent: string
+  intent: string,
+  availableCategories: CategoryOption[],
+  categoryProducts: Record<string, ProductPreview[]>
 ): string {
   const sortedAffinities = Object.entries(profile.categoryAffinity || {})
     .sort(([, a], [, b]) => b.score - a.score);
@@ -179,8 +199,47 @@ function buildPrompt(
     uncertain: 'At risk — hesitant or low engagement, may need reassurance',
   };
 
+  const contentByType: Record<string, Array<Record<string, unknown>>> = {};
+  for (const c of availableContent) {
+    const t = String(c._type ?? 'unknown');
+    if (!contentByType[t]) contentByType[t] = [];
+    contentByType[t].push(c);
+  }
+
+  const heroBannerSection = (contentByType['heroBanner'] ?? []).length > 0
+    ? contentByType['heroBanner']
+        .map((c) => {
+          const present = HERO_BANNER_FIELDS
+            .filter((f) => c[f] != null)
+            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
+            .join(', ');
+          return `- ID:${sanitizeForPrompt(String(c._id))} type=heroBanner fields={${present || 'none'}}`;
+        })
+        .join('\n')
+    : 'None available';
+
+  const homeBannerSection = (contentByType['homeBanner'] ?? []).length > 0
+    ? contentByType['homeBanner']
+        .map((c) => {
+          const present = HOME_BANNER_FIELDS
+            .filter((f) => c[f] != null)
+            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
+            .join(', ');
+          return `- ID:${sanitizeForPrompt(String(c._id))} type=homeBanner fields={${present || 'none'}}`;
+        })
+        .join('\n')
+    : 'None available';
+
+  const categorySection = availableCategories.length > 0
+    ? availableCategories.map((cat) => {
+        const prods = categoryProducts[cat.handle] ?? [];
+        const prodList = prods.map(p => `${p.title} (${p.handle})`).join(', ');
+        return `  ${cat.name} (handle=${cat.handle}, score=${cat.score.toFixed(2)}) — products: [${prodList || 'none loaded'}]`;
+      }).join('\n')
+    : 'No categories available';
+
   return `
-You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select the best 1-4 HeroBanner entries for the ${context.surface} surface.
+You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select the best 1-4 components for the ${context.surface} surface. You may choose from: HeroBanner, FeaturedCategoryRail, PersonalizedBanner.
 
 ## Classified Intent
 ${intent} — ${intentDescription[intent] ?? 'General browsing'}
@@ -215,40 +274,29 @@ ${context.category ? `- Category: ${sanitizeForPrompt(context.category)}` : ''}
 ${context.price != null ? `- Product price: $${context.price}` : ''}
 
 ## Available HeroBanners
-${
-  availableContent.length > 0
-    ? availableContent
-        .map((c) => {
-          const fields = HERO_BANNER_FIELDS;
-          const present = fields
-            .filter((f) => c[f] != null)
-            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
-            .join(', ');
-          return `- ID:${sanitizeForPrompt(String(c._id))} fields={${present || 'none'}}`;
-        })
-        .join('\n')
-    : 'None for this surface'
-}
+${heroBannerSection}
+
+## Available HomeBanners (PersonalizedBanner)
+${homeBannerSection}
+
+## Available Categories (FeaturedCategoryRail)
+${categorySection}
+
+## Component Type Guide
+- HeroBanner: Full-width hero with headline, image, CTA. Best for primary promotion, buy_now intent, new arrivals.
+- FeaturedCategoryRail: Product rail for a specific category. Best for exploring intent, category browsing. Use contentId=null (products come from category, not CMS). Include the category handle in propsOverrides.handle.
+- PersonalizedBanner: Segment-aware promotional banner. Best for uncertain intent (reassurance), price_shop (promos), or general engagement. Use contentId from available homeBanners above.
 
 ## Decision Steps
 1. Analyze the user's classified intent and profile — what do they need right now?
-2. For each banner, evaluate: does it match the intent, categories, lifecycle stage, and engagement of this user?
-3. Rank the best 2-4 banners, with priority 1 being the strongest match.
-4. For each choice, write a reasoning that specifically references profile data and banner content.
-
-## Examples
-
-Example 1: User is LOYAL, high engagement, browsing womens category
-Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"Loyal, high-engagement shopper browsing womens — this banner features new arrivals in that category"}],"overallReasoning":"..."}
-
-Example 2: User is NEW, low engagement, no cart activity
-Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"New user needs a welcoming value prop to encourage first purchase"}],"overallReasoning":"..."}
-
-Example 3: User is price_shop intent, dealClickRate > 0.4
-Good response: {"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"Price-sensitive shopper — this banner has a deal badge and promotes a sale"}],"overallReasoning":"..."}
+2. Decide which component types to use and how many of each (1-4 total).
+3. For HeroBanner and PersonalizedBanner: select contentId from the available lists above based on intent match.
+4. For FeaturedCategoryRail: pick 1-2 categories from the available list above, set contentId=null, set propsOverrides.handle to the category handle.
+5. Rank all choices by priority, with priority 1 being the strongest match.
+6. For each choice, write reasoning that references specific profile data and content.
 
 ## Output Format
-{"components":[{"component":"HeroBanner","contentId":"...","priority":1,"propsOverrides":{},"reasoning":"..."}],"overallReasoning":"..."}
+{"components":[{"component":"HeroBanner","contentId":"abc123","priority":1,"propsOverrides":{},"reasoning":"..."},{"component":"FeaturedCategoryRail","contentId":null,"priority":2,"propsOverrides":{"handle":"mens"},"reasoning":"..."}],"overallReasoning":"..."}
 
 Your JSON:
 `.trim();
@@ -285,17 +333,31 @@ export async function aiPersonalize(
     };
   }
 
-  const dominantIntent =
-    classifyIntent(profile)[0]?.intent ?? 'exploring';
+  const intentScores = classifyIntent(profile);
+  const dominantIntent = intentScores[0]?.intent ?? 'exploring';
+  const confidence = intentScores[0]?.score ?? 0;
   const content = await fetchAvailableContent(context.surface);
+
+  const relevantCategories = getRelevantCategories(profile);
+  const categoryProducts: Record<string, ProductPreview[]> = {};
+  for (const cat of relevantCategories.slice(0, 3)) {
+    try {
+      categoryProducts[cat.handle] = await fetchCategoryProducts(cat.handle);
+    } catch (err) {
+      logger.warn({ err, category: cat.handle }, 'AI agent: Medusa fetch failed for category');
+    }
+  }
+
   const prompt = buildPrompt(
     profile,
     context,
     content,
-    dominantIntent
+    dominantIntent,
+    relevantCategories,
+    categoryProducts
   );
 
-  const systemPrompt = 'You are a personalization AI for an e-commerce storefront. Your job is to select the most relevant hero banners for a given shopper based on their profile, current intent, and available content.\n\nDecision criteria (in priority order):\n1. Intent match — Does the banner match the user\'s current shopping intent?\n2. Category relevance — Does the banner content match the user\'s category interests?\n3. Lifecycle fit — Is the banner appropriate for the user\'s relationship stage (new vs loyal)?\n4. Urgency/relevance — Does the user need reassurance, a deal, or a purchase nudge?\n\nOutput ONLY valid JSON. No markdown fences. No commentary outside the JSON.';
+  const systemPrompt = 'You are a personalization AI for an e-commerce storefront. Your job is to select the most relevant components (HeroBanner, FeaturedCategoryRail, PersonalizedBanner) for a given shopper based on their profile, current intent, and available content.\n\nDecision criteria (in priority order):\n1. Intent match — Does the component type match the user\'s current shopping intent?\n2. Category relevance — For FeaturedCategoryRail: does the category match user interests? For banners: does the content match?\n3. Lifecycle fit — Is the component appropriate for the user\'s relationship stage (new vs loyal)?\n4. Engagement — Does the user need browsing prompts (FeatureCategoryRail), reassurance (PersonalizedBanner), or purchase nudges (HeroBanner)?\n\nOutput ONLY valid JSON. No markdown fences. No commentary outside the JSON.';
 
   async function attemptProvider(
     providerCall: (prompt: string, system: string) => Promise<string>,
@@ -330,12 +392,26 @@ export async function aiPersonalize(
           content.map((c) => [String(c._id), c])
         );
 
-        const fieldsToSpread = HERO_BANNER_FIELDS;
-
         const resolved = validated.components.map((c) => {
           const contentEntry = c.contentId ? contentById.get(c.contentId) : undefined;
+
+          if (c.component === 'FeaturedCategoryRail') {
+            const handle = (c.propsOverrides?.handle as string) || '';
+            const products = categoryProducts[handle] ?? [];
+            return {
+              ...c,
+              propsOverrides: {
+                title: relevantCategories.find(cat => cat.handle === handle)?.name ?? '',
+                handle,
+                products,
+                ...(c.propsOverrides ?? {}),
+              },
+            };
+          }
+
+          const fieldsToSpread = COMPONENT_CONTENT_FIELDS[c.component];
           const contentFields: Record<string, unknown> = {};
-          if (contentEntry) {
+          if (contentEntry && fieldsToSpread) {
             for (const f of fieldsToSpread) {
               if (contentEntry[f] != null) {
                 contentFields[f] = contentEntry[f];
@@ -355,7 +431,7 @@ export async function aiPersonalize(
           })),
           reasoning: validated.overallReasoning,
           intent: dominantIntent,
-          confidence: 0.7,
+          confidence,
         };
       } catch (err) {
         lastParseError = err;
@@ -370,27 +446,27 @@ export async function aiPersonalize(
     throw lastParseError;
   }
 
-  let groqError: unknown;
+  let primaryError: unknown;
 
-  // Try Groq first
+  // Try primary AI provider first
   try {
-    return await attemptProvider(callChatCompletion, 'Groq');
+    return await attemptProvider(callChatCompletion, 'primary');
   } catch (err) {
-    groqError = err;
-    logger.warn({ err }, 'AI provider (Groq) failed, trying Gemini');
+    primaryError = err;
+    logger.warn({ err }, 'Primary AI provider failed, trying Gemini fallback');
   }
 
   // Fallback to Gemini
   if (!features.aiGeminiApiKey()) {
-    throw groqError;
+    throw primaryError;
   }
 
   try {
     return await attemptProvider(callGeminiCompletion, 'Gemini');
   } catch (geminiError) {
     throw new AggregateError(
-      [groqError, geminiError],
-      'Both AI providers failed: Groq then Gemini'
+      [primaryError, geminiError],
+      'Both AI providers failed: primary then Gemini'
     );
   }
 }

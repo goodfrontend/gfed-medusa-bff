@@ -16,8 +16,28 @@ export const componentRegistry: ComponentDefinition[] = [
     requiredProps: ['headline', 'imageUrl', 'cta'],
     optionalProps: ['badge', 'subheadline', 'backgroundColor'],
     contentTypes: ['heroBanner'],
-    surfaces: ['homepage_hero'],
+    surfaces: ['homepage_hero', 'homepage'],
     weight: 1.0,
+  },
+  {
+    name: 'FeaturedCategoryRail',
+    description:
+      'Product rail showing items for a specific category. Data sourced from Medusa.',
+    requiredProps: ['title', 'handle'],
+    optionalProps: ['products'],
+    contentTypes: [],
+    surfaces: ['homepage'],
+    weight: 0.9,
+  },
+  {
+    name: 'PersonalizedBanner',
+    description:
+      'Segment-aware promotional banner with title, eyebrow, description, image, buttons.',
+    requiredProps: ['title'],
+    optionalProps: ['eyebrow', 'description', 'image', 'buttons', 'secondaryBanners', 'showPoweredBy'],
+    contentTypes: ['homeBanner'],
+    surfaces: ['homepage'],
+    weight: 0.8,
   },
 ];
 

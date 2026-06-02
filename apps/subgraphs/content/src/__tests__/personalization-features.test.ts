@@ -5,6 +5,22 @@ const mockStore = new Map<string, string>();
 const mockSetStore = new Map<string, Set<string>>();
 const mockListStore = new Map<string, string[]>();
 
+jest.mock('../services/personalization/sanity-content', () => {
+  const actual = jest.requireActual('../services/personalization/sanity-content');
+  return {
+    ...actual,
+    fetchAvailableContent: jest.fn().mockResolvedValue([]),
+  };
+});
+
+jest.mock('../services/medusa/category-products', () => ({
+  fetchCategoryProducts: jest.fn().mockResolvedValue([
+    { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '' },
+    { id: 'prod-2', title: 'Test Product 2', handle: 'test-product-2', thumbnail: '' },
+    { id: 'prod-3', title: 'Test Product 3', handle: 'test-product-3', thumbnail: '' },
+  ]),
+}));
+
 jest.mock('../config/personalization-redis', () => {
   const mockRedisModule = {
     isOpen: true,
@@ -501,9 +517,7 @@ describe('Decision engine', () => {
   });
 
   it('should include exploring in propsOverrides for exploring intent', () => {
-    const { buildPropsOverrides } = jest.requireActual('../services/personalization/decision-engine');
-
-    // Can't easily test private function, mock it
+    // Test exercises the decision engine end-to-end for homepage_hero
     const profile: UserProfile = {
       deviceId: 'test',
       categoryAffinity: {},
@@ -647,5 +661,348 @@ describe('submitConversion resolver', () => {
     expect(profile.lastPurchaseDate).toBeGreaterThan(0);
     expect(profile.totalSpent).toBe(0);
     expect(profile.averageOrderValue).toBe(0);
+  });
+});
+
+describe('Component Registry — homepage surface', () => {
+  it('getComponentsForSurface("homepage") returns HeroBanner, FeaturedCategoryRail, PersonalizedBanner', () => {
+    const { getComponentsForSurface } = require('../config/component-registry');
+    const components = getComponentsForSurface('homepage');
+    expect(components.map(c => c.name)).toEqual(
+      expect.arrayContaining(['HeroBanner', 'FeaturedCategoryRail', 'PersonalizedBanner'])
+    );
+    expect(components).toHaveLength(3);
+  });
+
+  it('getComponentsForSurface("homepage_hero") still returns just HeroBanner', () => {
+    const { getComponentsForSurface } = require('../config/component-registry');
+    const components = getComponentsForSurface('homepage_hero');
+    expect(components.map(c => c.name)).toEqual(['HeroBanner']);
+    expect(components).toHaveLength(1);
+  });
+});
+
+describe('Decision engine — homepage surface', () => {
+  const { makeDecision } = require('../services/personalization/decision-engine');
+
+  const newUserProfile: UserProfile = {
+    deviceId: 'test-homepage-new',
+    categoryAffinity: {},
+    priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+    intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+    engagementLevel: 'LOW',
+    lifecycleStage: 'NEW',
+    firstSeen: Date.now(),
+    lastSeen: Date.now(),
+    sessionCount: 1,
+    orderCount: 0,
+    recentProducts: [],
+    lastSignalTimestamp: 0,
+    lastPurchaseDate: 0,
+    totalSpent: 0,
+    averageOrderValue: 0,
+  };
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+  });
+
+  it('makeDecision("homepage", newUserProfile) returns cold-start components', async () => {
+    const decision = await makeDecision(newUserProfile, { surface: 'homepage' });
+
+    expect(decision.components).toHaveLength(4);
+
+    const componentNames = decision.components.map(c => c.component);
+    expect(componentNames).toContain('HeroBanner');
+    expect(componentNames).toContain('PersonalizedBanner');
+    expect(componentNames.filter(n => n === 'FeaturedCategoryRail')).toHaveLength(2);
+
+    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
+    const handles = rails.map(r => r.propsOverrides.handle);
+    expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
+
+    for (const comp of decision.components) {
+      expect(comp.reasoning).toBeTruthy();
+      expect(typeof comp.priority).toBe('number');
+      expect(comp.priority).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('profile with high mens category affinity scores Mens rail higher than Womens', async () => {
+    const profile: UserProfile = {
+      ...newUserProfile,
+      deviceId: 'test-mens-affinity',
+      categoryAffinity: {
+        mens: { views: 10, purchases: 2, lastViewed: Date.now(), score: 4.5 },
+        womens: { views: 1, purchases: 0, lastViewed: Date.now() - 86400000, score: 0.2 },
+      },
+    };
+
+    const decision = await makeDecision(profile, { surface: 'homepage' });
+
+    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
+    expect(rails).toHaveLength(2);
+
+    const sortedByPriority = rails.sort((a, b) => a.priority - b.priority);
+    expect(sortedByPriority[0].propsOverrides.handle).toBe('mens');
+  });
+
+  it('buy_now intent boosts HeroBanner score above FeaturedCategoryRail', async () => {
+    const profile: UserProfile = {
+      ...newUserProfile,
+      deviceId: 'test-buynow',
+      lifecycleStage: 'LOYAL',
+      engagementLevel: 'HIGH',
+      cartActivity: 3,
+      intentSignals: { researchDepth: 0.5, checkoutConversion: 0.9 },
+      categoryAffinity: {
+        mens: { views: 5, purchases: 1, lastViewed: Date.now(), score: 2.0 },
+      },
+    };
+
+    const decision = await makeDecision(profile, { surface: 'homepage' });
+
+    expect(decision.reasoning.intent).toBe('buy_now');
+
+    const sorted = [...decision.components].sort((a, b) => a.priority - b.priority);
+    expect(sorted[0].component).toBe('HeroBanner');
+  });
+
+  it('HeroBanner propsOverrides.cta.label is populated for buy_now intent', async () => {
+    const profile: UserProfile = {
+      ...newUserProfile,
+      deviceId: 'test-buynow-cta',
+      lifecycleStage: 'LOYAL',
+      engagementLevel: 'HIGH',
+      cartActivity: 3,
+      intentSignals: { researchDepth: 0.5, checkoutConversion: 0.9 },
+      categoryAffinity: {
+        mens: { views: 5, purchases: 1, lastViewed: Date.now(), score: 2.0 },
+      },
+    };
+
+    const decision = await makeDecision(profile, { surface: 'homepage' });
+
+    const hero = decision.components.find(c => c.component === 'HeroBanner');
+    expect(hero).toBeDefined();
+    expect(
+      typeof (hero!.propsOverrides.cta as Record<string, unknown> | undefined)?.label
+    ).toBe('string');
+    expect(
+      ((hero!.propsOverrides.cta as Record<string, unknown> | undefined)?.label as string).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('throws when all component data sources fail and selected becomes empty', async () => {
+    const componentDef: import('../config/component-registry').ComponentDefinition = {
+      name: 'FeaturedCategoryRail',
+      description: 'Test rail',
+      requiredProps: ['title', 'handle'],
+      optionalProps: ['products'],
+      contentTypes: [],
+      surfaces: ['homepage'],
+      weight: 0.9,
+    };
+    const registry = require('../config/component-registry');
+    const medusaModule = require('../services/medusa/category-products');
+
+    const compSpy = jest.spyOn(registry, 'getComponentsForSurface').mockReturnValue([componentDef]);
+    const origImpl = (medusaModule.fetchCategoryProducts as jest.Mock).getMockImplementation();
+    (medusaModule.fetchCategoryProducts as jest.Mock).mockRejectedValue(new Error('Medusa unavailable'));
+
+    try {
+      await expect(makeDecision(newUserProfile, { surface: 'homepage' })).rejects.toThrow('all component data sources failing');
+    } finally {
+      compSpy.mockRestore();
+      (medusaModule.fetchCategoryProducts as jest.Mock).mockImplementation(origImpl);
+    }
+  });
+});
+
+describe('AI Agent — homepage surface', () => {
+  const { aiPersonalize } = require('../services/personalization/ai-agent');
+
+  const newUserProfile: UserProfile = {
+    deviceId: 'test-ai-homepage',
+    categoryAffinity: {},
+    priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+    intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+    engagementLevel: 'LOW',
+    lifecycleStage: 'NEW',
+    firstSeen: Date.now(),
+    lastSeen: Date.now(),
+    sessionCount: 1,
+    orderCount: 0,
+    recentProducts: [],
+    lastSignalTimestamp: 0,
+    lastPurchaseDate: 0,
+    totalSpent: 0,
+    averageOrderValue: 0,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockAiJsonResponse = {
+    components: [
+      {
+        component: 'HeroBanner',
+        contentId: null,
+        priority: 1,
+        propsOverrides: {},
+        reasoning: 'Hero banner for cold start',
+      },
+      {
+        component: 'FeaturedCategoryRail',
+        contentId: null,
+        priority: 2,
+        propsOverrides: { handle: 'mens' },
+        reasoning: 'Mens category rail for browsing',
+      },
+      {
+        component: 'PersonalizedBanner',
+        contentId: null,
+        priority: 3,
+        propsOverrides: {},
+        reasoning: 'Welcome banner for new user',
+      },
+    ],
+    overallReasoning: 'Cold start user — hero, mens rail, welcome banner',
+  };
+
+  it('aiPersonalize returns mixed component types for homepage surface', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mockAiJsonResponse) } }],
+      }),
+    } as Response);
+
+    const result = await aiPersonalize(newUserProfile, {
+      surface: 'homepage',
+      page: '/',
+    });
+
+    fetchSpy.mockRestore();
+
+    expect(result.components).toHaveLength(3);
+    const names = result.components.map(c => c.component);
+    expect(names).toContain('HeroBanner');
+    expect(names).toContain('FeaturedCategoryRail');
+    expect(names).toContain('PersonalizedBanner');
+
+    const rail = result.components.find(c => c.component === 'FeaturedCategoryRail');
+    expect(rail).toBeDefined();
+    expect(rail!.propsOverrides.products).toBeDefined();
+    expect(Array.isArray(rail!.propsOverrides.products)).toBe(true);
+  });
+
+  it('AI prompt includes category options and product data in fetch body', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mockAiJsonResponse) } }],
+      }),
+    } as Response);
+
+    await aiPersonalize(newUserProfile, {
+      surface: 'homepage',
+      page: '/',
+    });
+
+    const fetchCalls = fetchSpy.mock.calls;
+    fetchSpy.mockRestore();
+
+    expect(fetchCalls.length).toBeGreaterThan(0);
+    const bodyStr = fetchCalls[0][1]?.body as string;
+    const body = JSON.parse(bodyStr);
+    const promptText: string = body.messages[1].content;
+
+    expect(promptText).toContain('FeaturedCategoryRail');
+    expect(promptText).toContain('PersonalizedBanner');
+    expect(promptText).toContain('Available Categories');
+    expect(promptText).toContain('mens');
+    expect(promptText).toContain('womens');
+    expect(promptText).toContain('Test Product');
+  });
+
+  it('AI response validation works with mixed component types', async () => {
+    const mixedResponse = {
+      components: [
+        { component: 'FeaturedCategoryRail', contentId: null, priority: 1, propsOverrides: { handle: 'womens' }, reasoning: 'Top category is womens' },
+        { component: 'HeroBanner', contentId: null, priority: 2, propsOverrides: {}, reasoning: 'Hero' },
+      ],
+      overallReasoning: 'Mixed types',
+    };
+
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mixedResponse) } }],
+      }),
+    } as Response);
+
+    const result = await aiPersonalize(newUserProfile, {
+      surface: 'homepage',
+      page: '/',
+    });
+
+    fetchSpy.mockRestore();
+
+    expect(result.components).toHaveLength(2);
+    expect(result.components[0].component).toBe('FeaturedCategoryRail');
+    expect(result.components[0].propsOverrides.handle).toBe('womens');
+    expect(result.components[0].reasoning).toBe('Top category is womens');
+    expect(result.components[1].component).toBe('HeroBanner');
+    expect(result.intent).toBeDefined();
+    expect(typeof result.confidence).toBe('number');
+    expect(result.confidence).toBeGreaterThan(0);
+  });
+});
+
+describe('Decision Fallback — homepage surface', () => {
+  it('getFallbackDecision("homepage") returns 4 components', () => {
+    const { getFallbackDecision } = require('../services/personalization/decision-fallback');
+
+    const decision = getFallbackDecision('homepage', 'test-device-fallback');
+
+    expect(decision.components).toHaveLength(4);
+
+    const names = decision.components.map(c => c.component);
+    expect(names).toContain('HeroBanner');
+    expect(names).toContain('PersonalizedBanner');
+    expect(names.filter(n => n === 'FeaturedCategoryRail')).toHaveLength(2);
+
+    const hero = decision.components.find(c => c.component === 'HeroBanner');
+    expect(hero!.priority).toBe(1);
+    expect(hero!.propsOverrides.headline).toBe('Welcome');
+
+    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
+    const handles = rails.map(r => r.propsOverrides.handle);
+    expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
+    for (const r of rails) {
+      expect(r.propsOverrides.products).toEqual([]);
+    }
+
+    expect(decision.reasoning.modelVersion).toBe('fallback');
+
+    const banner = decision.components.find(c => c.component === 'PersonalizedBanner');
+    expect(banner).toBeDefined();
+    expect(typeof (banner!.propsOverrides.title as string)).toBe('string');
+    expect((banner!.propsOverrides.title as string).length).toBeGreaterThan(0);
+  });
+
+  it('getFallbackDecision("homepage_hero") still works', () => {
+    const { getFallbackDecision } = require('../services/personalization/decision-fallback');
+
+    const decision = getFallbackDecision('homepage_hero', 'test-device-fallback');
+
+    expect(decision.components).toHaveLength(1);
+    expect(decision.components[0].component).toBe('HeroBanner');
+    expect(decision.components[0].propsOverrides.headline).toBe('Welcome');
   });
 });

@@ -21,6 +21,40 @@ const FALLBACKS: Record<
       score: 0,
     },
   ],
+  homepage: [
+    {
+      component: 'PersonalizedBanner',
+      contentId: null,
+      propsOverrides: { title: 'Welcome to Our Store', eyebrow: 'New Arrivals', description: 'Discover our latest collection', showPoweredBy: true },
+      priority: 1,
+      reasoning: 'Default promotional banner',
+      score: 0,
+    },
+    {
+      component: 'FeaturedCategoryRail',
+      contentId: null,
+      propsOverrides: { title: "Men's", handle: 'mens', products: [] },
+      priority: 2,
+      reasoning: "Men's category rail",
+      score: 0,
+    },
+    {
+      component: 'FeaturedCategoryRail',
+      contentId: null,
+      propsOverrides: { title: "Women's", handle: 'womens', products: [] },
+      priority: 3,
+      reasoning: "Women's category rail",
+      score: 0,
+    },
+    {
+      component: 'HeroBanner',
+      contentId: null,
+      propsOverrides: { headline: 'Welcome', cta: 'Shop Now' },
+      priority: 4,
+      reasoning: 'Generic hero',
+      score: 0,
+    }
+  ],
 };
 
 export function getFallbackDecision(
