@@ -51,6 +51,16 @@ export interface UserProfile {
 }
 
 export class FeatureStore {
+  async getCachedDecision(
+    deviceId: string,
+    surface: string
+  ): Promise<Record<string, unknown> | null> {
+    const redis = await getPersonalizationRedis();
+    const key = `${DECISION_KEY}${deviceId}:${surface}`;
+    const raw = await redis.get(key);
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+  }
+
   async getOrCreate(deviceId: string): Promise<UserProfile> {
     const redis = await getPersonalizationRedis();
     const data = await redis.get(`${PROFILE_KEY}${deviceId}`);
@@ -140,11 +150,9 @@ export class FeatureStore {
     ttl = 300
   ): Promise<void> {
     const redis = await getPersonalizationRedis();
-    await redis.set(
-      `${DECISION_KEY}${deviceId}:${surface}`,
-      JSON.stringify(result),
-      { EX: ttl }
-    );
+    const key = `${DECISION_KEY}${deviceId}:${surface}`;
+    await redis.set(key, JSON.stringify(result), { EX: ttl });
+    await redis.sAdd(`${KEY_NS}decision-surfaces:${deviceId}`, surface);
   }
 
   async recordDecision(
