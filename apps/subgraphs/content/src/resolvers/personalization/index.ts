@@ -19,7 +19,7 @@ import {
   MEDUSA_PERSONALIZATION_PATHS,
   postPersonalizationWebhook,
 } from '../../services/personalization/medusa-webhooks';
-import { resolveAudienceFields } from '../../services/personalization/sanity-content';
+
 import { signalProcessor } from '../../services/personalization/signal-ingestion';
 
 function requireAuthorizedClient(context: ContentGraphQLContext): void {
@@ -79,19 +79,14 @@ function toPersonalizationResult(
   servedAt: string
 ): PersonalizationResult {
   return {
-    components: decision.components.map((c) => {
-      const overrides = c.propsOverrides
-        ? resolveAudienceFields(c.propsOverrides)
-        : {};
-      return {
-        component: c.component,
-        contentId: c.contentId ?? null,
-        propsOverrides: overrides,
-        priority: c.priority,
-        reasoning: c.reasoning,
-        score: c.score,
-      };
-    }),
+    components: decision.components.map((c) => ({
+      component: c.component,
+      contentId: c.contentId ?? null,
+      propsOverrides: c.propsOverrides ?? {},
+      priority: c.priority,
+      reasoning: c.reasoning,
+      score: c.score,
+    })),
     reasoning: {
       intent: decision.reasoning.intent,
       confidence: decision.reasoning.confidence,
@@ -119,17 +114,21 @@ export const personalizationResolvers: Resolvers = {
         'Signal received'
       );
 
-      await signalProcessor.process(
-        {
-          type: input.type,
-          payload: (input.payload ?? {}) as Record<string, unknown>,
-          url: input.url ?? '',
-          timestamp: input.timestamp ?? Date.now(),
-        },
-        deviceId,
-        input.userId
-      );
-      return { success: true, profileUpdated: true };
+      signalProcessor
+          .process(
+            {
+              type: input.type,
+              payload: (input.payload ?? {}) as Record<string, unknown>,
+              url: input.url ?? '',
+              timestamp: input.timestamp ?? Date.now(),
+            },
+            deviceId,
+            input.userId
+          )
+          .catch((err) =>
+            logger.error({ err, signalType: input.type }, 'Signal processing failed')
+          );
+        return { success: true, profileUpdated: true };
     },
 
     submitConversion: async (_parent, { input }, context) => {
@@ -214,9 +213,11 @@ export const personalizationResolvers: Resolvers = {
         });
       }
 
-      await postPersonalizationWebhook(
+      postPersonalizationWebhook(
         MEDUSA_PERSONALIZATION_PATHS.conversions,
         payload
+      ).catch((err) =>
+        logger.error({ err, deviceId: input.deviceId }, 'Conversion webhook failed')
       );
 
       await featureStore.recordOutcome(input.deviceId, 'checkout', [], true);
@@ -239,6 +240,14 @@ export const personalizationResolvers: Resolvers = {
       let profile = await featureStore.getOrCreate(deviceId);
       if (userId) {
         profile = await featureStore.mergeToUser(deviceId, userId);
+      }
+
+      const cached = await featureStore.getCachedDecision(
+        deviceId,
+        input.surface
+      );
+      if (cached) {
+        return cached as PersonalizationResult;
       }
 
       const ctx = {
@@ -297,12 +306,16 @@ export const personalizationResolvers: Resolvers = {
           servedAt: result.servedAt,
         };
         await featureStore.cacheDecision(deviceId, input.surface, toCache, 300);
-        await featureStore.recordDecision(deviceId, {
-          surface: input.surface,
-          components: result.components,
-          intent: result.reasoning.intent,
-          modelVersion: result.reasoning.modelVersion,
-        });
+        featureStore
+          .recordDecision(deviceId, {
+            surface: input.surface,
+            components: result.components,
+            intent: result.reasoning.intent,
+            modelVersion: result.reasoning.modelVersion,
+          })
+          .catch((err) =>
+            logger.error({ err }, 'Failed to record decision')
+          );
 
         return result;
       } catch (err) {
