@@ -79,8 +79,6 @@ export class SignalProcessor {
     this.updateProfile(profile, signal);
     await featureStore.save(profile);
 
-    await this.invalidateDecisionCache(deviceId);
-
     logger.info(
       {
         signalType: signal.type,
@@ -90,20 +88,6 @@ export class SignalProcessor {
       'Signal processed'
     );
     return true;
-  }
-
-  private async invalidateDecisionCache(deviceId: string): Promise<void> {
-    const redis = await getPersonalizationRedis();
-    const surfacesSetKey = `${KEY_NS}decision-surfaces:${deviceId}`;
-    const surfaces = await redis.sMembers(surfacesSetKey);
-    if (surfaces.length === 0) {
-      return;
-    }
-    const keysToDelete = surfaces.map(
-      (s: string) => `${KEY_NS}decision:${deviceId}:${s}`
-    );
-    keysToDelete.push(surfacesSetKey);
-    await redis.del(keysToDelete);
   }
 
   /**

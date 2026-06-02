@@ -5,7 +5,6 @@ import {
 
 const PROFILE_KEY = `${KEY_NS}profile:`;
 const PROFILE_TTL = 90 * 24 * 60 * 60;
-const DECISION_KEY = `${KEY_NS}decision:`;
 const OUTCOMES_KEY = `${KEY_NS}outcomes:`;
 
 export interface CategoryAffinityEntry {
@@ -51,16 +50,6 @@ export interface UserProfile {
 }
 
 export class FeatureStore {
-  async getCachedDecision(
-    deviceId: string,
-    surface: string
-  ): Promise<Record<string, unknown> | null> {
-    const redis = await getPersonalizationRedis();
-    const key = `${DECISION_KEY}${deviceId}:${surface}`;
-    const raw = await redis.get(key);
-    return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
-  }
-
   async getOrCreate(deviceId: string): Promise<UserProfile> {
     const redis = await getPersonalizationRedis();
     const data = await redis.get(`${PROFILE_KEY}${deviceId}`);
@@ -141,31 +130,6 @@ export class FeatureStore {
       EX: PROFILE_TTL,
     });
     return profile;
-  }
-
-  async cacheDecision(
-    deviceId: string,
-    surface: string,
-    result: unknown,
-    ttl = 300
-  ): Promise<void> {
-    const redis = await getPersonalizationRedis();
-    const key = `${DECISION_KEY}${deviceId}:${surface}`;
-    await redis.set(key, JSON.stringify(result), { EX: ttl });
-    await redis.sAdd(`${KEY_NS}decision-surfaces:${deviceId}`, surface);
-  }
-
-  async recordDecision(
-    deviceId: string,
-    decision: Record<string, unknown>
-  ): Promise<void> {
-    const redis = await getPersonalizationRedis();
-    const key = `${KEY_NS}history:${deviceId}`;
-    await redis.rPush(
-      key,
-      JSON.stringify({ ...decision, timestamp: Date.now() })
-    );
-    await redis.lTrim(key, -100, -1);
   }
 
   async recordOutcome(

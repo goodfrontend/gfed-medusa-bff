@@ -242,14 +242,6 @@ export const personalizationResolvers: Resolvers = {
         profile = await featureStore.mergeToUser(deviceId, userId);
       }
 
-      const cached = await featureStore.getCachedDecision(
-        deviceId,
-        input.surface
-      );
-      if (cached) {
-        return cached as PersonalizationResult;
-      }
-
       const ctx = {
         surface: input.surface,
         page: input.page,
@@ -298,24 +290,6 @@ export const personalizationResolvers: Resolvers = {
           { ...decision, servedAt },
           servedAt
         );
-
-        const toCache = {
-          components: result.components,
-          reasoning: result.reasoning,
-          cacheKey: result.cacheKey,
-          servedAt: result.servedAt,
-        };
-        await featureStore.cacheDecision(deviceId, input.surface, toCache, 300);
-        featureStore
-          .recordDecision(deviceId, {
-            surface: input.surface,
-            components: result.components,
-            intent: result.reasoning.intent,
-            modelVersion: result.reasoning.modelVersion,
-          })
-          .catch((err) =>
-            logger.error({ err }, 'Failed to record decision')
-          );
 
         return result;
       } catch (err) {
