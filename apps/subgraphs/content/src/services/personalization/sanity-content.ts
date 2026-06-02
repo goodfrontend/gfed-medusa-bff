@@ -2,6 +2,33 @@ import { getComponentsForSurface } from '../../config/component-registry';
 import { sanityClient } from '../../config/sanity';
 import { logger } from './logger';
 
+const SANITY_CACHE_TTL = 5 * 60 * 1000;
+const sanityContentCache = new Map<
+  string,
+  { data: Array<Record<string, unknown>>; expiresAt: number }
+>();
+
+function getCachedContent(
+  surface: string
+): Array<Record<string, unknown>> | null {
+  const entry = sanityContentCache.get(surface);
+  if (entry && entry.expiresAt > Date.now()) {
+    return entry.data;
+  }
+  sanityContentCache.delete(surface);
+  return null;
+}
+
+function setCachedContent(
+  surface: string,
+  data: Array<Record<string, unknown>>
+): void {
+  sanityContentCache.set(surface, {
+    data,
+    expiresAt: Date.now() + SANITY_CACHE_TTL,
+  });
+}
+
 /**
  * Recursively walks Sanity data and resolves audience-enabled fields
  * ({ _type: "audience*", default: ..., segments: [...] }) to their flat `.default` value.
@@ -66,12 +93,19 @@ export async function fetchAvailableContent(
       cta
     }`;
 
+  const cached = getCachedContent(surface);
+  if (cached) {
+    return cached;
+  }
+
   try {
     const result = await sanityClient.fetch(query, {
       contentTypes,
       surface,
     });
-    return (result as Array<Record<string, unknown>>) ?? [];
+    const data = (result as Array<Record<string, unknown>>) ?? [];
+    setCachedContent(surface, data);
+    return data;
   } catch (error) {
     logger.error({ err: error }, 'Sanity fetch failed');
     return [];
