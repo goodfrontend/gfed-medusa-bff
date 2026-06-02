@@ -27,6 +27,7 @@
     "@graphql-tools/merge": "^9.1.5",
     "@graphql-tools/url-loader": "^8.0.2",
     "@as-integrations/express5": "^1.1.2",
+    "@medusajs/js-sdk": "^2.10.3",
     "@sanity/client": "^7.12.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",

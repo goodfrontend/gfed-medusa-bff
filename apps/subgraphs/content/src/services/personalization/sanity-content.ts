@@ -90,7 +90,12 @@ export async function fetchAvailableContent(
       "badge": coalesce(badge.default, badge, ""),
       "subheadline": coalesce(subheadline.default, subheadline, ""),
       "backgroundColor": coalesce(backgroundColor.default, backgroundColor, ""),
-      cta
+      cta,
+      "eyebrow": coalesce(eyebrow.default, eyebrow, ""),
+      "description": coalesce(description.default, description, ""),
+      buttons,
+      secondaryBanners,
+      showPoweredBy
     }`;
 
   const cached = getCachedContent(surface);
