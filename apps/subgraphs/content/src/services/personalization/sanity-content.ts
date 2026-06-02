@@ -94,7 +94,17 @@ export async function fetchAvailableContent(
       "eyebrow": coalesce(eyebrow.default, eyebrow, ""),
       "description": coalesce(description.default, description, ""),
       buttons,
-      secondaryBanners,
+      secondaryBanners[] {
+        "title": coalesce(title.default, title, ""),
+        "description": coalesce(description.default, description, ""),
+        "showPoweredBy": coalesce(showPoweredBy, false),
+        "imageUrl": coalesce(image.default.asset->url, image.asset->url, ""),
+        button {
+          label,
+          href,
+          openInNewTab
+        }
+      },
       showPoweredBy
     }`;
 

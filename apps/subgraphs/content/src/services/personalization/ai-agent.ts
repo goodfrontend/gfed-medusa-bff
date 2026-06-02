@@ -239,7 +239,7 @@ function buildPrompt(
     : 'No categories available';
 
   return `
-You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select the best 1-4 components for the ${context.surface} surface. You may choose from: HeroBanner, FeaturedCategoryRail, PersonalizedBanner.
+You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select as many relevant components as possible (3-8) for the ${context.surface} surface. Fill the page with variety — use all available component types. You may choose from: HeroBanner, FeaturedCategoryRail, PersonalizedBanner.
 
 ## Classified Intent
 ${intent} — ${intentDescription[intent] ?? 'General browsing'}
@@ -289,14 +289,14 @@ ${categorySection}
 
 ## Decision Steps
 1. Analyze the user's classified intent and profile — what do they need right now?
-2. Decide which component types to use and how many of each (1-4 total).
+2. Decide which component types to use and how many of each (aim for 3-8 total). Use all available component types unless they are clearly irrelevant.
 3. For HeroBanner and PersonalizedBanner: select contentId from the available lists above based on intent match.
 4. For FeaturedCategoryRail: pick 1-2 categories from the available list above, set contentId=null, set propsOverrides.handle to the category handle.
 5. Rank all choices by priority, with priority 1 being the strongest match.
 6. For each choice, write reasoning that references specific profile data and content.
 
 ## Output Format
-{"components":[{"component":"HeroBanner","contentId":"abc123","priority":1,"propsOverrides":{},"reasoning":"..."},{"component":"FeaturedCategoryRail","contentId":null,"priority":2,"propsOverrides":{"handle":"mens"},"reasoning":"..."}],"overallReasoning":"..."}
+{"components":[{"component":"HeroBanner","contentId":"abc123","priority":1,"propsOverrides":{},"reasoning":"..."},{"component":"PersonalizedBanner","contentId":"xyz789","priority":2,"propsOverrides":{},"reasoning":"..."},{"component":"FeaturedCategoryRail","contentId":null,"priority":3,"propsOverrides":{"handle":"mens"},"reasoning":"..."},{"component":"FeaturedCategoryRail","contentId":null,"priority":4,"propsOverrides":{"handle":"womens"},"reasoning":"..."}],"overallReasoning":"..."}
 
 Your JSON:
 `.trim();

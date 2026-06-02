@@ -978,7 +978,7 @@ describe('Decision Fallback — homepage surface', () => {
     expect(names.filter(n => n === 'FeaturedCategoryRail')).toHaveLength(2);
 
     const hero = decision.components.find(c => c.component === 'HeroBanner');
-    expect(hero!.priority).toBe(1);
+    expect(hero!.priority).toBe(4);
     expect(hero!.propsOverrides.headline).toBe('Welcome');
 
     const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
