@@ -38,7 +38,7 @@ export function getFallbackDecision(
       score: r.score,
     })),
     reasoning: {
-      intent: 'browse',
+      intent: 'exploring',
       confidence: 0,
       factors: ['Fallback: no data or engine error'],
       modelVersion: 'fallback',

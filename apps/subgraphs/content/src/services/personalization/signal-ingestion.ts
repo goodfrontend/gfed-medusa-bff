@@ -1,12 +1,4 @@
-import {
-  KEY_NS,
-  getPersonalizationRedis,
-} from '../../config/personalization-redis';
 import { type UserProfile, featureStore } from './feature-store';
-import {
-  MEDUSA_PERSONALIZATION_PATHS,
-  postPersonalizationWebhook,
-} from './medusa-webhooks';
 import { logger } from './logger';
 
 const MAX_RESEARCH_DEPTH = 5;
@@ -18,9 +10,8 @@ const MAX_RECENT_PRODUCTS = 20;
 const RESEARCH_DEPTH_QUERY_INCREMENT = 0.15;
 const RESEARCH_DEPTH_CLICK_INCREMENT = 0.1;
 const DEAL_CLICK_RATE_INCREMENT = 0.12;
-const CART_TO_PURCHASE_INCREMENT = 0.15;
-const CART_TO_PURCHASE_DECREMENT = 0.1;
-const RETURN_RATE_INCREMENT = 0.08;
+const CHECKOUT_CONVERSION_INCREMENT = 0.15;
+const CHECKOUT_CONVERSION_DECREMENT = 0.1;
 const PRODUCT_VIEW_WEIGHT = 0.25;
 const DEFAULT_CATEGORY_VIEW_WEIGHT = 0.15;
 const PURCHASE_BONUS = 0.5;
@@ -56,19 +47,13 @@ export class SignalProcessor {
     deviceId: string,
     userId?: string | null
   ): Promise<boolean> {
-    const redis = await getPersonalizationRedis();
-    const queueKey = `${KEY_NS}signal-queue:${deviceId}`;
-    const queueLength = await redis.rPush(queueKey, JSON.stringify(signal));
-    await redis.sAdd(`${KEY_NS}signal-queue:index`, deviceId);
-
     logger.info(
       {
         signalType: signal.type,
         deviceId,
         userId: userId ?? undefined,
-        queueLength,
       },
-      'Signal queued'
+      'Signal received'
     );
 
     if (userId) {
@@ -88,54 +73,6 @@ export class SignalProcessor {
       'Signal processed'
     );
     return true;
-  }
-
-  /**
-   * Sends queued signals to Medusa. Only clears the queue after a successful POST.
-   */
-  async flushQueue(deviceId: string): Promise<number> {
-    const redis = await getPersonalizationRedis();
-    const key = `${KEY_NS}signal-queue:${deviceId}`;
-    const count = await redis.lLen(key);
-    if (count === 0) {
-      return 0;
-    }
-
-    const items = await redis.lRange(key, 0, -1);
-    const signals: QueuedSignal[] = items.map(
-      (i) => JSON.parse(i) as QueuedSignal
-    );
-
-    const profile = await featureStore.getOrCreate(deviceId);
-    const userId = profile.userId;
-
-    const payload = {
-      signals: signals.map((s) => ({
-        device_id: deviceId,
-        ...(userId ? { user_id: userId } : {}),
-        signal_type: s.type,
-        payload: s.payload ?? {},
-        ...(s.url ? { url: s.url } : {}),
-        timestamp: s.timestamp,
-      })),
-    };
-
-    await postPersonalizationWebhook(
-      MEDUSA_PERSONALIZATION_PATHS.signals,
-      payload
-    );
-    await redis.del(key);
-
-    const uniqueSignalTypes = [...new Set(signals.map((s) => s.type))];
-    logger.info(
-      {
-        deviceId,
-        signalCount: signals.length,
-        signalTypes: uniqueSignalTypes,
-      },
-      'Queue flushed'
-    );
-    return signals.length;
   }
 
   private recalculateDerived(profile: UserProfile): void {
@@ -166,6 +103,13 @@ export class SignalProcessor {
   }
 
   private updateProfile(profile: UserProfile, signal: QueuedSignal): void {
+    if (profile.intentSignals.researchDepth > 0 && profile.lastSignalTimestamp) {
+      const hoursSinceLastSignal = (signal.timestamp - profile.lastSignalTimestamp) / (1000 * 60 * 60);
+      const daysSinceLastSignal = hoursSinceLastSignal / 24;
+      const decayFactor = Math.pow(0.95, Math.max(0, daysSinceLastSignal));
+      profile.intentSignals.researchDepth = profile.intentSignals.researchDepth * decayFactor;
+    }
+
     switch (signal.type) {
       case 'PRODUCT_HOVER':
       case 'QUICK_VIEW_OPEN':
@@ -227,27 +171,18 @@ export class SignalProcessor {
         break;
 
       case 'CHECKOUT_START':
-        profile.intentSignals.cartToPurchaseRate = Math.min(
+        profile.intentSignals.checkoutConversion = Math.min(
           1,
-          (profile.intentSignals.cartToPurchaseRate ?? 0) + CART_TO_PURCHASE_INCREMENT
+          (profile.intentSignals.checkoutConversion ?? 0) + CHECKOUT_CONVERSION_INCREMENT
         );
         break;
 
       case 'CHECKOUT_ABANDON':
-        profile.intentSignals.cartToPurchaseRate = Math.max(
+        profile.intentSignals.checkoutConversion = Math.max(
           0,
-          (profile.intentSignals.cartToPurchaseRate ?? 0) - CART_TO_PURCHASE_DECREMENT
+          (profile.intentSignals.checkoutConversion ?? 0) - CHECKOUT_CONVERSION_DECREMENT
         );
         profile.hesitationCount = (profile.hesitationCount ?? 0) + 1;
-        break;
-
-      case 'RETURN_POLICY_VIEW':
-      case 'TRUST_BADGE_CLICK':
-      case 'SECURITY_INFO_VIEW':
-        profile.intentSignals.returnRate = Math.min(
-          1,
-          (profile.intentSignals.returnRate ?? 0) + RETURN_RATE_INCREMENT
-        );
         break;
 
       case 'PAGE_VIEW':
@@ -262,11 +197,19 @@ export class SignalProcessor {
           if (!profile.recentProducts) profile.recentProducts = [];
           profile.recentProducts.push({
             productId,
+            productName: String(signal.payload.name ?? signal.payload.productName ?? ''),
             category,
             price: signal.payload.price as number | undefined,
             timestamp: signal.timestamp,
           });
           profile.recentProducts = profile.recentProducts.slice(-MAX_RECENT_PRODUCTS);
+
+          if (typeof signal.payload.price === 'number') {
+            const ps = profile.priceSensitivity;
+            ps.avgViewedPrice = ps.avgViewedPrice === 0
+              ? signal.payload.price
+              : (ps.avgViewedPrice + signal.payload.price) / 2;
+          }
         }
         break;
       }
@@ -283,6 +226,48 @@ export class SignalProcessor {
       profile.sessionCount = (profile.sessionCount ?? 0) + 1;
     } else if (signal.type === 'PAGE_VIEW' && !profile.lastSignalTimestamp) {
       profile.sessionCount = (profile.sessionCount ?? 0) + 1;
+    }
+
+    if (!profile.currentSession ||
+        (profile.lastSignalTimestamp &&
+         signal.timestamp - profile.lastSignalTimestamp > SESSION_TIMEOUT_MS)) {
+      profile.currentSession = {
+        startedAt: signal.timestamp,
+        signalCount: 0,
+        searches: [],
+        productViews: [],
+        cartAdds: 0,
+      };
+    }
+
+    if (profile.currentSession) {
+      profile.currentSession.signalCount = (profile.currentSession.signalCount ?? 0) + 1;
+
+      if (signal.type === 'SEARCH_QUERY') {
+        const query = String(signal.payload.query ?? '');
+        if (query) {
+          profile.currentSession.searches.unshift(query);
+          profile.currentSession.searches = profile.currentSession.searches.slice(0, 5);
+        }
+      }
+
+      if (signal.type === 'PRODUCT_VIEW') {
+        const productId = String(signal.payload.productId ?? '');
+        if (productId) {
+          profile.currentSession.productViews.unshift(productId);
+          profile.currentSession.productViews = profile.currentSession.productViews.slice(0, 10);
+        }
+        const category = String(signal.payload.category ?? '');
+        if (category) {
+          if (!profile.currentSession.firstCategory) {
+            profile.currentSession.firstCategory = category;
+          }
+        }
+      }
+
+      if (signal.type === 'CART_ADD') {
+        profile.currentSession.cartAdds = (profile.currentSession.cartAdds ?? 0) + 1;
+      }
     }
 
     profile.lastSignalTimestamp = Math.max(

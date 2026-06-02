@@ -15,10 +15,6 @@ import {
 } from '../../services/personalization/feature-store';
 import { classifyIntent } from '../../services/personalization/intent-classifier';
 import { logger } from '../../services/personalization/logger';
-import {
-  MEDUSA_PERSONALIZATION_PATHS,
-  postPersonalizationWebhook,
-} from '../../services/personalization/medusa-webhooks';
 
 import { signalProcessor } from '../../services/personalization/signal-ingestion';
 
@@ -150,6 +146,11 @@ export const personalizationResolvers: Resolvers = {
       profile.orderCount = (profile.orderCount ?? 0) + 1;
       profile.cartActivity = 0;
       profile.hesitationCount = 0;
+      profile.lastPurchaseDate = Date.now();
+      if (input.amount) {
+        profile.totalSpent = (profile.totalSpent ?? 0) + input.amount;
+        profile.averageOrderValue = (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
+      }
       const totalOrders = profile.orderCount;
 
       if (totalOrders >= 5) {
@@ -187,40 +188,6 @@ export const personalizationResolvers: Resolvers = {
       }
       await featureStore.save(profile);
 
-      const payload: Record<string, unknown> = {
-        device_id: input.deviceId,
-        order_id: input.orderId,
-        amount: input.amount,
-        currency: input.currency,
-      };
-      if (input.userId) {
-        payload.user_id = input.userId;
-      }
-      if (input.checkoutSignalId) {
-        payload.checkout_signal_id = input.checkoutSignalId;
-      }
-      if (input.items?.length) {
-        payload.items = input.items.map((item) => {
-          const row: Record<string, unknown> = {
-            product_id: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          };
-          if (item.variantId) {
-            row.variant_id = item.variantId;
-          }
-          return row;
-        });
-      }
-
-      postPersonalizationWebhook(
-        MEDUSA_PERSONALIZATION_PATHS.conversions,
-        payload
-      ).catch((err) =>
-        logger.error({ err, deviceId: input.deviceId }, 'Conversion webhook failed')
-      );
-
-      await featureStore.recordOutcome(input.deviceId, 'checkout', [], true);
       return true;
     },
   },
@@ -314,7 +281,7 @@ export const personalizationResolvers: Resolvers = {
       }
       const intentScores = classifyIntent(profile);
       return {
-        intent: intentScores[0]?.intent ?? 'browse',
+        intent: intentScores[0]?.intent ?? 'exploring',
         confidence: intentScores[0]?.score ?? 0,
         factors: intentScores
           .slice(0, 3)

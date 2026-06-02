@@ -50,8 +50,7 @@ type PriceSensitivity {
 
 type IntentSignals {
   researchDepth: Float!
-  cartToPurchaseRate: Float!
-  returnRate: Float!
+  checkoutConversion: Float!
 }
 
 enum EngagementLevel {
@@ -74,9 +73,19 @@ type SearchHistoryEntry {
 
 type ProductViewEntry {
   productId: String!
+  productName: String!
   category: String!
   price: Float
   timestamp: Float!
+}
+
+type CurrentSession {
+  startedAt: Float!
+  signalCount: Int!
+  searches: [String!]!
+  productViews: [String!]!
+  cartAdds: Int!
+  firstCategory: String
 }
 
 type UserProfile {
@@ -96,6 +105,10 @@ type UserProfile {
   hesitationCount: Int
   recentProducts: [ProductViewEntry!]
   lastSignalTimestamp: Float
+  currentSession: CurrentSession
+  lastPurchaseDate: Float
+  totalSpent: Float
+  averageOrderValue: Float
 }
 
 type PersonalizedComponent {
