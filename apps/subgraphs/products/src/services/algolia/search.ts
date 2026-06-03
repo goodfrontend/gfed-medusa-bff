@@ -54,8 +54,8 @@ export class AlgoliaSearchService {
         page: response?.page ?? 0,
         totalPages: response?.nbPages ?? 0,
         hitsPerPage: response?.hitsPerPage ?? 20,
-        query: response?.query,
-        params: response?.params,
+        query: response?.query ?? '',
+        params: response?.params ?? '',
         items: response?.hits.map(
           ({ id, title, description, thumbnail, handle }) => ({
             id,

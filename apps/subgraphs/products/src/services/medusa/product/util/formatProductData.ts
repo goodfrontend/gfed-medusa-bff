@@ -1,4 +1,4 @@
-import type { Product } from '@graphql/generated/graphql';
+import type { Product, ProductVariant } from '@graphql/generated/graphql';
 import { HttpTypes } from '@medusajs/types';
 
 export const formatProductData = (
@@ -76,7 +76,7 @@ export const formatProductData = (
           priceType: priceListType,
         },
       }),
-    } as unknown as Product['variants'][number];
+    } as unknown as ProductVariant;
   });
 
   return {
@@ -103,14 +103,15 @@ export const formatProductData = (
         }
       : null,
     categories: categories?.map(
-      ({ id, name, description, handle, thumbnail, metadata }) => {
+      ({ id, name, description, handle, metadata }) => {
         const catMetadata = metadata as Record<string, unknown> | null | undefined;
+        const catThumbnail = catMetadata?.thumbnail;
         return {
           id,
           name,
           description,
           handle,
-          thumbnail: thumbnail ?? (catMetadata?.thumbnail != null ? String(catMetadata.thumbnail) : null),
+          thumbnail: catThumbnail != null ? String(catThumbnail) : null,
         };
       }
     ) || [],

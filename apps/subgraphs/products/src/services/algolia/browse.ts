@@ -150,7 +150,7 @@ export class AlgoliaBrowseService {
         page: response?.page ?? 0,
         totalPages: response?.nbPages ?? 0,
         hitsPerPage: response?.hitsPerPage ?? 20,
-        params: response?.params,
+        params: response?.params ?? '',
         facets: response?.facets ?? null,
         items: response?.hits.map((hit) => ({
           id: hit.id,
