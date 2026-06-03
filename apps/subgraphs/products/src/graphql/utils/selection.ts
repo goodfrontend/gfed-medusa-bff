@@ -43,6 +43,7 @@ export function getSelectedPaths(
   if (!info) return selectedPaths;
 
   const nodes = fieldNodes ?? info.fieldNodes;
+  if (!nodes) return selectedPaths;
 
   nodes.forEach((fieldNode) => {
     fieldNode.selectionSet?.selections.forEach((selection) =>
