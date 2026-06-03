@@ -12,7 +12,7 @@ import { expressMiddleware } from '@as-integrations/express5';
 
 import { logger } from './services/logger';
 
-import type { ContentGraphQLContext } from './graphql/context';
+import { type ContentGraphQLContext, createContext } from './graphql/context';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
 
@@ -51,12 +51,8 @@ async function startServer() {
   app.use(
     '/graphql',
     expressMiddleware(server, {
-      context: async ({ req }): Promise<ContentGraphQLContext> => ({
-        req,
-        isAuthorizedClient:
-          !!process.env.BFF_API_KEY &&
-          req.headers['x-bff-api-key'] === process.env.BFF_API_KEY,
-      }),
+      context: async ({ req }): Promise<ContentGraphQLContext> =>
+        createContext(req),
     })
   );
 

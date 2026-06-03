@@ -183,7 +183,6 @@ export type Query = {
 
 export type QueryDebugIntentArgs = {
   deviceId: Scalars['String']['input'];
-  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type QueryHomeBannerArgs = {
@@ -194,12 +193,10 @@ export type QueryHomeBannerArgs = {
 export type QueryPersonalizeArgs = {
   deviceId: Scalars['String']['input'];
   input: SurfaceContext;
-  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type QueryUserProfileArgs = {
   deviceId: Scalars['String']['input'];
-  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SanityImage = {
@@ -236,7 +233,6 @@ export type SignalInput = {
   timestamp?: InputMaybe<Scalars['Float']['input']>;
   type: SignalType;
   url?: InputMaybe<Scalars['String']['input']>;
-  userId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SignalType =
