@@ -668,7 +668,7 @@ describe('Component Registry — homepage surface', () => {
   it('getComponentsForSurface("homepage") returns HeroBanner, FeaturedCategoryRail, PersonalizedBanner', () => {
     const { getComponentsForSurface } = require('../config/component-registry');
     const components = getComponentsForSurface('homepage');
-    expect(components.map(c => c.name)).toEqual(
+    expect(components.map((c: { name: string }) => c.name)).toEqual(
       expect.arrayContaining(['HeroBanner', 'FeaturedCategoryRail', 'PersonalizedBanner'])
     );
     expect(components).toHaveLength(3);
@@ -677,7 +677,7 @@ describe('Component Registry — homepage surface', () => {
   it('getComponentsForSurface("homepage_hero") still returns just HeroBanner', () => {
     const { getComponentsForSurface } = require('../config/component-registry');
     const components = getComponentsForSurface('homepage_hero');
-    expect(components.map(c => c.name)).toEqual(['HeroBanner']);
+    expect(components.map((c: { name: string }) => c.name)).toEqual(['HeroBanner']);
     expect(components).toHaveLength(1);
   });
 });
@@ -715,13 +715,13 @@ describe('Decision engine — homepage surface', () => {
 
     expect(decision.components).toHaveLength(4);
 
-    const componentNames = decision.components.map(c => c.component);
+    const componentNames = decision.components.map((c: { component: string }) => c.component);
     expect(componentNames).toContain('HeroBanner');
     expect(componentNames).toContain('PersonalizedBanner');
-    expect(componentNames.filter(n => n === 'FeaturedCategoryRail')).toHaveLength(2);
+    expect(componentNames.filter((n: string) => n === 'FeaturedCategoryRail')).toHaveLength(2);
 
-    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
-    const handles = rails.map(r => r.propsOverrides.handle);
+    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
+    const handles = rails.map((r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle);
     expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
 
     for (const comp of decision.components) {
@@ -743,10 +743,10 @@ describe('Decision engine — homepage surface', () => {
 
     const decision = await makeDecision(profile, { surface: 'homepage' });
 
-    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
+    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
     expect(rails).toHaveLength(2);
 
-    const sortedByPriority = rails.sort((a, b) => a.priority - b.priority);
+    const sortedByPriority = rails.sort((a: { priority: number }, b: { priority: number }) => a.priority - b.priority);
     expect(sortedByPriority[0].propsOverrides.handle).toBe('mens');
   });
 
@@ -767,7 +767,7 @@ describe('Decision engine — homepage surface', () => {
 
     expect(decision.reasoning.intent).toBe('buy_now');
 
-    const sorted = [...decision.components].sort((a, b) => a.priority - b.priority);
+    const sorted = [...decision.components].sort((a: { priority: number }, b: { priority: number }) => a.priority - b.priority);
     expect(sorted[0].component).toBe('HeroBanner');
   });
 
@@ -786,7 +786,7 @@ describe('Decision engine — homepage surface', () => {
 
     const decision = await makeDecision(profile, { surface: 'homepage' });
 
-    const hero = decision.components.find(c => c.component === 'HeroBanner');
+    const hero = decision.components.find((c: { component: string }) => c.component === 'HeroBanner');
     expect(hero).toBeDefined();
     expect(
       typeof (hero!.propsOverrides.cta as Record<string, unknown> | undefined)?.label
@@ -890,12 +890,12 @@ describe('AI Agent — homepage surface', () => {
     fetchSpy.mockRestore();
 
     expect(result.components).toHaveLength(3);
-    const names = result.components.map(c => c.component);
+    const names = result.components.map((c: { component: string }) => c.component);
     expect(names).toContain('HeroBanner');
     expect(names).toContain('FeaturedCategoryRail');
     expect(names).toContain('PersonalizedBanner');
 
-    const rail = result.components.find(c => c.component === 'FeaturedCategoryRail');
+    const rail = result.components.find((c: { component: string }) => c.component === 'FeaturedCategoryRail');
     expect(rail).toBeDefined();
     expect(rail!.propsOverrides.products).toBeDefined();
     expect(Array.isArray(rail!.propsOverrides.products)).toBe(true);
@@ -918,8 +918,8 @@ describe('AI Agent — homepage surface', () => {
     fetchSpy.mockRestore();
 
     expect(fetchCalls.length).toBeGreaterThan(0);
-    const bodyStr = fetchCalls[0][1]?.body as string;
-    const body = JSON.parse(bodyStr);
+    const fetchBody = (fetchCalls[0]?.[1] as Record<string, unknown> | undefined)?.body;
+    const body = JSON.parse(typeof fetchBody === 'string' ? fetchBody : '');
     const promptText: string = body.messages[1].content;
 
     expect(promptText).toContain('FeaturedCategoryRail');
@@ -972,17 +972,17 @@ describe('Decision Fallback — homepage surface', () => {
 
     expect(decision.components).toHaveLength(4);
 
-    const names = decision.components.map(c => c.component);
+    const names = decision.components.map((c: { component: string }) => c.component);
     expect(names).toContain('HeroBanner');
     expect(names).toContain('PersonalizedBanner');
-    expect(names.filter(n => n === 'FeaturedCategoryRail')).toHaveLength(2);
+    expect(names.filter((n: string) => n === 'FeaturedCategoryRail')).toHaveLength(2);
 
-    const hero = decision.components.find(c => c.component === 'HeroBanner');
+    const hero = decision.components.find((c: { component: string }) => c.component === 'HeroBanner');
     expect(hero!.priority).toBe(4);
     expect(hero!.propsOverrides.headline).toBe('Welcome');
 
-    const rails = decision.components.filter(c => c.component === 'FeaturedCategoryRail');
-    const handles = rails.map(r => r.propsOverrides.handle);
+    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
+    const handles = rails.map((r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle);
     expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
     for (const r of rails) {
       expect(r.propsOverrides.products).toEqual([]);
@@ -990,7 +990,7 @@ describe('Decision Fallback — homepage surface', () => {
 
     expect(decision.reasoning.modelVersion).toBe('fallback');
 
-    const banner = decision.components.find(c => c.component === 'PersonalizedBanner');
+    const banner = decision.components.find((c: { component: string }) => c.component === 'PersonalizedBanner');
     expect(banner).toBeDefined();
     expect(typeof (banner!.propsOverrides.title as string)).toBe('string');
     expect((banner!.propsOverrides.title as string).length).toBeGreaterThan(0);
