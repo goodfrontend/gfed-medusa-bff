@@ -5,8 +5,8 @@ import { features } from '../../config/features';
 import type { UserProfile } from './feature-store';
 import { classifyIntent } from './intent-classifier';
 import { fetchAvailableContent } from './sanity-content';
-import { type ProductPreview, fetchCategoryProducts } from '../medusa/category-products';
-import { type CategoryOption, getRelevantCategories } from './decision-engine';
+import { type CategoryOption, type ProductPreview, fetchCategoryProducts } from '../medusa/category-products';
+import { getRelevantCategories } from './decision-engine';
 import { logger } from './logger';
 
 const AI_REQUEST_TIMEOUT_MS = 15_000;
@@ -206,8 +206,9 @@ function buildPrompt(
     contentByType[t].push(c);
   }
 
-  const heroBannerSection = (contentByType['heroBanner'] ?? []).length > 0
-    ? contentByType['heroBanner']
+  const heroBanners = contentByType['heroBanner'] ?? [];
+  const heroBannerSection = heroBanners.length > 0
+    ? heroBanners
         .map((c) => {
           const present = HERO_BANNER_FIELDS
             .filter((f) => c[f] != null)
@@ -218,8 +219,9 @@ function buildPrompt(
         .join('\n')
     : 'None available';
 
-  const homeBannerSection = (contentByType['homeBanner'] ?? []).length > 0
-    ? contentByType['homeBanner']
+  const homeBanners = contentByType['homeBanner'] ?? [];
+  const homeBannerSection = homeBanners.length > 0
+    ? homeBanners
         .map((c) => {
           const present = HOME_BANNER_FIELDS
             .filter((f) => c[f] != null)

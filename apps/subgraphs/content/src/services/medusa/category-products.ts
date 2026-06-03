@@ -23,7 +23,10 @@ export async function fetchCategoryProducts(handle: string): Promise<ProductPrev
 
   if (!product_categories?.length) return [];
 
-  const categoryId = product_categories[0].id;
+  const firstCategory = product_categories[0];
+  if (!firstCategory) return [];
+
+  const categoryId = firstCategory.id;
 
   const { products } = await medusa.store.product.list({
     category_id: [categoryId],
