@@ -103,7 +103,7 @@ describe('AlgoliaBrowseService', () => {
       });
 
       expect(result.items).toHaveLength(3);
-      expect(result.items[0].handle).toBe('test-product-1');
+      expect(result.items[0]!.handle).toBe('test-product-1');
     });
 
     it('should browse /categories requests and map Algolia hits to PLP items', async () => {
@@ -201,7 +201,7 @@ describe('AlgoliaBrowseService', () => {
       });
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].collectionHandle).toBe('featured-products');
+      expect(result.items[0]!.collectionHandle).toBe('featured-products');
       expect(result.facets).toEqual({
         collection_handle: {
           'featured-products': 1,
@@ -228,7 +228,7 @@ describe('AlgoliaBrowseService', () => {
       });
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].handle).toBe('test-product-1');
+      expect(result.items[0]!.handle).toBe('test-product-1');
     });
 
     it('should support countryCode through a custom market-key resolver', async () => {

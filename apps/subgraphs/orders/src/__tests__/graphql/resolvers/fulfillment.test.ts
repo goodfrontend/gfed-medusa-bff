@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { fulfillmentResolvers } from '@graphql/resolvers/fulfillment';
 import { transformShippingOption } from '@graphql/resolvers/fulfillment/util/transforms';
 import { GraphQLContext } from '@graphql/types/context';
@@ -44,7 +46,8 @@ describe('Fulfillment Resolvers', () => {
       const result = await fulfillmentResolvers.Query.shippingOptions(
         {},
         { cartId: 'cart_123' },
-        testContext
+        testContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toEqual([transformShippingOption(mockOption)]);
     });
@@ -55,7 +58,8 @@ describe('Fulfillment Resolvers', () => {
         fulfillmentResolvers.Query.shippingOptions(
           {},
           { cartId: 'cart_123' },
-          testContext
+          testContext,
+          {} as GraphQLResolveInfo
         )
       ).rejects.toThrow();
     });

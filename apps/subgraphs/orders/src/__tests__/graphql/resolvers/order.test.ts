@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { normalizeOrder } from '@graphql/resolvers/cart/util/transforms';
 import { orderResolvers } from '@graphql/resolvers/order';
 import { GraphQLContext } from '@graphql/types/context';
@@ -42,7 +44,8 @@ describe('Order Resolvers', () => {
       const result = await orderResolvers.Query.order(
         {},
         { id: 'order_01JABCDE123456' },
-        testContext
+        testContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toEqual(normalizeOrder(mockOrder));
     });
@@ -50,7 +53,7 @@ describe('Order Resolvers', () => {
     it('should throw on order not found', async () => {
       server.use(orderNotFoundHandler);
       await expect(
-        orderResolvers.Query.order({}, { id: 'bad_id' }, testContext)
+        orderResolvers.Query.order({}, { id: 'bad_id' }, testContext, {} as GraphQLResolveInfo)
       ).rejects.toThrow();
     });
 
@@ -60,7 +63,8 @@ describe('Order Resolvers', () => {
         orderResolvers.Query.order(
           {},
           { id: 'order_01JABCDE123456' },
-          testContext
+          testContext,
+          {} as GraphQLResolveInfo
         )
       ).rejects.toThrow();
     });
@@ -72,7 +76,8 @@ describe('Order Resolvers', () => {
       const result = await orderResolvers.Query.orders(
         {},
         { limit: 10, offset: 0 },
-        testContext
+        testContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toMatchObject({
         orders: [normalizeOrder(mockOrder)],
@@ -83,7 +88,7 @@ describe('Order Resolvers', () => {
     });
 
     it('should work without pagination params', async () => {
-      const result = await orderResolvers.Query.orders({}, {}, testContext);
+      const result = await orderResolvers.Query.orders({}, {}, testContext, {} as GraphQLResolveInfo);
       expect(result).toMatchObject({ count: 1 });
     });
   });
