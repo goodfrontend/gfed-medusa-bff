@@ -1,9 +1,12 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { productResolvers } from '@graphql/resolvers/product';
 import { GraphQLContext } from '@graphql/types/context';
 import Medusa from '@medusajs/js-sdk';
 import { mockMedusa } from '@mocks/medusa';
 import { createMockProduct, createMockProducts } from '@mocks/products';
 import { AlgoliaBrowseService } from '@services/algolia/browse';
+import type { BrowseProductsSort } from '@services/algolia/browse';
 import { AlgoliaSearchService } from '@services/algolia/search';
 import { CategoryService } from '@services/medusa/category';
 import { CollectionService } from '@services/medusa/collection';
@@ -75,7 +78,8 @@ describe('Product Resolvers', () => {
       let result = await productResolvers.Query.products(
         {},
         { limit: 20, offset: 0 },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
 
       expect(mockProductService.getProducts).toHaveBeenCalledTimes(1);
@@ -99,7 +103,8 @@ describe('Product Resolvers', () => {
       result = await productResolvers.Query.products(
         {},
         { limit: 20, offset: 0 },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toEqual(emptyResponse);
 
@@ -108,7 +113,8 @@ describe('Product Resolvers', () => {
       result = await productResolvers.Query.products(
         {},
         { limit: 20, offset: 0 },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toEqual(originalProducts);
 
@@ -123,7 +129,8 @@ describe('Product Resolvers', () => {
       result = await productResolvers.Query.products(
         {},
         { limit: 20, offset: 0 },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
       expect(result.products).toHaveLength(1000);
     });
@@ -140,7 +147,8 @@ describe('Product Resolvers', () => {
       const result = await productResolvers.Query.products(
         {},
         { limit: 20, offset: 0, order: '-created_at' },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
 
       expect(mockProductService.getProducts).toHaveBeenCalledWith(
@@ -169,7 +177,8 @@ describe('Product Resolvers', () => {
           productResolvers.Query.products(
             {},
             { limit: 20, offset: 0 },
-            mockContext
+            mockContext,
+            {} as GraphQLResolveInfo
           )
         ).rejects.toThrow(errorMessage);
 
@@ -190,7 +199,8 @@ describe('Product Resolvers', () => {
       let result = await productResolvers.Query.product(
         {},
         { id: 'prod_123' },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
 
       expect(mockProductService.getProduct).toHaveBeenCalledWith(
@@ -234,7 +244,8 @@ describe('Product Resolvers', () => {
       result = await productResolvers.Query.product(
         {},
         { id: 'prod_complex' },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
 
       expect(result).toEqual(complexMockProduct);
@@ -253,7 +264,8 @@ describe('Product Resolvers', () => {
       result = await productResolvers.Query.product(
         {},
         { id: 'nonexistent' },
-        mockContext
+        mockContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toBeNull();
     });
@@ -539,7 +551,7 @@ describe('Product Resolvers', () => {
 
       const browseArgs = {
         regionId: 'reg_123',
-        sort: 'PRICE_ASC',
+        sort: 'PRICE_ASC' as BrowseProductsSort,
         hitsPerPage: 24,
         page: 0,
         filters: 'category_handles:rings',
@@ -590,7 +602,7 @@ describe('Product Resolvers', () => {
 
       const browseArgs = {
         countryCode: 'us',
-        sort: 'LATEST',
+        sort: 'LATEST' as BrowseProductsSort,
       };
 
       const result = await productResolvers.Query.browseProducts(

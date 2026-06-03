@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { cartResolvers } from '@graphql/resolvers/cart';
 import {
   normalizeCart,
@@ -53,7 +55,8 @@ describe('Cart Resolvers', () => {
       const result = await cartResolvers.Query.cart(
         {},
         { id: 'cart_123' },
-        testContext
+        testContext,
+        {} as GraphQLResolveInfo
       );
       expect(result).toEqual(normalizeCart(mockCart));
       expect(result?.items?.[0]?.variant).toEqual({
@@ -94,14 +97,14 @@ describe('Cart Resolvers', () => {
       server.use(internalServerErrorHandler);
 
       await expect(
-        cartResolvers.Query.cart({}, { id: 'cart_123' }, testContext)
+        cartResolvers.Query.cart({}, { id: 'cart_123' }, testContext, {} as GraphQLResolveInfo)
       ).rejects.toThrow();
     });
 
     it('should throw on cart not found', async () => {
       server.use(invalidCartHandler);
       await expect(
-        cartResolvers.Query.cart({}, { id: 'invalid_cart' }, testContext)
+        cartResolvers.Query.cart({}, { id: 'invalid_cart' }, testContext, {} as GraphQLResolveInfo)
       ).rejects.toThrow();
     });
   });

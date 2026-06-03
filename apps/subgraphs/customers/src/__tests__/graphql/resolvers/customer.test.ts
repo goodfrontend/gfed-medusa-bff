@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 import { customerResolvers } from '@graphql/resolvers/customers';
 import { transformCustomer } from '@graphql/resolvers/util/transforms';
 import { GraphQLContext } from '@graphql/types/context';
@@ -51,7 +53,7 @@ describe('Customer Resolvers', () => {
     it('should retrieve the current customer successfully', async () => {
       const mockCustomer = createMockCustomer();
 
-      const result = await customerResolvers.Query.me({}, {}, testContext);
+      const result = await customerResolvers.Query.me({}, {}, testContext, {} as GraphQLResolveInfo);
 
       expect(result).toEqual(transformCustomer(mockCustomer));
     });
@@ -60,7 +62,7 @@ describe('Customer Resolvers', () => {
       server.use(internalServerErrorHandler);
 
       await expect(
-        customerResolvers.Query.me({}, {}, testContext)
+        customerResolvers.Query.me({}, {}, testContext, {} as GraphQLResolveInfo)
       ).rejects.toThrow();
     });
   });
