@@ -144,29 +144,22 @@ export class FeatureStore {
   }
 
   async mergeToUser(deviceId: string, userId: string): Promise<UserProfile> {
-    const profile = await this.getOrCreate(deviceId);
     const redis = await getPersonalizationRedis();
     const existingDeviceId = await redis.get(`${KEY_NS}user-device:${userId}`);
 
     if (existingDeviceId && existingDeviceId !== deviceId) {
       const existingProfile = await this.getOrCreate(existingDeviceId);
-      for (const [cat, data] of Object.entries(
-        existingProfile.categoryAffinity
-      )) {
-        if (!profile.categoryAffinity[cat]) {
-          profile.categoryAffinity[cat] = { ...data };
-        } else {
-          const a = profile.categoryAffinity[cat];
-          a.views += data.views;
-          a.purchases += data.purchases;
-          a.lastViewed = Math.max(a.lastViewed, data.lastViewed);
-          a.score = Math.max(a.score, data.score);
-        }
-      }
-      profile.sessionCount += existingProfile.sessionCount;
-      profile.orderCount =
-        (profile.orderCount ?? 0) + (existingProfile.orderCount ?? 0);
+      existingProfile.deviceId = deviceId;
+      existingProfile.userId = userId;
+      await this.save(existingProfile);
+      await redis.del(`${PROFILE_KEY}${existingDeviceId}`);
+      await redis.set(`${KEY_NS}user-device:${userId}`, deviceId, {
+        EX: PROFILE_TTL,
+      });
+      return existingProfile;
     }
+
+    const profile = await this.getOrCreate(deviceId);
     profile.userId = userId;
     await this.save(profile);
     await redis.set(`${KEY_NS}user-device:${userId}`, deviceId, {
@@ -186,13 +179,13 @@ export class FeatureStore {
       return profile;
     }
 
-    const medusa = new Medusa({
-      baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
-      publishableKey: process.env.MEDUSA_PUBLISHABLE_KEY || '',
-      auth: { type: 'jwt', jwtTokenStorageMethod: 'nostore' },
-    });
-
     try {
+      const medusa = new Medusa({
+        baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
+        publishableKey: process.env.MEDUSA_PUBLISHABLE_KEY || '',
+        auth: { type: 'jwt', jwtTokenStorageMethod: 'nostore' },
+      });
+
       await medusa.client.setToken(medusaToken);
 
       const { orders, count } = await medusa.store.order.list({
@@ -233,9 +226,7 @@ export class FeatureStore {
       );
     } catch (err) {
       logger.warn({ err, deviceId }, 'Failed to sync order history from Medusa');
-      profile.ordersSynced = Date.now();
       profile.orderCount = profile.orderCount ?? 0;
-      await this.save(profile);
     }
 
     return profile;

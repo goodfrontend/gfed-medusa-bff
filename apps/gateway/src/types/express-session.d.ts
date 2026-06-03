@@ -3,6 +3,7 @@ import 'express-session';
 declare module 'express-session' {
   interface SessionData {
     authId?: string;
+    customerId?: string;
     isCustomerLoggedIn?: boolean;
     medusaToken?: string;
     pkce?: {

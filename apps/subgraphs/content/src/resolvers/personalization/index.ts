@@ -190,7 +190,7 @@ export const personalizationResolvers: Resolvers = {
           topCategory[1].purchases += 1;
         }
       }
-      const effectiveUserId = context.authId ?? input.userId;
+      const effectiveUserId = context.customerId ?? context.authId ?? input.userId;
       if (effectiveUserId) {
         profile.userId = effectiveUserId;
         await featureStore.mergeToUser(input.deviceId, effectiveUserId);
@@ -204,8 +204,9 @@ export const personalizationResolvers: Resolvers = {
   Query: {
     userProfile: async (_parent, { deviceId }, context) => {
       requireAuthorizedClient(context);
-      if (context.authId?.trim()) {
-        const byUser = await featureStore.getByUserId(context.authId);
+      const effectiveUserId = context.customerId?.trim() || context.authId?.trim();
+      if (effectiveUserId) {
+        const byUser = await featureStore.getByUserId(effectiveUserId);
         if (byUser) return byUser;
       }
       return featureStore.getOrCreate(deviceId);
@@ -217,8 +218,9 @@ export const personalizationResolvers: Resolvers = {
       if (context.medusaToken) {
         profile = await featureStore.syncOrderHistory(deviceId, context.medusaToken, profile);
       }
-      if (context.authId) {
-        profile = await featureStore.mergeToUser(deviceId, context.authId);
+      const effectiveUserId = context.customerId ?? context.authId;
+      if (effectiveUserId) {
+        profile = await featureStore.mergeToUser(deviceId, effectiveUserId);
       }
 
       const ctx = {
@@ -287,9 +289,10 @@ export const personalizationResolvers: Resolvers = {
       if (context.medusaToken) {
         await featureStore.syncOrderHistory(deviceId, context.medusaToken);
       }
+      const effectiveUserId = context.customerId?.trim() || context.authId?.trim();
       let profile =
-        context.authId != null && context.authId !== ''
-          ? await featureStore.getByUserId(context.authId)
+        effectiveUserId
+          ? await featureStore.getByUserId(effectiveUserId)
           : null;
       if (!profile) {
         profile = await featureStore.getOrCreate(deviceId);

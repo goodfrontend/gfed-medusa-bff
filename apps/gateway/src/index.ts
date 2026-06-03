@@ -338,7 +338,9 @@ async function startServer() {
       });
     }
 
-    const medusaToken = (medusaRes as { token?: string }).token;
+    const medusaResBody = medusaRes as { token?: string; customer?: { id: string } };
+    const medusaToken = medusaResBody.token;
+    const medusaCustomerId = medusaResBody.customer?.id;
 
     const cookies = (req.headers.cookie || '').split(';').reduce(
       (acc, cookie) => {
@@ -359,6 +361,7 @@ async function startServer() {
 
     // Add session information + persist
     req.session.authId = sub;
+    req.session.customerId = medusaCustomerId;
     req.session.user = { email: emailAddress, firstName, lastName };
     req.session.medusaToken = medusaToken as string;
     req.session.isCustomerLoggedIn = true;

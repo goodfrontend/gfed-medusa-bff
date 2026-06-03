@@ -2,6 +2,7 @@ import type express from 'express';
 
 type SessionData = {
   authId?: string;
+  customerId?: string;
   medusaToken?: string;
 };
 
@@ -12,6 +13,7 @@ function parseSessionData(req: express.Request): SessionData {
     const parsed = JSON.parse(raw);
     return {
       authId: parsed.authId,
+      customerId: parsed.customerId,
       medusaToken: parsed.medusaToken,
     };
   } catch {
@@ -23,6 +25,7 @@ export type ContentGraphQLContext = {
   req: express.Request;
   isAuthorizedClient: boolean;
   authId?: string;
+  customerId?: string;
   medusaToken?: string;
 };
 
@@ -34,6 +37,7 @@ export function createContext(req: express.Request): ContentGraphQLContext {
       !!process.env.BFF_API_KEY &&
       req.headers['x-bff-api-key'] === process.env.BFF_API_KEY,
     authId: session.authId,
+    customerId: session.customerId,
     medusaToken: session.medusaToken,
   };
 }
