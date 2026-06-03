@@ -29,7 +29,6 @@ enum SignalType {
 
 input SignalInput {
   deviceId: String
-  userId: String
   type: SignalType!
   payload: JSON
   url: String
@@ -168,8 +167,8 @@ extend type Mutation {
 }
 
 extend type Query {
-  personalize(input: SurfaceContext!, deviceId: String!, userId: String): PersonalizationResult! @cacheControl(maxAge: 0)
-  userProfile(deviceId: String!, userId: String): UserProfile!
+  personalize(input: SurfaceContext!, deviceId: String!): PersonalizationResult! @cacheControl(maxAge: 0)
+  userProfile(deviceId: String!): UserProfile!
   """Debug: current rule-based intent classification."""
-  debugIntent(deviceId: String!, userId: String): DecisionReasoning!
+  debugIntent(deviceId: String!): DecisionReasoning!
 }

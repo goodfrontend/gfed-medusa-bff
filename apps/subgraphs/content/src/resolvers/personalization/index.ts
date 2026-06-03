@@ -99,12 +99,20 @@ export const personalizationResolvers: Resolvers = {
     sendSignal: async (_parent, { input }, context) => {
       requireAuthorizedClient(context);
       const deviceId = requireDeviceId(input, context);
+      const authId = context.authId;
+
+      if (context.medusaToken) {
+        featureStore.syncOrderHistory(deviceId, context.medusaToken)
+          .catch((err) =>
+            logger.error({ err }, 'Order history sync failed')
+          );
+      }
 
       logger.info(
         {
           signalType: input.type,
           deviceId,
-          userId: input.userId ?? undefined,
+          userId: authId ?? undefined,
           timestamp: input.timestamp ?? Date.now(),
         },
         'Signal received'
@@ -119,7 +127,7 @@ export const personalizationResolvers: Resolvers = {
               timestamp: input.timestamp ?? Date.now(),
             },
             deviceId,
-            input.userId
+            authId
           )
           .catch((err) =>
             logger.error({ err, signalType: input.type }, 'Signal processing failed')
@@ -182,9 +190,10 @@ export const personalizationResolvers: Resolvers = {
           topCategory[1].purchases += 1;
         }
       }
-      if (input.userId) {
-        profile.userId = input.userId;
-        await featureStore.mergeToUser(input.deviceId, input.userId);
+      const effectiveUserId = context.authId ?? input.userId;
+      if (effectiveUserId) {
+        profile.userId = effectiveUserId;
+        await featureStore.mergeToUser(input.deviceId, effectiveUserId);
       }
       await featureStore.save(profile);
 
@@ -193,20 +202,23 @@ export const personalizationResolvers: Resolvers = {
   },
 
   Query: {
-    userProfile: async (_parent, { deviceId, userId }, context) => {
+    userProfile: async (_parent, { deviceId }, context) => {
       requireAuthorizedClient(context);
-      if (userId?.trim()) {
-        const byUser = await featureStore.getByUserId(userId);
+      if (context.authId?.trim()) {
+        const byUser = await featureStore.getByUserId(context.authId);
         if (byUser) return byUser;
       }
       return featureStore.getOrCreate(deviceId);
     },
 
-    personalize: async (_parent, { input, deviceId, userId }, context) => {
+    personalize: async (_parent, { input, deviceId }, context) => {
       requireAuthorizedClient(context);
       let profile = await featureStore.getOrCreate(deviceId);
-      if (userId) {
-        profile = await featureStore.mergeToUser(deviceId, userId);
+      if (context.medusaToken) {
+        profile = await featureStore.syncOrderHistory(deviceId, context.medusaToken, profile);
+      }
+      if (context.authId) {
+        profile = await featureStore.mergeToUser(deviceId, context.authId);
       }
 
       const ctx = {
@@ -270,11 +282,14 @@ export const personalizationResolvers: Resolvers = {
       }
     },
 
-    debugIntent: async (_parent, { deviceId, userId }, context) => {
+    debugIntent: async (_parent, { deviceId }, context) => {
       requireAuthorizedClient(context);
+      if (context.medusaToken) {
+        await featureStore.syncOrderHistory(deviceId, context.medusaToken);
+      }
       let profile =
-        userId != null && userId !== ''
-          ? await featureStore.getByUserId(userId)
+        context.authId != null && context.authId !== ''
+          ? await featureStore.getByUserId(context.authId)
           : null;
       if (!profile) {
         profile = await featureStore.getOrCreate(deviceId);

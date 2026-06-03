@@ -1,10 +1,15 @@
+import Medusa from '@medusajs/js-sdk';
+
 import {
   KEY_NS,
   getPersonalizationRedis,
 } from '../../config/personalization-redis';
 
+import { logger } from './logger';
+
 const PROFILE_KEY = `${KEY_NS}profile:`;
 const PROFILE_TTL = 90 * 24 * 60 * 60;
+const SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export interface CategoryAffinityEntry {
   views: number;
@@ -59,6 +64,8 @@ export interface UserProfile {
   lastPurchaseDate?: number;
   totalSpent?: number;
   averageOrderValue?: number;
+  /** Timestamp of last Medusa order sync (used with SYNC_COOLDOWN_MS to avoid repeated calls). */
+  ordersSynced?: number;
 }
 
 export class FeatureStore {
@@ -168,6 +175,71 @@ export class FeatureStore {
     return profile;
   }
 
+  async syncOrderHistory(
+    deviceId: string,
+    medusaToken: string,
+    profile?: UserProfile
+  ): Promise<UserProfile> {
+    profile = profile ?? await this.getOrCreate(deviceId);
+
+    if (profile.ordersSynced && Date.now() - profile.ordersSynced < SYNC_COOLDOWN_MS) {
+      return profile;
+    }
+
+    const medusa = new Medusa({
+      baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
+      publishableKey: process.env.MEDUSA_PUBLISHABLE_KEY || '',
+      auth: { type: 'jwt', jwtTokenStorageMethod: 'nostore' },
+    });
+
+    try {
+      await medusa.client.setToken(medusaToken);
+
+      const { orders, count } = await medusa.store.order.list({
+        limit: 100,
+        fields: 'id,total,created_at',
+      });
+
+      profile.orderCount = count;
+
+      if (count >= 5) {
+        profile.lifecycleStage = 'LOYAL';
+      } else if (count >= 2) {
+        profile.lifecycleStage = 'FREQUENT';
+      } else if (count >= 1) {
+        profile.lifecycleStage = 'RETURNING';
+      }
+
+      if (orders?.length && count > 0) {
+        const firstOrder = orders[0]!;
+        let totalSpent = 0;
+        for (const order of orders) {
+          totalSpent += Number(order.total ?? 0);
+        }
+        profile.totalSpent = totalSpent;
+        profile.averageOrderValue = totalSpent / count;
+        profile.lastPurchaseDate = firstOrder.created_at
+          ? new Date(firstOrder.created_at).getTime()
+          : Date.now();
+      }
+
+      profile.ordersSynced = Date.now();
+
+      await this.save(profile);
+
+      logger.info(
+        { deviceId, orderCount: count },
+        'Order history synced from Medusa'
+      );
+    } catch (err) {
+      logger.warn({ err, deviceId }, 'Failed to sync order history from Medusa');
+      profile.ordersSynced = Date.now();
+      profile.orderCount = profile.orderCount ?? 0;
+      await this.save(profile);
+    }
+
+    return profile;
+  }
 }
 
 export const featureStore = new FeatureStore();
