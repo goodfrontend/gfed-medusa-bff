@@ -1,3 +1,4 @@
+import { personalizationResolvers } from '../resolvers/personalization/index';
 import { featureStore, type UserProfile } from '../services/personalization/feature-store';
 import { signalProcessor } from '../services/personalization/signal-ingestion';
 
@@ -679,6 +680,53 @@ describe('submitConversion resolver', () => {
     expect(profile.totalSpent).toBe(0);
     expect(profile.averageOrderValue).toBe(0);
   });
+
+  it('should apply conversion modifications to merged profile when customerId is set', async () => {
+    // Pre-populate a Redis profile so getOrCreate returns it
+    await featureStore.getOrCreate(deviceId);
+
+    // Call submitConversion via the resolver with customerId context
+    const result = await (
+      personalizationResolvers.Mutation!.submitConversion as Function
+    )(
+      null,
+      {
+        input: {
+          deviceId,
+          orderId: 'order-1',
+          amount: 150,
+          currency: 'USD',
+          items: [
+            { productId: 'prod-1', category: 'electronics', price: 150, quantity: 1 },
+          ],
+        },
+      },
+      {
+        isAuthorizedClient: true,
+        req: { headers: { cookie: '' } },
+        customerId: 'test-customer',
+        authId: null,
+        medusaToken: null,
+      },
+    );
+
+    expect(result).toBe(true);
+
+    // Read the profile from store to verify modifications were applied after mergeToUser
+    const saved = mockStore.get('bff:personalization:v1:profile:' + deviceId);
+    expect(saved).toBeDefined();
+    const parsed = JSON.parse(saved!);
+
+    expect(parsed.orderCount).toBe(1);
+    expect(parsed.totalSpent).toBe(150);
+    expect(parsed.lastPurchaseDate).toBeGreaterThan(0);
+    expect(parsed.averageOrderValue).toBe(150);
+    expect(parsed.cartActivity).toBe(0);
+    expect(parsed.hesitationCount).toBe(0);
+    expect(parsed.lifecycleStage).toBe('RETURNING');
+    expect(parsed.categoryAffinity.electronics.purchases).toBe(1);
+    expect(parsed.userId).toBe('test-customer');
+  });
 });
 
 describe('Component Registry — homepage surface', () => {
@@ -1184,5 +1232,320 @@ describe('syncOrderHistory', () => {
         }),
       }),
     );
+  });
+});
+
+describe('FeatureStore.mergeToUser', () => {
+  const KEY_NS = 'bff:personalization:v1:';
+  const deviceId1 = 'test-merge-device-1';
+  const deviceId2 = 'test-merge-device-2';
+  const userId = 'test-merge-user';
+
+  function createProfile(
+    deviceId: string,
+    overrides: Partial<UserProfile> = {},
+  ): UserProfile {
+    return {
+      deviceId,
+      categoryAffinity: {},
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      sessionCount: 0,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+  });
+
+  it('Case A: merges behavioral data, transfers fresh order data, cleans up old profile', async () => {
+    // Existing profile for this user on device1 — old order sync
+    const existingProfile = createProfile(deviceId1, {
+      categoryAffinity: {
+        electronics: {
+          views: 5,
+          purchases: 1,
+          lastViewed: 1000,
+          score: 2,
+        },
+      },
+      orderCount: 3,
+      lifecycleStage: 'FREQUENT',
+      totalSpent: 300,
+      averageOrderValue: 100,
+      ordersSynced: 100,
+    });
+    mockStore.set(KEY_NS + 'profile:' + deviceId1, JSON.stringify(existingProfile));
+    mockStore.set(KEY_NS + 'user-device:' + userId, deviceId1);
+    mockStore.set(KEY_NS + 'device-user:' + deviceId1, userId);
+
+    // New device profile with browsing data and fresher order sync
+    const newDeviceProfile = createProfile(deviceId2, {
+      categoryAffinity: {
+        clothing: {
+          views: 3,
+          purchases: 0,
+          lastViewed: 2000,
+          score: 1,
+        },
+      },
+      orderCount: 5,
+      lifecycleStage: 'LOYAL',
+      totalSpent: 600,
+      averageOrderValue: 120,
+      ordersSynced: 200, // fresher than existing (100)
+    });
+    mockStore.set(KEY_NS + 'profile:' + deviceId2, JSON.stringify(newDeviceProfile));
+
+    const merged = await featureStore.mergeToUser(deviceId2, userId);
+
+    // Behavioral data from new device is merged into existing
+    expect(merged.categoryAffinity.electronics).toBeDefined();
+    expect(merged.categoryAffinity.clothing).toBeDefined();
+    expect(merged.categoryAffinity.clothing!.views).toBe(3);
+
+    // Order/financial data transferred because new device has fresher ordersSynced
+    expect(merged.orderCount).toBe(5);
+    expect(merged.lifecycleStage).toBe('LOYAL');
+    expect(merged.totalSpent).toBe(600);
+    expect(merged.averageOrderValue).toBe(120);
+    expect(merged.ordersSynced).toBe(200);
+
+    // Old profile key deleted
+    expect(mockStore.has(KEY_NS + 'profile:' + deviceId1)).toBe(false);
+
+    // user-device mapping points to the new device
+    expect(mockStore.get(KEY_NS + 'user-device:' + userId)).toBe(deviceId2);
+
+    // device-user mapping for new device is set
+    expect(mockStore.get(KEY_NS + 'device-user:' + deviceId2)).toBe(userId);
+  });
+
+  it('Case A: does NOT transfer order data when new device sync is stale', async () => {
+    // Existing profile with fresh order sync
+    const existingProfile = createProfile(deviceId1, {
+      orderCount: 3,
+      lifecycleStage: 'FREQUENT',
+      totalSpent: 300,
+      averageOrderValue: 100,
+      ordersSynced: 500, // fresher
+    });
+    mockStore.set(KEY_NS + 'profile:' + deviceId1, JSON.stringify(existingProfile));
+    mockStore.set(KEY_NS + 'user-device:' + userId, deviceId1);
+    mockStore.set(KEY_NS + 'device-user:' + deviceId1, userId);
+
+    // New device profile with stale order sync
+    const newDeviceProfile = createProfile(deviceId2, {
+      orderCount: 5,
+      lifecycleStage: 'LOYAL',
+      ordersSynced: 200, // stale — existing is 500
+    });
+    mockStore.set(KEY_NS + 'profile:' + deviceId2, JSON.stringify(newDeviceProfile));
+
+    const merged = await featureStore.mergeToUser(deviceId2, userId);
+
+    // Existing order data preserved (fresher)
+    expect(merged.orderCount).toBe(3);
+    expect(merged.lifecycleStage).toBe('FREQUENT');
+    expect(merged.ordersSynced).toBe(500);
+  });
+
+  it('Case B: sets userId on profile and creates mappings', async () => {
+    const profile = createProfile(deviceId1);
+    mockStore.set(KEY_NS + 'profile:' + deviceId1, JSON.stringify(profile));
+
+    const result = await featureStore.mergeToUser(deviceId1, userId);
+
+    expect(result.userId).toBe(userId);
+    // user-device mapping created
+    expect(mockStore.get(KEY_NS + 'user-device:' + userId)).toBe(deviceId1);
+    // device-user mapping created
+    expect(mockStore.get(KEY_NS + 'device-user:' + deviceId1)).toBe(userId);
+  });
+
+  it('cleans up stale user-device mapping when different user logs in on same device', async () => {
+    const oldUserId = 'test-merge-old-user';
+    mockStore.set(
+      KEY_NS + 'profile:' + deviceId1,
+      JSON.stringify(createProfile(deviceId1)),
+    );
+    mockStore.set(KEY_NS + 'user-device:' + oldUserId, deviceId1);
+    mockStore.set(KEY_NS + 'device-user:' + deviceId1, oldUserId);
+
+    await featureStore.mergeToUser(deviceId1, userId);
+
+    // Old mapping deleted
+    expect(mockStore.has(KEY_NS + 'user-device:' + oldUserId)).toBe(false);
+    // Current user's mapping set
+    expect(mockStore.get(KEY_NS + 'user-device:' + userId)).toBe(deviceId1);
+  });
+});
+
+describe('SignalProcessor.process with pre-loaded profile', () => {
+  const deviceId = 'test-preload-device';
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+  });
+
+  it('uses provided profile instead of calling getOrCreate', async () => {
+    const profile: UserProfile = {
+      deviceId,
+      categoryAffinity: {},
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now() - 10000,
+      lastSeen: Date.now() - 10000,
+      sessionCount: 0,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+    };
+
+    const signal = {
+      type: 'PAGE_VIEW',
+      payload: { category: 'electronics' },
+      url: '/electronics',
+      timestamp: Date.now(),
+    };
+
+    const result = await signalProcessor.process(signal, deviceId, null, profile);
+
+    expect(result).toBe(true);
+
+    // The provided profile should have been saved with the signal applied
+    const saved = mockStore.get('bff:personalization:v1:profile:' + deviceId);
+    expect(saved).toBeDefined();
+    const parsed = JSON.parse(saved!);
+    expect(parsed.categoryAffinity.electronics).toBeDefined();
+    expect(parsed.categoryAffinity.electronics.views).toBe(1);
+    // Should use the passed profile, not a fresh one
+    expect(parsed.firstSeen).toBe(profile.firstSeen);
+  });
+
+  it('ignores provided profile when userId is given (calls mergeToUser instead)', async () => {
+    const externalProfile: UserProfile = {
+      deviceId,
+      categoryAffinity: { existing: { views: 1, purchases: 0, lastViewed: 100, score: 0.5 } },
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now() - 10000,
+      lastSeen: Date.now() - 10000,
+      sessionCount: 0,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+    };
+
+    // Pre-setup a device profile so mergeToUser finds it (Case B)
+    const deviceProfile = {
+      ...externalProfile,
+      categoryAffinity: {},
+    };
+    mockStore.set(
+      'bff:personalization:v1:profile:' + deviceId,
+      JSON.stringify(deviceProfile),
+    );
+
+    const signal = {
+      type: 'PAGE_VIEW',
+      payload: { category: 'electronics' },
+      url: '/electronics',
+      timestamp: Date.now(),
+    };
+
+    await signalProcessor.process(signal, deviceId, 'test-user', externalProfile);
+
+    // mergeToUser was triggered (Case B), saved profile should have userId
+    const saved = mockStore.get('bff:personalization:v1:profile:' + deviceId);
+    expect(saved).toBeDefined();
+    const parsed = JSON.parse(saved!);
+    expect(parsed.userId).toBe('test-user');
+    // The external profile's category data should NOT have been used
+    // (mergeToUser creates/gets profile via getOrCreate, which reads from store)
+    expect(parsed.categoryAffinity.existing).toBeUndefined();
+  });
+});
+
+describe('sendSignal resolver chaining', () => {
+  const deviceId = 'test-chain-device';
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+    mockMedusaList.mockResolvedValue({ orders: [], count: 0 });
+  });
+
+  it('passes syncOrderHistory result to signalProcessor.process', async () => {
+    const processSpy = jest.spyOn(signalProcessor, 'process');
+
+    // Pre-create a profile for the device
+    await featureStore.getOrCreate(deviceId);
+
+    const mockContext = {
+      isAuthorizedClient: true,
+      req: { headers: { cookie: '' } },
+      customerId: null,
+      authId: null,
+      medusaToken: 'test-medusa-token',
+    };
+
+    // Call the sendSignal resolver directly, providing input.deviceId
+    await (
+      personalizationResolvers.Mutation!.sendSignal as Function
+    )(
+      null,
+      {
+        input: {
+          type: 'PAGE_VIEW',
+          deviceId,
+          payload: {},
+          url: '/test',
+          timestamp: Date.now(),
+        },
+      },
+      mockContext,
+    );
+
+    // Wait for the fire-and-forget promise chain to complete
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(processSpy).toHaveBeenCalled();
+    const args = processSpy.mock.calls[0]!;
+    const [, calledDeviceId, , profile] = args;
+    expect(calledDeviceId).toBe(deviceId);
+    expect(profile).toBeDefined();
+    expect(profile!.deviceId).toBe(deviceId);
+    // Profile should have ordersSynced set (from syncOrderHistory)
+    expect(profile!.ordersSynced).toBeGreaterThan(0);
   });
 });

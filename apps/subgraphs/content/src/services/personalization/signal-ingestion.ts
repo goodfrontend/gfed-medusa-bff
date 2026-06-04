@@ -45,7 +45,8 @@ export class SignalProcessor {
   async process(
     signal: QueuedSignal,
     deviceId: string,
-    userId?: string | null
+    userId?: string | null,
+    profile?: UserProfile
   ): Promise<boolean> {
     logger.info(
       {
@@ -57,10 +58,11 @@ export class SignalProcessor {
     );
 
     if (userId) {
-      await featureStore.mergeToUser(deviceId, userId);
+      profile = await featureStore.mergeToUser(deviceId, userId);
+    } else if (!profile) {
+      profile = await featureStore.getOrCreate(deviceId);
     }
 
-    const profile = await featureStore.getOrCreate(deviceId);
     this.updateProfile(profile, signal);
     await featureStore.save(profile);
 

@@ -101,12 +101,12 @@ export const personalizationResolvers: Resolvers = {
       const deviceId = requireDeviceId(input, context);
       const effectiveUserId = context.customerId ?? context.authId;
 
-      if (context.medusaToken) {
-        featureStore.syncOrderHistory(deviceId, context.medusaToken)
-          .catch((err) =>
-            logger.error({ err }, 'Order history sync failed')
-          );
-      }
+      const signal = {
+        type: input.type,
+        payload: (input.payload ?? {}) as Record<string, unknown>,
+        url: input.url ?? '',
+        timestamp: input.timestamp ?? Date.now(),
+      };
 
       logger.info(
         {
@@ -118,21 +118,26 @@ export const personalizationResolvers: Resolvers = {
         'Signal received'
       );
 
-      signalProcessor
-          .process(
-            {
-              type: input.type,
-              payload: (input.payload ?? {}) as Record<string, unknown>,
-              url: input.url ?? '',
-              timestamp: input.timestamp ?? Date.now(),
-            },
-            deviceId,
-            effectiveUserId
+      // Fire-and-forget per ADR-0001, but operations within the background
+      // promise are sequential to avoid concurrent Redis read-modify-write
+      if (context.medusaToken) {
+        featureStore
+          .syncOrderHistory(deviceId, context.medusaToken)
+          .then((profile) =>
+            signalProcessor.process(signal, deviceId, effectiveUserId, profile)
           )
           .catch((err) =>
             logger.error({ err, signalType: input.type }, 'Signal processing failed')
           );
-        return { success: true, profileUpdated: true };
+      } else {
+        signalProcessor
+          .process(signal, deviceId, effectiveUserId)
+          .catch((err) =>
+            logger.error({ err, signalType: input.type }, 'Signal processing failed')
+          );
+      }
+
+      return { success: true, profileUpdated: true };
     },
 
     submitConversion: async (_parent, { input }, context) => {
@@ -150,7 +155,13 @@ export const personalizationResolvers: Resolvers = {
         'Conversion submitted'
       );
 
-      const profile = await featureStore.getOrCreate(input.deviceId);
+      let profile = await featureStore.getOrCreate(input.deviceId);
+      const effectiveUserId = context.customerId ?? context.authId ?? input.userId;
+      if (effectiveUserId) {
+        profile = await featureStore.mergeToUser(input.deviceId, effectiveUserId);
+      }
+
+      // Apply conversion modifications to the (possibly merged) profile
       profile.orderCount = (profile.orderCount ?? 0) + 1;
       profile.cartActivity = 0;
       profile.hesitationCount = 0;
@@ -189,11 +200,6 @@ export const personalizationResolvers: Resolvers = {
         if (topCategory) {
           topCategory[1].purchases += 1;
         }
-      }
-      const effectiveUserId = context.customerId ?? context.authId ?? input.userId;
-      if (effectiveUserId) {
-        profile.userId = effectiveUserId;
-        await featureStore.mergeToUser(input.deviceId, effectiveUserId);
       }
       await featureStore.save(profile);
 
