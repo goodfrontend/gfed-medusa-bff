@@ -175,18 +175,27 @@ export class FeatureStore {
   ): Promise<UserProfile> {
     profile = profile ?? await this.getOrCreate(deviceId);
 
-    if (profile.ordersSynced && Date.now() - profile.ordersSynced < SYNC_COOLDOWN_MS) {
+    if (
+      profile.ordersSynced &&
+      Date.now() - profile.ordersSynced < SYNC_COOLDOWN_MS
+    ) {
       return profile;
     }
 
     try {
       const medusa = new Medusa({
         baseUrl: process.env.MEDUSA_API_URL || 'http://localhost:9000',
-        publishableKey: process.env.MEDUSA_PUBLISHABLE_KEY || '',
-        auth: { type: 'jwt', jwtTokenStorageMethod: 'nostore' },
+        auth: {
+          type: 'jwt',
+        },
+        globalHeaders: {
+          'x-publishable-api-key':
+            process.env.MEDUSA_PUBLISHABLE_KEY || 'pk_test',
+          ...(medusaToken
+            ? { Authorization: `Bearer ${medusaToken}` }
+            : undefined),
+        },
       });
-
-      await medusa.client.setToken(medusaToken);
 
       const { orders, count } = await medusa.store.order.list({
         limit: 100,
@@ -225,8 +234,10 @@ export class FeatureStore {
         'Order history synced from Medusa'
       );
     } catch (err) {
-      logger.warn({ err, deviceId }, 'Failed to sync order history from Medusa');
-      profile.orderCount = profile.orderCount ?? 0;
+      logger.warn(
+        { err, deviceId },
+        'Failed to sync order history from Medusa'
+      );
     }
 
     return profile;

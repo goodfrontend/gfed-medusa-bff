@@ -59,6 +59,23 @@ jest.mock('../config/personalization-redis', () => {
   };
 });
 
+const mockMedusaList = jest.fn();
+const mockMedusaConstructor = jest.fn();
+
+jest.mock('@medusajs/js-sdk', () => ({
+  __esModule: true,
+  default: jest.fn((...args: unknown[]) => {
+    mockMedusaConstructor(...args);
+    return {
+      store: {
+        order: {
+          list: mockMedusaList,
+        },
+      },
+    };
+  }),
+}));
+
 describe('UserProfile type', () => {
   const deviceId = 'test-profile-device';
 
@@ -1004,5 +1021,168 @@ describe('Decision Fallback — homepage surface', () => {
     expect(decision.components).toHaveLength(1);
     expect(decision.components[0].component).toBe('HeroBanner');
     expect(decision.components[0].propsOverrides.headline).toBe('Welcome');
+  });
+});
+
+describe('syncOrderHistory', () => {
+  const deviceId = 'test-sync-device';
+  const medusaToken = 'test-medusa-token';
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+  });
+
+  function createProfile(overrides: Partial<UserProfile> = {}): UserProfile {
+    return {
+      deviceId,
+      categoryAffinity: {},
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      sessionCount: 0,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+      ...overrides,
+    };
+  }
+
+  it('respects cooldown when ordersSynced is within 24 hours', async () => {
+    const profile = createProfile({ ordersSynced: Date.now() - 1000 });
+
+    const result = await featureStore.syncOrderHistory(
+      deviceId,
+      medusaToken,
+      profile,
+    );
+
+    expect(mockMedusaList).not.toHaveBeenCalled();
+    expect(result).toBe(profile);
+    expect(result.ordersSynced).toBe(profile.ordersSynced);
+  });
+
+  it('keeps lifecycle stage as NEW when order count is 0', async () => {
+    mockMedusaList.mockResolvedValue({ orders: [], count: 0 });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.lifecycleStage).toBe('NEW');
+    expect(profile.orderCount).toBe(0);
+    expect(profile.ordersSynced).toBeGreaterThan(0);
+  });
+
+  it('updates lifecycle stage to RETURNING when order count is 1', async () => {
+    mockMedusaList.mockResolvedValue({
+      orders: [
+        { id: 'o1', total: 100, created_at: new Date().toISOString() },
+      ],
+      count: 1,
+    });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.lifecycleStage).toBe('RETURNING');
+    expect(profile.orderCount).toBe(1);
+  });
+
+  it('updates lifecycle stage to FREQUENT when order count is 3', async () => {
+    mockMedusaList.mockResolvedValue({
+      orders: Array.from({ length: 3 }, (_, i) => ({
+        id: `o${i + 1}`,
+        total: 100,
+        created_at: new Date().toISOString(),
+      })),
+      count: 3,
+    });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.lifecycleStage).toBe('FREQUENT');
+    expect(profile.orderCount).toBe(3);
+  });
+
+  it('updates lifecycle stage to LOYAL when order count is 5 or more', async () => {
+    mockMedusaList.mockResolvedValue({
+      orders: Array.from({ length: 5 }, (_, i) => ({
+        id: `o${i + 1}`,
+        total: 100,
+        created_at: new Date().toISOString(),
+      })),
+      count: 5,
+    });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.lifecycleStage).toBe('LOYAL');
+    expect(profile.orderCount).toBe(5);
+  });
+
+  it('computes totalSpent, averageOrderValue, and lastPurchaseDate from order data', async () => {
+    const orders = [
+      { id: 'o1', total: 100, created_at: '2025-01-01T00:00:00Z' },
+      { id: 'o2', total: 200, created_at: '2025-02-01T00:00:00Z' },
+    ];
+    mockMedusaList.mockResolvedValue({ orders, count: 2 });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.totalSpent).toBe(300);
+    expect(profile.averageOrderValue).toBe(150);
+    expect(profile.lastPurchaseDate).toBe(
+      new Date('2025-01-01T00:00:00Z').getTime(),
+    );
+  });
+
+  it('returns profile unchanged when Medusa API call fails', async () => {
+    mockMedusaList.mockRejectedValue(new Error('Medusa unavailable'));
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(profile.ordersSynced).toBeUndefined();
+    expect(profile.orderCount).toBe(0);
+    expect(profile.lifecycleStage).toBe('NEW');
+  });
+
+  it('creates a new profile when no profile argument is provided', async () => {
+    mockMedusaList.mockResolvedValue({ orders: [], count: 0 });
+
+    const result = await featureStore.syncOrderHistory(deviceId, medusaToken);
+
+    expect(result).toBeDefined();
+    expect(result.deviceId).toBe(deviceId);
+    expect(result.orderCount).toBe(0);
+    expect(result.ordersSynced).toBeGreaterThan(0);
+  });
+
+  it('passes Authorization header in Medusa constructor', async () => {
+    mockMedusaList.mockResolvedValue({ orders: [], count: 0 });
+    const profile = createProfile();
+
+    await featureStore.syncOrderHistory(deviceId, medusaToken, profile);
+
+    expect(mockMedusaConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: expect.any(String),
+        auth: { type: 'jwt' },
+        globalHeaders: expect.objectContaining({
+          Authorization: `Bearer ${medusaToken}`,
+        }),
+      }),
+    );
   });
 });

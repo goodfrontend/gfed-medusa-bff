@@ -99,7 +99,7 @@ export const personalizationResolvers: Resolvers = {
     sendSignal: async (_parent, { input }, context) => {
       requireAuthorizedClient(context);
       const deviceId = requireDeviceId(input, context);
-      const authId = context.authId;
+      const effectiveUserId = context.customerId ?? context.authId;
 
       if (context.medusaToken) {
         featureStore.syncOrderHistory(deviceId, context.medusaToken)
@@ -112,7 +112,7 @@ export const personalizationResolvers: Resolvers = {
         {
           signalType: input.type,
           deviceId,
-          userId: authId ?? undefined,
+          userId: effectiveUserId ?? undefined,
           timestamp: input.timestamp ?? Date.now(),
         },
         'Signal received'
@@ -127,7 +127,7 @@ export const personalizationResolvers: Resolvers = {
               timestamp: input.timestamp ?? Date.now(),
             },
             deviceId,
-            authId
+            effectiveUserId
           )
           .catch((err) =>
             logger.error({ err, signalType: input.type }, 'Signal processing failed')
@@ -204,6 +204,9 @@ export const personalizationResolvers: Resolvers = {
   Query: {
     userProfile: async (_parent, { deviceId }, context) => {
       requireAuthorizedClient(context);
+      if (context.medusaToken) {
+        await featureStore.syncOrderHistory(deviceId, context.medusaToken);
+      }
       const effectiveUserId = context.customerId?.trim() || context.authId?.trim();
       if (effectiveUserId) {
         const byUser = await featureStore.getByUserId(effectiveUserId);

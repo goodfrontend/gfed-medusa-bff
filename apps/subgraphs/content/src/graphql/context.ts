@@ -1,26 +1,5 @@
 import type express from 'express';
 
-type SessionData = {
-  authId?: string;
-  customerId?: string;
-  medusaToken?: string;
-};
-
-function parseSessionData(req: express.Request): SessionData {
-  const raw = req.headers['x-session-data'];
-  if (typeof raw !== 'string') return {};
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      authId: parsed.authId,
-      customerId: parsed.customerId,
-      medusaToken: parsed.medusaToken,
-    };
-  } catch {
-    return {};
-  }
-}
-
 export type ContentGraphQLContext = {
   req: express.Request;
   isAuthorizedClient: boolean;
@@ -29,6 +8,16 @@ export type ContentGraphQLContext = {
   medusaToken?: string;
 };
 
+function parseSessionData(req: express.Request): Record<string, unknown> {
+  const raw = req.headers['x-session-data'];
+  if (typeof raw !== 'string') return {};
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 export function createContext(req: express.Request): ContentGraphQLContext {
   const session = parseSessionData(req);
   return {
@@ -36,8 +25,8 @@ export function createContext(req: express.Request): ContentGraphQLContext {
     isAuthorizedClient:
       !!process.env.BFF_API_KEY &&
       req.headers['x-bff-api-key'] === process.env.BFF_API_KEY,
-    authId: session.authId,
-    customerId: session.customerId,
-    medusaToken: session.medusaToken,
+    authId: session.authId as string | undefined,
+    customerId: session.customerId as string | undefined,
+    medusaToken: session.medusaToken as string | undefined,
   };
 }
