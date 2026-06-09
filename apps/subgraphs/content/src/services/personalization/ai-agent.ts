@@ -390,11 +390,24 @@ export async function aiPersonalize(
         const parsed: unknown = JSON.parse(cleaned);
         const validated = personalizationSchema.parse(parsed);
 
+        // Dedup: remove duplicate component+contentId pairs the AI may have returned
+        const seen = new Set<string>();
+        const deduped = validated.components.filter((c) => {
+          const key = c.contentId !== null
+            ? `${c.component}:${c.contentId}`
+            : c.component === 'FeaturedCategoryRail'
+              ? `FeaturedCategoryRail:${(c.propsOverrides?.handle as string) ?? 'null'}`
+              : `${c.component}:null`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
         const contentById = new Map(
           content.map((c) => [String(c._id), c])
         );
 
-        const resolved = validated.components.map((c) => {
+        const resolved = deduped.map((c) => {
           const contentEntry = c.contentId ? contentById.get(c.contentId) : undefined;
 
           if (c.component === 'FeaturedCategoryRail') {
