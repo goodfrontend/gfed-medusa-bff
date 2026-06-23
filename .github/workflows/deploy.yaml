@@ -20,6 +20,7 @@ jobs:
       orders: ${{ steps.changes.outputs.orders }}
       content: ${{ steps.changes.outputs.content }}
       customers: ${{ steps.changes.outputs.customers }}
+      mock-personalization: ${{ steps.changes.outputs.mock-personalization }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,6 +58,11 @@ jobs:
             customers:
               - 'apps/subgraphs/customers/**'
               - 'packages/**'
+              - 'turbo.json'
+              - 'pnpm-lock.yaml'
+              - 'render.yaml'
+            mock-personalization:
+              - 'apps/mock-personalization/**'
               - 'turbo.json'
               - 'pnpm-lock.yaml'
               - 'render.yaml'
@@ -105,6 +111,25 @@ jobs:
       app: customers
       dockerfile: ./apps/subgraphs/customers/Dockerfile
       publish_latest: true
+
+  build-mock-personalization:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.mock-personalization == 'true'
+    uses: ./.github/workflows/_build-docker.yaml
+    with:
+      app: mock-personalization
+      dockerfile: ./apps/mock-personalization/Dockerfile
+      publish_latest: true
+
+  deploy-mock-personalization:
+    needs: [detect-changes, build-mock-personalization]
+    if: needs.detect-changes.outputs.mock-personalization == 'true'
+    uses: ./.github/workflows/_deploy-render.yaml
+    with:
+      app: mock-personalization
+      image: ${{ needs.build-mock-personalization.outputs.image_tag }}
+    secrets:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
 
   smoke-products:
     needs: [detect-changes, build-products]

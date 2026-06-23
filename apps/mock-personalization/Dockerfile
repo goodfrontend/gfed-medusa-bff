@@ -1,0 +1,58 @@
+# syntax=docker.io/docker/dockerfile:1
+
+FROM node:20-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN apk add --no-cache libc6-compat git && \
+    corepack enable && \
+    corepack prepare pnpm@9.0.0 --activate && \
+    pnpm install turbo --global
+
+FROM base AS pruner
+WORKDIR /app
+COPY . .
+RUN turbo prune --scope=@gfed-medusa-bff/mock-personalization --docker
+
+FROM base AS installer
+WORKDIR /app
+
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+RUN pnpm install --frozen-lockfile --shamefully-hoist
+
+COPY --from=pruner /app/out/full/ .
+COPY turbo.json turbo.json
+
+RUN turbo run build --filter=@gfed-medusa-bff/mock-personalization...
+
+FROM base AS prod-deps
+WORKDIR /app
+
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+RUN pnpm install --frozen-lockfile --prod
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 graphqluser
+
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/package.json ./package.json
+COPY --from=prod-deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+COPY --from=installer /app/apps/mock-personalization/dist ./apps/mock-personalization/dist
+COPY --from=installer /app/apps/mock-personalization/package.json ./apps/mock-personalization/package.json
+
+COPY --from=prod-deps /app/apps/mock-personalization/node_modules ./apps/mock-personalization/node_modules
+
+USER graphqluser
+
+WORKDIR /app/apps/mock-personalization
+CMD ["node", "dist/index.js"]
