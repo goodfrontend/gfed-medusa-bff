@@ -63,7 +63,7 @@ projects:
 
           - type: keyvalue
             name: redis-prod
-            plan: free
+            plan: starter
             region: frankfurt
             maxmemoryPolicy: allkeys-lru
             ipAllowList: []
@@ -183,3 +183,22 @@ projects:
               url: ghcr.io/goodfrontend/gfed-medusa-bff/customers:qa-latest
             envVars:
               - fromGroup: bff-qa-env-group
+
+      - name: mock
+        services:
+          - type: web
+            runtime: image
+            plan: free
+            name: mock-personalization
+            region: oregon
+            autoDeployTrigger: off
+            image:
+              url: ghcr.io/goodfrontend/gfed-medusa-bff/mock-personalization:latest
+            healthCheckPath: /health
+            envVars:
+              - key: PORT
+                value: "10000"
+              - key: CORS_ORIGIN
+                value: "*"
+              - key: SERVICE_NAME
+                value: mock-personalization
