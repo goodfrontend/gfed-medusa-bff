@@ -16,9 +16,10 @@ jest.mock('../services/personalization/sanity-content', () => {
 
 jest.mock('../services/medusa/category-products', () => ({
   fetchCategoryProducts: jest.fn().mockResolvedValue([
-    { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '' },
-    { id: 'prod-2', title: 'Test Product 2', handle: 'test-product-2', thumbnail: '' },
-    { id: 'prod-3', title: 'Test Product 3', handle: 'test-product-3', thumbnail: '' },
+    { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '', price: 49.99, currencyCode: 'USD' },
+    { id: 'prod-2', title: 'Test Product 2', handle: 'test-product-2', thumbnail: '', price: 29.99, currencyCode: 'USD' },
+    { id: 'prod-3', title: 'Test Product 3', handle: 'test-product-3', thumbnail: '', price: 19.99, currencyCode: 'USD' },
+    { id: 'prod-999', title: 'Wireless Headphones', handle: 'wireless-headphones', thumbnail: '', price: 149.99, currencyCode: 'USD' },
   ]),
 }));
 
@@ -734,9 +735,9 @@ describe('Component Registry — homepage surface', () => {
     const { getComponentsForSurface } = require('../config/component-registry');
     const components = getComponentsForSurface('homepage');
     expect(components.map((c: { name: string }) => c.name)).toEqual(
-      expect.arrayContaining(['HeroBanner', 'FeaturedCategoryRail', 'PersonalizedBanner'])
+      expect.arrayContaining(['HeroBanner', 'FeaturedCategoryRail', 'PersonalizedBanner', 'ProductRecommendation'])
     );
-    expect(components).toHaveLength(3);
+    expect(components).toHaveLength(4);
   });
 
   it('getComponentsForSurface("homepage_hero") still returns just HeroBanner', () => {
@@ -1547,5 +1548,275 @@ describe('sendSignal resolver chaining', () => {
     expect(profile!.deviceId).toBe(deviceId);
     // Profile should have ordersSynced set (from syncOrderHistory)
     expect(profile!.ordersSynced).toBeGreaterThan(0);
+  });
+});
+
+describe('Decision record attribution', () => {
+  const deviceId = 'test-decision-record';
+
+  beforeEach(() => {
+    mockStore.clear();
+    mockSetStore.clear();
+    mockListStore.clear();
+    jest.clearAllMocks();
+  });
+
+  it('getOrCreate creates profile with empty recentDecisions', async () => {
+    const profile = await featureStore.getOrCreate(deviceId);
+    expect(profile.recentDecisions).toEqual([]);
+  });
+
+  it('recentDecisions is capped at 10 entries', async () => {
+    const profile = await featureStore.getOrCreate(deviceId);
+    for (let i = 0; i < 15; i++) {
+      profile.recentDecisions = profile.recentDecisions ?? [];
+      profile.recentDecisions.unshift({
+        components: ['HeroBanner'],
+        surface: 'homepage',
+        intent: 'exploring',
+        servedAt: Date.now() - i * 1000,
+      });
+      profile.recentDecisions = profile.recentDecisions.slice(0, 10);
+    }
+    expect(profile.recentDecisions!.length).toBe(10);
+  });
+
+  it('submitConversion attributes to most recent un-attributed decision', async () => {
+    const profile = await featureStore.getOrCreate(deviceId);
+    profile.recentDecisions = [
+      {
+        components: ['HeroBanner'],
+        surface: 'homepage',
+        intent: 'exploring',
+        servedAt: Date.now(),
+      },
+    ];
+    mockStore.set('bff:personalization:v1:profile:' + deviceId, JSON.stringify(profile));
+
+    const result = await (
+      personalizationResolvers.Mutation!.submitConversion as Function
+    )(
+      null,
+      {
+        input: {
+          deviceId,
+          orderId: 'order-attributed',
+          amount: 100,
+          currency: 'USD',
+        },
+      },
+      {
+        isAuthorizedClient: true,
+        req: { headers: { cookie: '' } },
+        customerId: null,
+        authId: null,
+        medusaToken: null,
+      },
+    );
+
+    expect(result).toBe(true);
+    const saved = JSON.parse(mockStore.get('bff:personalization:v1:profile:' + deviceId)!);
+    expect(saved.recentDecisions[0].conversionAttributed).toBeDefined();
+    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe('order-attributed');
+    expect(saved.recentDecisions[0].conversionAttributed.amount).toBe(100);
+  });
+
+  it('conversion attribution does not overwrite already-attributed decisions', async () => {
+    const profile = await featureStore.getOrCreate(deviceId);
+    profile.recentDecisions = [
+      {
+        components: ['HeroBanner'],
+        surface: 'homepage',
+        intent: 'exploring',
+        servedAt: Date.now(),
+        conversionAttributed: {
+          orderId: 'existing-order',
+          amount: 50,
+          attributedAt: Date.now() - 1000,
+        },
+      },
+    ];
+    mockStore.set('bff:personalization:v1:profile:' + deviceId, JSON.stringify(profile));
+
+    const result = await (
+      personalizationResolvers.Mutation!.submitConversion as Function
+    )(
+      null,
+      {
+        input: {
+          deviceId,
+          orderId: 'new-order',
+          amount: 200,
+          currency: 'USD',
+        },
+      },
+      {
+        isAuthorizedClient: true,
+        req: { headers: { cookie: '' } },
+        customerId: null,
+        authId: null,
+        medusaToken: null,
+      },
+    );
+
+    expect(result).toBe(true);
+    const saved = JSON.parse(mockStore.get('bff:personalization:v1:profile:' + deviceId)!);
+    // Already-attributed decision should not be overwritten
+    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe('existing-order');
+    expect(saved.recentDecisions[0].conversionAttributed.amount).toBe(50);
+  });
+});
+
+describe('Product Recommendation component', () => {
+  it('componentRegistry includes ProductRecommendation', () => {
+    const { componentRegistry } = require('../config/component-registry');
+    const rec = componentRegistry.find((c: { name: string }) => c.name === 'ProductRecommendation');
+    expect(rec).toBeDefined();
+    expect(rec!.requiredProps).toContain('productId');
+    expect(rec!.requiredProps).toContain('title');
+    expect(rec!.requiredProps).toContain('price');
+  });
+
+  it('getComponentsForSurface("homepage") returns ProductRecommendation', () => {
+    const { getComponentsForSurface } = require('../config/component-registry');
+    const components = getComponentsForSurface('homepage');
+    const names = components.map((c: { name: string }) => c.name);
+    expect(names).toContain('ProductRecommendation');
+  });
+
+  it('AI prompt includes ProductRecommendation in allowed types', async () => {
+    const { aiPersonalize } = require('../services/personalization/ai-agent');
+    const newUserProfile = {
+      deviceId: 'test-prompt-product-rec',
+      categoryAffinity: {},
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      sessionCount: 1,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+    };
+
+    const mockJsonResponse = {
+      components: [
+        { component: 'ProductRecommendation', contentId: null, priority: 1, propsOverrides: { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '', price: 49.99, currencyCode: 'USD' }, reasoning: 'Product rec for new user' },
+      ],
+      overallReasoning: 'Product recommendation',
+    };
+
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mockJsonResponse) } }],
+      }),
+    } as Response);
+
+    await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
+
+    const fetchCalls = fetchSpy.mock.calls;
+    fetchSpy.mockRestore();
+
+    const fetchBody = (fetchCalls[0]?.[1] as Record<string, unknown> | undefined)?.body;
+    const body = JSON.parse(typeof fetchBody === 'string' ? fetchBody : '');
+    const promptText: string = body.messages[1].content;
+
+    expect(promptText).toContain('ProductRecommendation');
+    expect(promptText).toContain('Available Products for Recommendations');
+  });
+
+  it('aiPersonalize handles ProductRecommendation in response', async () => {
+    const { aiPersonalize } = require('../services/personalization/ai-agent');
+    const newUserProfile = {
+      deviceId: 'test-rec-response',
+      categoryAffinity: {},
+      priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
+      intentSignals: { researchDepth: 0, checkoutConversion: 0 },
+      engagementLevel: 'LOW',
+      lifecycleStage: 'NEW',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      sessionCount: 1,
+      orderCount: 0,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: 0,
+      totalSpent: 0,
+      averageOrderValue: 0,
+    };
+
+    const mockResponse = {
+      components: [
+        { component: 'ProductRecommendation', contentId: null, priority: 2, propsOverrides: { id: 'prod-1', title: 'Running Shoes', handle: 'running-shoes', thumbnail: 'https://example.com/shoe.jpg', price: 89.99, currencyCode: 'USD' }, reasoning: 'Product rec based on affinity' },
+      ],
+      overallReasoning: 'Product recommendation test',
+    };
+
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mockResponse) } }],
+      }),
+    } as Response);
+
+    const result = await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
+    fetchSpy.mockRestore();
+
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].component).toBe('ProductRecommendation');
+    expect(result.components[0].propsOverrides.id).toBe('prod-1');
+    expect(result.components[0].propsOverrides.title).toBe('Test Product');
+    expect(result.components[0].propsOverrides.price).toBe(49.99);
+  });
+
+  it('ProductRecommendation propsOverrides pass through correctly', async () => {
+    const { aiPersonalize } = require('../services/personalization/ai-agent');
+    const newUserProfile = {
+      deviceId: 'test-rec-props',
+      categoryAffinity: { electronics: { views: 10, purchases: 2, lastViewed: Date.now(), score: 3 } },
+      priceSensitivity: { score: 0.3, avgViewedPrice: 100, dealClickRate: 0.1 },
+      intentSignals: { researchDepth: 0.5, checkoutConversion: 0.8 },
+      engagementLevel: 'HIGH',
+      lifecycleStage: 'LOYAL',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      sessionCount: 20,
+      orderCount: 5,
+      recentProducts: [],
+      lastSignalTimestamp: 0,
+      lastPurchaseDate: Date.now() - 86400000,
+      totalSpent: 500,
+      averageOrderValue: 100,
+    };
+
+    const mockResponse = {
+      components: [
+        { component: 'ProductRecommendation', contentId: null, priority: 1, propsOverrides: { id: 'prod-999', title: 'Wireless Headphones', handle: 'wireless-headphones', thumbnail: '', price: 149.99, currencyCode: 'USD' }, reasoning: 'High affinity electronics' },
+        { component: 'FeaturedCategoryRail', contentId: null, priority: 2, propsOverrides: { handle: 'electronics' }, reasoning: 'Electronics browsing' },
+      ],
+      overallReasoning: 'Mixed product and category',
+    };
+
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: JSON.stringify(mockResponse) } }],
+      }),
+    } as Response);
+
+    const result = await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
+    fetchSpy.mockRestore();
+
+    const productRec = result.components.find((c: { component: string }) => c.component === 'ProductRecommendation');
+    expect(productRec).toBeDefined();
+    expect(productRec!.propsOverrides.title).toBe('Wireless Headphones');
+    expect(productRec!.propsOverrides.price).toBe(149.99);
+    expect(productRec!.propsOverrides.currencyCode).toBe('USD');
   });
 });

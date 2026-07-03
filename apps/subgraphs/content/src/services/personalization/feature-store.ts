@@ -28,6 +28,18 @@ export interface ProductViewEntry {
   timestamp: number;
 }
 
+export interface DecisionRecord {
+  components: string[];
+  surface: string;
+  intent: string;
+  servedAt: number;
+  conversionAttributed?: {
+    orderId: string;
+    amount: number;
+    attributedAt: number;
+  };
+}
+
 export interface CurrentSession {
   startedAt: number;
   signalCount: number;
@@ -68,6 +80,8 @@ export interface UserProfile {
   averageOrderValue?: number;
   /** Timestamp of last Medusa order sync (used with SYNC_COOLDOWN_MS to avoid repeated calls). */
   ordersSynced?: number;
+  /** Last 10 personalization decisions served to this user, newest first. */
+  recentDecisions?: DecisionRecord[];
 }
 
 export class FeatureStore {
@@ -98,6 +112,7 @@ export class FeatureStore {
       lastPurchaseDate: 0,
       totalSpent: 0,
       averageOrderValue: 0,
+      recentDecisions: [],
     };
     await this.save(profile);
     return profile;

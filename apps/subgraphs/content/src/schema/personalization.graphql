@@ -108,6 +108,30 @@ type UserProfile {
   lastPurchaseDate: Float
   totalSpent: Float
   averageOrderValue: Float
+  recentDecisions: [DecisionRecord!]
+}
+
+type ProductPreview {
+  id: String!
+  title: String!
+  handle: String!
+  thumbnail: String
+  price: Float!
+  currencyCode: String!
+}
+
+type ConversionAttribution {
+  orderId: String!
+  amount: Float!
+  attributedAt: Float!
+}
+
+type DecisionRecord {
+  components: [String!]!
+  surface: String!
+  intent: String!
+  servedAt: Float!
+  conversionAttributed: ConversionAttribution
 }
 
 type PersonalizedComponent {

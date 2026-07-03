@@ -15,6 +15,11 @@ import { logger } from './services/logger';
 import { type ContentGraphQLContext, createContext } from './graphql/context';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
+import { aiPersonalizeStream } from './services/personalization/ai-agent';
+import {
+  type DecisionRecord,
+  featureStore,
+} from './services/personalization/feature-store';
 
 const DEPLOY_MARKER = 'gateway-deploy-check-2026-03-18-r3';
 
@@ -46,6 +51,87 @@ async function startServer() {
       deployMarker: DEPLOY_MARKER,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  app.post('/api/personalize/stream', async (req, res) => {
+    const ctx = createContext(req);
+    if (!ctx.isAuthorizedClient) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const { deviceId, surface, context: pageContext } = req.body as {
+      deviceId?: string;
+      surface?: string;
+      context?: Record<string, unknown>;
+    };
+
+    if (!deviceId || !surface) {
+      res.status(400).json({ error: 'deviceId and surface are required' });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    let clientConnected = true;
+    req.on('close', () => {
+      clientConnected = false;
+    });
+
+    try {
+      let profile = await featureStore.getOrCreate(deviceId);
+      const effectiveUserId = ctx.customerId ?? ctx.authId;
+      if (effectiveUserId) {
+        profile = await featureStore.mergeToUser(deviceId, effectiveUserId);
+      }
+
+      const ctxInput = {
+        surface,
+        page: String(pageContext?.page ?? '/'),
+        productId: pageContext?.productId as string | undefined,
+        category: pageContext?.category as string | undefined,
+        price: pageContext?.price as number | undefined,
+      };
+
+      for await (const event of aiPersonalizeStream(profile, ctxInput)) {
+        if (!clientConnected) break;
+        if (event.type === 'component') {
+          try { res.write(`data: ${JSON.stringify({ type: 'component', data: event.data })}\n\n`); } catch { break; }
+        } else if (event.type === 'result') {
+          const parsed = JSON.parse(event.data);
+          const reasoning = {
+            intent: parsed.intent ?? 'exploring',
+            confidence: parsed.confidence ?? 0,
+            factors: [parsed.overallReasoning ?? ''],
+            modelVersion: 'ai-v1',
+          };
+
+          // Save decision record for feedback loop
+          const record: DecisionRecord = {
+            components: [],
+            surface,
+            intent: reasoning.intent,
+            servedAt: Date.now(),
+          };
+          profile.recentDecisions = [record, ...(profile.recentDecisions ?? [])].slice(0, 10);
+          featureStore.save(profile).catch((err: unknown) =>
+            logger.warn({ err }, 'Failed to save streaming decision record')
+          );
+
+          try { res.write(`data: ${JSON.stringify({ type: 'result', reasoning })}\n\n`); } catch { break; }
+        }
+      }
+    } catch (err) {
+      if (clientConnected) {
+        logger.error({ err }, 'Streaming personalization error');
+        try { res.write(`data: ${JSON.stringify({ type: 'error', message: 'Personalization failed' })}\n\n`); } catch { /* ignore write errors on closed connection */ }
+      }
+    } finally {
+      try { res.end(); } catch { /* ignore close errors */ }
+    }
   });
 
   app.use(

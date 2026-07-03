@@ -39,9 +39,9 @@ describe('Medusa Services', () => {
 
       mockMedusa.store.product.list.mockResolvedValue({
         products: [
-          { id: 'prod-1', title: 'Mens Shirt', handle: 'mens-shirt', thumbnail: 'img1.jpg' },
-          { id: 'prod-2', title: 'Mens Pants', handle: 'mens-pants', thumbnail: 'img2.jpg' },
-          { id: 'prod-3', title: 'Mens Jacket', handle: 'mens-jacket', thumbnail: null },
+          { id: 'prod-1', title: 'Mens Shirt', handle: 'mens-shirt', thumbnail: 'img1.jpg', variants: [{ calculated_price: { calculated_amount: 29.99, currency_code: 'USD' } }] },
+          { id: 'prod-2', title: 'Mens Pants', handle: 'mens-pants', thumbnail: 'img2.jpg', variants: [{ calculated_price: { calculated_amount: 49.99, currency_code: 'USD' } }] },
+          { id: 'prod-3', title: 'Mens Jacket', handle: 'mens-jacket', thumbnail: null, variants: null },
         ],
         count: 3,
       });
@@ -57,7 +57,7 @@ describe('Medusa Services', () => {
         limit: 3,
         order: '-created_at',
         is_giftcard: false,
-        fields: 'id,title,handle,thumbnail',
+        fields: 'id,title,handle,thumbnail,variants.calculated_price',
       });
 
       expect(products).toHaveLength(3);
@@ -66,8 +66,12 @@ describe('Medusa Services', () => {
         title: 'Mens Shirt',
         handle: 'mens-shirt',
         thumbnail: 'img1.jpg',
+        price: 29.99,
+        currencyCode: 'USD',
       });
       expect(products[2].thumbnail).toBe('');
+      expect(products[2].price).toBeUndefined();
+      expect(products[2].currencyCode).toBeUndefined();
     });
 
     it('returns empty array when no category found', async () => {

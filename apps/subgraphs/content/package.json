@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/index.ts",
+    "check-types": "tsc --noEmit",
     "build": "pnpm run codegen && tsup && pnpm copy-schema",
     "copy-schema": "copyfiles -f ./src/schema/*.graphql dist/",
     "start": "node dist/index.js",
