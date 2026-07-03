@@ -39,6 +39,15 @@ export const componentRegistry: ComponentDefinition[] = [
     surfaces: ['homepage'],
     weight: 0.8,
   },
+  {
+    name: 'ProductRecommendation',
+    description: 'Single product recommendation card with image, title, price, and CTA. AI selects from top-affinity categories.',
+    requiredProps: ['productId', 'title', 'handle', 'thumbnail', 'price', 'currencyCode'],
+    optionalProps: [],
+    contentTypes: [],
+    surfaces: ['homepage'],
+    weight: 0.7,
+  },
 ];
 
 export function getComponentsForSurface(

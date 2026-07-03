@@ -60,6 +60,12 @@ export type ContextualBanner = {
   trigger: Scalars['String']['output'];
 };
 
+export type ConversionAttribution = {
+  amount: Scalars['Float']['output'];
+  attributedAt: Scalars['Float']['output'];
+  orderId: Scalars['String']['output'];
+};
+
 export type ConversionInput = {
   amount: Scalars['Float']['input'];
   checkoutSignalId?: InputMaybe<Scalars['String']['input']>;
@@ -92,6 +98,14 @@ export type DecisionReasoning = {
   factors: Array<Scalars['String']['output']>;
   intent: Scalars['String']['output'];
   modelVersion: Scalars['String']['output'];
+};
+
+export type DecisionRecord = {
+  components: Array<Scalars['String']['output']>;
+  conversionAttributed?: Maybe<ConversionAttribution>;
+  intent: Scalars['String']['output'];
+  servedAt: Scalars['Float']['output'];
+  surface: Scalars['String']['output'];
 };
 
 export type EngagementLevel = 'HIGH' | 'LOW' | 'MEDIUM';
@@ -161,6 +175,15 @@ export type PriceSensitivity = {
   avgViewedPrice: Scalars['Float']['output'];
   dealClickRate: Scalars['Float']['output'];
   score: Scalars['Float']['output'];
+};
+
+export type ProductPreview = {
+  currencyCode: Scalars['String']['output'];
+  handle: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  price: Scalars['Float']['output'];
+  thumbnail?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
 };
 
 export type ProductViewEntry = {
@@ -292,6 +315,7 @@ export type UserProfile = {
   lifecycleStage: LifecycleStage;
   orderCount?: Maybe<Scalars['Int']['output']>;
   priceSensitivity: PriceSensitivity;
+  recentDecisions?: Maybe<Array<DecisionRecord>>;
   recentProducts?: Maybe<Array<ProductViewEntry>>;
   searchHistory?: Maybe<Array<SearchHistoryEntry>>;
   sessionCount: Scalars['Int']['output'];
@@ -421,11 +445,13 @@ export type ResolversTypes = {
   BannerButton: ResolverTypeWrapper<BannerButton>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   ContextualBanner: ResolverTypeWrapper<ContextualBanner>;
+  ConversionAttribution: ResolverTypeWrapper<ConversionAttribution>;
   ConversionInput: ConversionInput;
   ConversionLineItemInput: ConversionLineItemInput;
   CurrentSession: ResolverTypeWrapper<CurrentSession>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DecisionReasoning: ResolverTypeWrapper<DecisionReasoning>;
+  DecisionRecord: ResolverTypeWrapper<DecisionRecord>;
   EngagementLevel: EngagementLevel;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   Footer: ResolverTypeWrapper<Footer>;
@@ -440,6 +466,7 @@ export type ResolversTypes = {
   PersonalizationResult: ResolverTypeWrapper<PersonalizationResult>;
   PersonalizedComponent: ResolverTypeWrapper<PersonalizedComponent>;
   PriceSensitivity: ResolverTypeWrapper<PriceSensitivity>;
+  ProductPreview: ResolverTypeWrapper<ProductPreview>;
   ProductViewEntry: ResolverTypeWrapper<ProductViewEntry>;
   Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   SanityImage: ResolverTypeWrapper<SanityImage>;
@@ -460,11 +487,13 @@ export type ResolversParentTypes = {
   BannerButton: BannerButton;
   Boolean: Scalars['Boolean']['output'];
   ContextualBanner: ContextualBanner;
+  ConversionAttribution: ConversionAttribution;
   ConversionInput: ConversionInput;
   ConversionLineItemInput: ConversionLineItemInput;
   CurrentSession: CurrentSession;
   DateTime: Scalars['DateTime']['output'];
   DecisionReasoning: DecisionReasoning;
+  DecisionRecord: DecisionRecord;
   Float: Scalars['Float']['output'];
   Footer: Footer;
   HomeBanner: HomeBanner;
@@ -477,6 +506,7 @@ export type ResolversParentTypes = {
   PersonalizationResult: PersonalizationResult;
   PersonalizedComponent: PersonalizedComponent;
   PriceSensitivity: PriceSensitivity;
+  ProductPreview: ProductPreview;
   ProductViewEntry: ProductViewEntry;
   Query: Record<PropertyKey, never>;
   SanityImage: SanityImage;
@@ -524,6 +554,16 @@ export type ContextualBannerResolvers<
   trigger?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
+export type ConversionAttributionResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['ConversionAttribution'] =
+    ResolversParentTypes['ConversionAttribution'],
+> = {
+  amount?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  attributedAt?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  orderId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type CurrentSessionResolvers<
   ContextType = ContentGraphQLContext,
   ParentType extends ResolversParentTypes['CurrentSession'] =
@@ -561,6 +601,26 @@ export type DecisionReasoningResolvers<
   factors?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   intent?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modelVersion?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
+export type DecisionRecordResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['DecisionRecord'] =
+    ResolversParentTypes['DecisionRecord'],
+> = {
+  components?: Resolver<
+    Array<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  conversionAttributed?: Resolver<
+    Maybe<ResolversTypes['ConversionAttribution']>,
+    ParentType,
+    ContextType
+  >;
+  intent?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  servedAt?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  surface?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type FooterResolvers<
@@ -723,6 +783,23 @@ export type PriceSensitivityResolvers<
   avgViewedPrice?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   dealClickRate?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   score?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+};
+
+export type ProductPreviewResolvers<
+  ContextType = ContentGraphQLContext,
+  ParentType extends ResolversParentTypes['ProductPreview'] =
+    ResolversParentTypes['ProductPreview'],
+> = {
+  currencyCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  price?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  thumbnail?: Resolver<
+    Maybe<ResolversTypes['String']>,
+    ParentType,
+    ContextType
+  >;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
 
 export type ProductViewEntryResolvers<
@@ -910,6 +987,11 @@ export type UserProfileResolvers<
     ParentType,
     ContextType
   >;
+  recentDecisions?: Resolver<
+    Maybe<Array<ResolversTypes['DecisionRecord']>>,
+    ParentType,
+    ContextType
+  >;
   recentProducts?: Resolver<
     Maybe<Array<ResolversTypes['ProductViewEntry']>>,
     ParentType,
@@ -932,9 +1014,11 @@ export type UserProfileResolvers<
 export type Resolvers<ContextType = ContentGraphQLContext> = {
   BannerButton?: BannerButtonResolvers<ContextType>;
   ContextualBanner?: ContextualBannerResolvers<ContextType>;
+  ConversionAttribution?: ConversionAttributionResolvers<ContextType>;
   CurrentSession?: CurrentSessionResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   DecisionReasoning?: DecisionReasoningResolvers<ContextType>;
+  DecisionRecord?: DecisionRecordResolvers<ContextType>;
   Footer?: FooterResolvers<ContextType>;
   HomeBanner?: HomeBannerResolvers<ContextType>;
   IntentSignals?: IntentSignalsResolvers<ContextType>;
@@ -944,6 +1028,7 @@ export type Resolvers<ContextType = ContentGraphQLContext> = {
   PersonalizationResult?: PersonalizationResultResolvers<ContextType>;
   PersonalizedComponent?: PersonalizedComponentResolvers<ContextType>;
   PriceSensitivity?: PriceSensitivityResolvers<ContextType>;
+  ProductPreview?: ProductPreviewResolvers<ContextType>;
   ProductViewEntry?: ProductViewEntryResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SanityImage?: SanityImageResolvers<ContextType>;

@@ -5,6 +5,8 @@ export interface ProductPreview {
   title: string;
   handle: string;
   thumbnail: string;
+  price?: number;
+  currencyCode?: string;
 }
 
 export interface CategoryOption {
@@ -33,13 +35,19 @@ export async function fetchCategoryProducts(handle: string): Promise<ProductPrev
     limit: 3,
     order: '-created_at',
     is_giftcard: false,
-    fields: 'id,title,handle,thumbnail',
+    fields: 'id,title,handle,thumbnail,variants.calculated_price',
   });
 
-  return products.map((p) => ({
-    id: p.id,
-    title: p.title,
-    handle: p.handle,
-    thumbnail: p.thumbnail || '',
-  }));
+  return products.map((p) => {
+    const firstVariant = p.variants?.[0];
+    const calculatedPrice = firstVariant?.calculated_price as Record<string, unknown> | undefined;
+    return {
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      thumbnail: p.thumbnail || '',
+      price: (calculatedPrice?.calculated_amount as number) ?? undefined,
+      currencyCode: (calculatedPrice?.currency_code as string) ?? undefined,
+    };
+  });
 }

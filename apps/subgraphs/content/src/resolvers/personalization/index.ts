@@ -11,6 +11,7 @@ import { makeDecision } from '../../services/personalization/decision-engine';
 import { getFallbackDecision } from '../../services/personalization/decision-fallback';
 import {
   type CategoryAffinityEntry,
+  type DecisionRecord,
   featureStore,
 } from '../../services/personalization/feature-store';
 import { classifyIntent } from '../../services/personalization/intent-classifier';
@@ -201,6 +202,21 @@ export const personalizationResolvers: Resolvers = {
           topCategory[1].purchases += 1;
         }
       }
+
+      // Attribute conversion to recent decisions
+      const recents = profile.recentDecisions ?? [];
+      if (recents.length > 0 && recents[0]) {
+        const recentThreshold = Date.now() - 24 * 60 * 60 * 1000;
+        const recent = recents.find((d) => d.servedAt > recentThreshold && !d.conversionAttributed);
+        if (recent) {
+          recent.conversionAttributed = {
+            orderId: input.orderId,
+            amount: input.amount ?? 0,
+            attributedAt: Date.now(),
+          };
+        }
+      }
+
       await featureStore.save(profile);
 
       return true;
@@ -279,6 +295,20 @@ export const personalizationResolvers: Resolvers = {
         const result = toPersonalizationResult(
           { ...decision, servedAt },
           servedAt
+        );
+
+        // Save decision record to profile
+        const record: DecisionRecord = {
+          components: decision.components.map((c: { component: string }) => c.component as string),
+          surface: input.surface,
+          intent: decision.reasoning.intent,
+          servedAt: Date.now(),
+        };
+        const recentDecisions = profile.recentDecisions ?? [];
+        recentDecisions.unshift(record);
+        profile.recentDecisions = recentDecisions.slice(0, 10);
+        featureStore.save(profile).catch((err: unknown) =>
+          logger.warn({ err }, 'Failed to save decision record')
         );
 
         return result;
