@@ -49,19 +49,36 @@ describe('Medusa Services', () => {
             title: 'Mens Shirt',
             handle: 'mens-shirt',
             thumbnail: 'img1.jpg',
-         , variants: [{ calculated_price: { calculated_amount: 29.99, currency_code: 'USD' } }] },
+            variants: [
+              {
+                calculated_price: {
+                  calculated_amount: 29.99,
+                  currency_code: 'USD',
+                },
+              },
+            ],
+          },
           {
             id: 'prod-2',
             title: 'Mens Pants',
             handle: 'mens-pants',
             thumbnail: 'img2.jpg',
-         , variants: [{ calculated_price: { calculated_amount: 49.99, currency_code: 'USD' } }] },
+            variants: [
+              {
+                calculated_price: {
+                  calculated_amount: 49.99,
+                  currency_code: 'USD',
+                },
+              },
+            ],
+          },
           {
             id: 'prod-3',
             title: 'Mens Jacket',
             handle: 'mens-jacket',
             thumbnail: null,
-         , variants: null },
+            variants: null,
+          },
         ],
         count: 3,
       });
