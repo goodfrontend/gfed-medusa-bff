@@ -343,8 +343,7 @@ export const adkPersonalizationResolvers = {
         ).slice(-5);
       }
       const currentSession = agentProfile.currentSession as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (currentSession) {
         if (Array.isArray(currentSession.productViews)) {
           currentSession.productViews = (
@@ -385,7 +384,7 @@ export const adkPersonalizationResolvers = {
       // Store decision record for feedback loop (fire-and-forget)
       featureStore
         .storeDecision(deviceId, {
-          timestamp: Date.now(),
+          servedAt: Date.now(),
           components: agentResult.components.map((c) => c.component),
           intent: agentResult.reasoning.intent,
           surface: args.input.surface,
@@ -561,7 +560,7 @@ export const adkPersonalizationResolvers = {
           .getRecentDecisions(deviceId)
           .then((decisions) => {
             const recent = decisions.find(
-              (d) => Date.now() - d.timestamp < 24 * 60 * 60 * 1000
+              (d) => Date.now() - d.servedAt < 24 * 60 * 60 * 1000
             );
             if (recent) {
               logger.info(

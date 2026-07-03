@@ -26,20 +26,33 @@ jest.mock('../services/medusa/category-products', () => ({
       title: 'Test Product',
       handle: 'test-product',
       thumbnail: '',
-   , price: 49.99, currencyCode: 'USD' },
+      price: 49.99,
+      currencyCode: 'USD',
+    },
     {
       id: 'prod-2',
       title: 'Test Product 2',
       handle: 'test-product-2',
       thumbnail: '',
-   , price: 29.99, currencyCode: 'USD' },
+      price: 29.99,
+      currencyCode: 'USD',
+    },
     {
       id: 'prod-3',
       title: 'Test Product 3',
       handle: 'test-product-3',
       thumbnail: '',
-   , price: 19.99, currencyCode: 'USD' },
-    { id: 'prod-999', title: 'Wireless Headphones', handle: 'wireless-headphones', thumbnail: '', price: 149.99, currencyCode: 'USD' },
+      price: 19.99,
+      currencyCode: 'USD',
+    },
+    {
+      id: 'prod-999',
+      title: 'Wireless Headphones',
+      handle: 'wireless-headphones',
+      thumbnail: '',
+      price: 149.99,
+      currencyCode: 'USD',
+    },
   ]),
 }));
 
@@ -939,7 +952,9 @@ describe('Component Registry — homepage surface', () => {
         'HeroBanner',
         'FeaturedCategoryRail',
         'PersonalizedBanner',
-      , 'ProductRecommendation'])
+        ,
+        'ProductRecommendation',
+      ])
     );
     expect(components).toHaveLength(4);
   });
@@ -1903,7 +1918,10 @@ describe('Decision record attribution', () => {
         servedAt: Date.now(),
       },
     ];
-    mockStore.set('bff:personalization:v1:profile:' + deviceId, JSON.stringify(profile));
+    mockStore.set(
+      'bff:personalization:v1:profile:' + deviceId,
+      JSON.stringify(profile)
+    );
 
     const result = await (
       personalizationResolvers.Mutation!.submitConversion as Function
@@ -1923,13 +1941,17 @@ describe('Decision record attribution', () => {
         customerId: null,
         authId: null,
         medusaToken: null,
-      },
+      }
     );
 
     expect(result).toBe(true);
-    const saved = JSON.parse(mockStore.get('bff:personalization:v1:profile:' + deviceId)!);
+    const saved = JSON.parse(
+      mockStore.get('bff:personalization:v1:profile:' + deviceId)!
+    );
     expect(saved.recentDecisions[0].conversionAttributed).toBeDefined();
-    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe('order-attributed');
+    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe(
+      'order-attributed'
+    );
     expect(saved.recentDecisions[0].conversionAttributed.amount).toBe(100);
   });
 
@@ -1948,7 +1970,10 @@ describe('Decision record attribution', () => {
         },
       },
     ];
-    mockStore.set('bff:personalization:v1:profile:' + deviceId, JSON.stringify(profile));
+    mockStore.set(
+      'bff:personalization:v1:profile:' + deviceId,
+      JSON.stringify(profile)
+    );
 
     const result = await (
       personalizationResolvers.Mutation!.submitConversion as Function
@@ -1968,13 +1993,17 @@ describe('Decision record attribution', () => {
         customerId: null,
         authId: null,
         medusaToken: null,
-      },
+      }
     );
 
     expect(result).toBe(true);
-    const saved = JSON.parse(mockStore.get('bff:personalization:v1:profile:' + deviceId)!);
+    const saved = JSON.parse(
+      mockStore.get('bff:personalization:v1:profile:' + deviceId)!
+    );
     // Already-attributed decision should not be overwritten
-    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe('existing-order');
+    expect(saved.recentDecisions[0].conversionAttributed.orderId).toBe(
+      'existing-order'
+    );
     expect(saved.recentDecisions[0].conversionAttributed.amount).toBe(50);
   });
 });
@@ -1982,7 +2011,9 @@ describe('Decision record attribution', () => {
 describe('Product Recommendation component', () => {
   it('componentRegistry includes ProductRecommendation', () => {
     const { componentRegistry } = require('../config/component-registry');
-    const rec = componentRegistry.find((c: { name: string }) => c.name === 'ProductRecommendation');
+    const rec = componentRegistry.find(
+      (c: { name: string }) => c.name === 'ProductRecommendation'
+    );
     expect(rec).toBeDefined();
     expect(rec!.requiredProps).toContain('productId');
     expect(rec!.requiredProps).toContain('title');
@@ -2018,16 +2049,30 @@ describe('Product Recommendation component', () => {
 
     const mockJsonResponse = {
       components: [
-        { component: 'ProductRecommendation', contentId: null, priority: 1, propsOverrides: { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '', price: 49.99, currencyCode: 'USD' }, reasoning: 'Product rec for new user' },
+        {
+          component: 'ProductRecommendation',
+          contentId: null,
+          priority: 1,
+          propsOverrides: {
+            id: 'prod-1',
+            title: 'Test Product',
+            handle: 'test-product',
+            thumbnail: '',
+            price: 49.99,
+            currencyCode: 'USD',
+          },
+          reasoning: 'Product rec for new user',
+        },
       ],
       overallReasoning: 'Product recommendation',
     };
 
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mockJsonResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify(mockJsonResponse) } }],
+        }),
     } as Response);
 
     await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
@@ -2035,7 +2080,9 @@ describe('Product Recommendation component', () => {
     const fetchCalls = fetchSpy.mock.calls;
     fetchSpy.mockRestore();
 
-    const fetchBody = (fetchCalls[0]?.[1] as Record<string, unknown> | undefined)?.body;
+    const fetchBody = (
+      fetchCalls[0]?.[1] as Record<string, unknown> | undefined
+    )?.body;
     const body = JSON.parse(typeof fetchBody === 'string' ? fetchBody : '');
     const promptText: string = body.messages[1].content;
 
@@ -2065,19 +2112,36 @@ describe('Product Recommendation component', () => {
 
     const mockResponse = {
       components: [
-        { component: 'ProductRecommendation', contentId: null, priority: 2, propsOverrides: { id: 'prod-1', title: 'Running Shoes', handle: 'running-shoes', thumbnail: 'https://example.com/shoe.jpg', price: 89.99, currencyCode: 'USD' }, reasoning: 'Product rec based on affinity' },
+        {
+          component: 'ProductRecommendation',
+          contentId: null,
+          priority: 2,
+          propsOverrides: {
+            id: 'prod-1',
+            title: 'Running Shoes',
+            handle: 'running-shoes',
+            thumbnail: 'https://example.com/shoe.jpg',
+            price: 89.99,
+            currencyCode: 'USD',
+          },
+          reasoning: 'Product rec based on affinity',
+        },
       ],
       overallReasoning: 'Product recommendation test',
     };
 
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mockResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify(mockResponse) } }],
+        }),
     } as Response);
 
-    const result = await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
+    const result = await aiPersonalize(newUserProfile, {
+      surface: 'homepage',
+      page: '/',
+    });
     fetchSpy.mockRestore();
 
     expect(result.components).toHaveLength(1);
@@ -2091,7 +2155,14 @@ describe('Product Recommendation component', () => {
     const { aiPersonalize } = require('../services/personalization/ai-agent');
     const newUserProfile = {
       deviceId: 'test-rec-props',
-      categoryAffinity: { electronics: { views: 10, purchases: 2, lastViewed: Date.now(), score: 3 } },
+      categoryAffinity: {
+        electronics: {
+          views: 10,
+          purchases: 2,
+          lastViewed: Date.now(),
+          score: 3,
+        },
+      },
       priceSensitivity: { score: 0.3, avgViewedPrice: 100, dealClickRate: 0.1 },
       intentSignals: { researchDepth: 0.5, checkoutConversion: 0.8 },
       engagementLevel: 'HIGH',
@@ -2109,23 +2180,48 @@ describe('Product Recommendation component', () => {
 
     const mockResponse = {
       components: [
-        { component: 'ProductRecommendation', contentId: null, priority: 1, propsOverrides: { id: 'prod-999', title: 'Wireless Headphones', handle: 'wireless-headphones', thumbnail: '', price: 149.99, currencyCode: 'USD' }, reasoning: 'High affinity electronics' },
-        { component: 'FeaturedCategoryRail', contentId: null, priority: 2, propsOverrides: { handle: 'electronics' }, reasoning: 'Electronics browsing' },
+        {
+          component: 'ProductRecommendation',
+          contentId: null,
+          priority: 1,
+          propsOverrides: {
+            id: 'prod-999',
+            title: 'Wireless Headphones',
+            handle: 'wireless-headphones',
+            thumbnail: '',
+            price: 149.99,
+            currencyCode: 'USD',
+          },
+          reasoning: 'High affinity electronics',
+        },
+        {
+          component: 'FeaturedCategoryRail',
+          contentId: null,
+          priority: 2,
+          propsOverrides: { handle: 'electronics' },
+          reasoning: 'Electronics browsing',
+        },
       ],
       overallReasoning: 'Mixed product and category',
     };
 
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mockResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify(mockResponse) } }],
+        }),
     } as Response);
 
-    const result = await aiPersonalize(newUserProfile, { surface: 'homepage', page: '/' });
+    const result = await aiPersonalize(newUserProfile, {
+      surface: 'homepage',
+      page: '/',
+    });
     fetchSpy.mockRestore();
 
-    const productRec = result.components.find((c: { component: string }) => c.component === 'ProductRecommendation');
+    const productRec = result.components.find(
+      (c: { component: string }) => c.component === 'ProductRecommendation'
+    );
     expect(productRec).toBeDefined();
     expect(productRec!.propsOverrides.title).toBe('Wireless Headphones');
     expect(productRec!.propsOverrides.price).toBe(149.99);

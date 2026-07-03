@@ -218,7 +218,9 @@ export const personalizationResolvers: Resolvers = {
       const recents = profile.recentDecisions ?? [];
       if (recents.length > 0 && recents[0]) {
         const recentThreshold = Date.now() - 24 * 60 * 60 * 1000;
-        const recent = recents.find((d) => d.servedAt > recentThreshold && !d.conversionAttributed);
+        const recent = recents.find(
+          (d) => d.servedAt > recentThreshold && !d.conversionAttributed
+        );
         if (recent) {
           recent.conversionAttributed = {
             orderId: input.orderId,
@@ -318,7 +320,9 @@ export const personalizationResolvers: Resolvers = {
 
         // Save decision record to profile
         const record: DecisionRecord = {
-          components: decision.components.map((c: { component: string }) => c.component as string),
+          components: decision.components.map(
+            (c: { component: string }) => c.component as string
+          ),
           surface: input.surface,
           intent: decision.reasoning.intent,
           servedAt: Date.now(),
@@ -326,9 +330,11 @@ export const personalizationResolvers: Resolvers = {
         const recentDecisions = profile.recentDecisions ?? [];
         recentDecisions.unshift(record);
         profile.recentDecisions = recentDecisions.slice(0, 10);
-        featureStore.save(profile).catch((err: unknown) =>
-          logger.warn({ err }, 'Failed to save decision record')
-        );
+        featureStore
+          .save(profile)
+          .catch((err: unknown) =>
+            logger.warn({ err }, 'Failed to save decision record')
+          );
 
         return result;
       } catch (err) {

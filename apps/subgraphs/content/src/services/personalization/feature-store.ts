@@ -29,10 +29,15 @@ export interface ProductViewEntry {
 }
 
 export interface DecisionRecord {
-  timestamp: number;
   components: string[];
-  intent: string;
   surface: string;
+  intent: string;
+  servedAt: number;
+  conversionAttributed?: {
+    orderId: string;
+    amount: number;
+    attributedAt: number;
+  };
 }
 
 export interface DecisionRecord {

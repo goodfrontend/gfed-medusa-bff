@@ -59,7 +59,11 @@ async function startServer() {
       return;
     }
 
-    const { deviceId, surface, context: pageContext } = req.body as {
+    const {
+      deviceId,
+      surface,
+      context: pageContext,
+    } = req.body as {
       deviceId?: string;
       surface?: string;
       context?: Record<string, unknown>;
@@ -98,7 +102,13 @@ async function startServer() {
       for await (const event of aiPersonalizeStream(profile, ctxInput)) {
         if (!clientConnected) break;
         if (event.type === 'component') {
-          try { res.write(`data: ${JSON.stringify({ type: 'component', data: event.data })}\n\n`); } catch { break; }
+          try {
+            res.write(
+              `data: ${JSON.stringify({ type: 'component', data: event.data })}\n\n`
+            );
+          } catch {
+            break;
+          }
         } else if (event.type === 'result') {
           const parsed = JSON.parse(event.data);
           const reasoning = {
@@ -115,21 +125,42 @@ async function startServer() {
             intent: reasoning.intent,
             servedAt: Date.now(),
           };
-          profile.recentDecisions = [record, ...(profile.recentDecisions ?? [])].slice(0, 10);
-          featureStore.save(profile).catch((err: unknown) =>
-            logger.warn({ err }, 'Failed to save streaming decision record')
-          );
+          profile.recentDecisions = [
+            record,
+            ...(profile.recentDecisions ?? []),
+          ].slice(0, 10);
+          featureStore
+            .save(profile)
+            .catch((err: unknown) =>
+              logger.warn({ err }, 'Failed to save streaming decision record')
+            );
 
-          try { res.write(`data: ${JSON.stringify({ type: 'result', reasoning })}\n\n`); } catch { break; }
+          try {
+            res.write(
+              `data: ${JSON.stringify({ type: 'result', reasoning })}\n\n`
+            );
+          } catch {
+            break;
+          }
         }
       }
     } catch (err) {
       if (clientConnected) {
         logger.error({ err }, 'Streaming personalization error');
-        try { res.write(`data: ${JSON.stringify({ type: 'error', message: 'Personalization failed' })}\n\n`); } catch { /* ignore write errors on closed connection */ }
+        try {
+          res.write(
+            `data: ${JSON.stringify({ type: 'error', message: 'Personalization failed' })}\n\n`
+          );
+        } catch {
+          /* ignore write errors on closed connection */
+        }
       }
     } finally {
-      try { res.end(); } catch { /* ignore close errors */ }
+      try {
+        res.end();
+      } catch {
+        /* ignore close errors */
+      }
     }
   });
 
