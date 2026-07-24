@@ -32,7 +32,9 @@ input SignalInput {
   type: SignalType!
   payload: JSON
   url: String
-  """Unix epoch milliseconds"""
+  """
+  Unix epoch milliseconds
+  """
   timestamp: Float
 }
 
@@ -191,8 +193,13 @@ extend type Mutation {
 }
 
 extend type Query {
-  personalize(input: SurfaceContext!, deviceId: String!): PersonalizationResult! @cacheControl(maxAge: 0)
+  personalize(
+    input: SurfaceContext!
+    deviceId: String!
+  ): PersonalizationResult! @cacheControl(maxAge: 0)
   userProfile(deviceId: String!): UserProfile!
-  """Debug: current rule-based intent classification."""
+  """
+  Debug: current rule-based intent classification.
+  """
   debugIntent(deviceId: String!): DecisionReasoning!
 }

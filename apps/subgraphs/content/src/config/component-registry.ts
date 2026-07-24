@@ -34,7 +34,14 @@ export const componentRegistry: ComponentDefinition[] = [
     description:
       'Segment-aware promotional banner with title, eyebrow, description, image, buttons.',
     requiredProps: ['title'],
-    optionalProps: ['eyebrow', 'description', 'image', 'buttons', 'secondaryBanners', 'showPoweredBy'],
+    optionalProps: [
+      'eyebrow',
+      'description',
+      'image',
+      'buttons',
+      'secondaryBanners',
+      'showPoweredBy',
+    ],
     contentTypes: ['homeBanner'],
     surfaces: ['homepage'],
     weight: 0.8,

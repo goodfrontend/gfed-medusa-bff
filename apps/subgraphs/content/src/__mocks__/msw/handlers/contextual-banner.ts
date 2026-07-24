@@ -50,27 +50,33 @@ export const contextualBannerHighPriorityHandler = http.get(
   }
 );
 
-export const emptyContextualBannerHandler = http.get(sanityHttp, ({ request }) => {
-  const url = new URL(request.url);
-  const query = url.searchParams.get('query');
+export const emptyContextualBannerHandler = http.get(
+  sanityHttp,
+  ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('query');
 
-  if (query && query.includes('contextualBanner')) {
-    return HttpResponse.json({
-      result: {},
-    });
+    if (query && query.includes('contextualBanner')) {
+      return HttpResponse.json({
+        result: {},
+      });
+    }
   }
-});
+);
 
-export const nullContextualBannerHandler = http.get(sanityHttp, ({ request }) => {
-  const url = new URL(request.url);
-  const query = url.searchParams.get('query');
+export const nullContextualBannerHandler = http.get(
+  sanityHttp,
+  ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('query');
 
-  if (query && query.includes('contextualBanner')) {
-    return HttpResponse.json({
-      result: null,
-    });
+    if (query && query.includes('contextualBanner')) {
+      return HttpResponse.json({
+        result: null,
+      });
+    }
   }
-});
+);
 
 export const contextualBannerErrorHandler = http.get(sanityHttp, () => {
   return HttpResponse.json({ error: 'Sanity API error' }, { status: 500 });

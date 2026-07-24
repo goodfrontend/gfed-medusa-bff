@@ -1,6 +1,6 @@
-import { logger } from '../../services/logger';
 import { sanityClient } from '../../config/sanity';
 import { HomeBanner } from '../../generated/graphql';
+import { logger } from '../../services/logger';
 import { HOME_BANNER_QUERY } from './groq-queries';
 
 interface HomeBannerArgs {
@@ -20,7 +20,10 @@ export const homeBannerResolvers = {
         const result = await sanityClient.fetch(HOME_BANNER_QUERY, params);
         return result;
       } catch (error) {
-        logger.error({ err: error }, 'Error fetching home banner content from Sanity');
+        logger.error(
+          { err: error },
+          'Error fetching home banner content from Sanity'
+        );
         return null;
       }
     },

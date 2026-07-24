@@ -2,19 +2,19 @@ import {
   type ComponentDefinition,
   getComponentsForSurface,
 } from '../../config/component-registry';
+import {
+  type CategoryOption,
+  type ProductPreview,
+  fetchCategoryProducts,
+} from '../medusa/category-products';
 import type { UserProfile } from './feature-store';
 import {
   type Intent,
   type IntentScore,
   classifyIntent,
 } from './intent-classifier';
-import { fetchAvailableContent, resolveAudienceFields } from './sanity-content';
-import {
-  type CategoryOption,
-  type ProductPreview,
-  fetchCategoryProducts,
-} from '../medusa/category-products';
 import { logger } from './logger';
+import { fetchAvailableContent, resolveAudienceFields } from './sanity-content';
 
 interface DecisionComponent {
   component: string;
@@ -125,29 +125,33 @@ export async function makeDecision(
       try {
         c._medusaProducts = await fetchCategoryProducts(c._category.handle);
       } catch (err) {
-        logger.warn({ err, category: c._category.handle }, 'Medusa fetch failed for category');
+        logger.warn(
+          { err, category: c._category.handle },
+          'Medusa fetch failed for category'
+        );
       }
     }
   }
 
   const selected: DecisionComponent[] = topCandidates
-    .filter((c) => c.component.name !== 'FeaturedCategoryRail' || (c._medusaProducts?.length ?? 0) > 0)
+    .filter(
+      (c) =>
+        c.component.name !== 'FeaturedCategoryRail' ||
+        (c._medusaProducts?.length ?? 0) > 0
+    )
     .map((c, i) => {
-      const resolvedContent = c.content ? resolveAudienceFields(c.content) : null;
+      const resolvedContent = c.content
+        ? resolveAudienceFields(c.content)
+        : null;
       return {
         component: c.component.name,
         contentId: (c.content?._id as string | undefined) ?? null,
         propsOverrides: {
           ...resolvedContent,
-          ...buildPropsOverrides(
-            c.component,
-            profile,
-            primaryIntent,
-            {
-              category: c._category,
-              products: c._medusaProducts,
-            }
-          ),
+          ...buildPropsOverrides(c.component, profile, primaryIntent, {
+            category: c._category,
+            products: c._medusaProducts,
+          }),
         },
         priority: i + 1,
         reasoning: c.reasoning,
@@ -156,7 +160,10 @@ export async function makeDecision(
     });
 
   if (selected.length === 0) {
-    throw new Error('No components available — all component data sources failing for surface: ' + surface);
+    throw new Error(
+      'No components available — all component data sources failing for surface: ' +
+        surface
+    );
   }
 
   return {
@@ -171,9 +178,7 @@ export async function makeDecision(
   };
 }
 
-function dedupeByComponent(
-  sorted: Candidate[]
-) {
+function dedupeByComponent(sorted: Candidate[]) {
   const seen = new Set<string>();
   const out: Candidate[] = [];
   for (const row of sorted) {
@@ -192,7 +197,7 @@ function scoreCandidate(
   intent: Intent,
   component: ComponentDefinition,
   content: Record<string, unknown> | null,
-  category?: CategoryOption,
+  category?: CategoryOption
 ): { score: number; reasoning: string } {
   let score = component.weight;
   const reasons: string[] = [];
@@ -225,7 +230,10 @@ function scoreCandidate(
     if (component.name === 'HeroBanner') score += 0.3;
     if (component.name === 'FeaturedCategoryRail') score += 0.4;
   }
-  if (profile.lifecycleStage === 'FREQUENT' && component.name === 'FeaturedCategoryRail') {
+  if (
+    profile.lifecycleStage === 'FREQUENT' &&
+    component.name === 'FeaturedCategoryRail'
+  ) {
     score += 0.2;
     reasons.push('Frequent buyer category browsing');
   }
@@ -234,12 +242,18 @@ function scoreCandidate(
     if (component.name === 'FeaturedCategoryRail') score += 0.2;
   }
 
-  if (profile.priceSensitivity.score > 0.6 && component.name === 'PersonalizedBanner') {
+  if (
+    profile.priceSensitivity.score > 0.6 &&
+    component.name === 'PersonalizedBanner'
+  ) {
     score += 0.4;
     reasons.push('Price-sensitive user promotional banner');
   }
 
-  if (profile.engagementLevel === 'LOW' && component.name === 'PersonalizedBanner') {
+  if (
+    profile.engagementLevel === 'LOW' &&
+    component.name === 'PersonalizedBanner'
+  ) {
     score += 0.2;
     reasons.push('Engagement banner for low-engagement user');
   }
@@ -253,7 +267,10 @@ function scoreCandidate(
     }
   }
 
-  if (component.name === 'PersonalizedBanner' && (profile.hesitationCount ?? 0) > 2) {
+  if (
+    component.name === 'PersonalizedBanner' &&
+    (profile.hesitationCount ?? 0) > 2
+  ) {
     score += 0.3;
     reasons.push('Hesitant user reassurance banner');
   }
@@ -292,7 +309,10 @@ function buildPropsOverrides(
   comp: ComponentDefinition,
   profile: UserProfile,
   intent: Intent,
-  extra?: { category?: { handle: string; name: string }; products?: ProductPreview[] }
+  extra?: {
+    category?: { handle: string; name: string };
+    products?: ProductPreview[];
+  }
 ): Record<string, unknown> {
   if (comp.name === 'FeaturedCategoryRail') {
     return {
@@ -320,8 +340,9 @@ function buildPropsOverrides(
 }
 
 export function getRelevantCategories(profile: UserProfile): CategoryOption[] {
-  const affinities = Object.entries(profile.categoryAffinity)
-    .sort(([, a], [, b]) => b.score - a.score);
+  const affinities = Object.entries(profile.categoryAffinity).sort(
+    ([, a], [, b]) => b.score - a.score
+  );
 
   if (affinities.length === 0) {
     return [
@@ -336,7 +357,6 @@ export function getRelevantCategories(profile: UserProfile): CategoryOption[] {
     score: data.score,
   }));
 }
-
 
 function explainDecision(
   intent: Intent,

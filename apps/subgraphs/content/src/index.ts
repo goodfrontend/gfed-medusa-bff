@@ -10,11 +10,10 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
 
-import { logger } from './services/logger';
-
 import { type ContentGraphQLContext, createContext } from './graphql/context';
 import { resolvers } from './resolvers';
 import { typeDefs } from './schema';
+import { logger } from './services/logger';
 import { aiPersonalizeStream } from './services/personalization/ai-agent';
 import {
   type DecisionRecord,

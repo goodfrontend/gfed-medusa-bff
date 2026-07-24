@@ -17,7 +17,7 @@ jest.mock('../config/personalization-redis', () => {
     }),
     del: jest.fn(async (keys: string | string[]) => {
       const ks = Array.isArray(keys) ? keys : [keys];
-      ks.forEach(k => mockStore.delete(k));
+      ks.forEach((k) => mockStore.delete(k));
       return ks.length;
     }),
     sAdd: jest.fn(async (key: string, value: string) => {
@@ -84,8 +84,6 @@ describe('Personalization Signal Processing', () => {
     };
     mockStore.set(`${KEY_NS}profile:${deviceId}`, JSON.stringify(profile));
 
-    await expect(
-      signalProcessor.process(signal, deviceId)
-    ).resolves.toBe(true);
+    await expect(signalProcessor.process(signal, deviceId)).resolves.toBe(true);
   });
 });

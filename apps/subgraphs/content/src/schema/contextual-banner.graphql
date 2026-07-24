@@ -10,5 +10,6 @@ type ContextualBanner {
 }
 
 extend type Query {
-  contextualBanners: [ContextualBanner!]! @cacheControl(maxAge: 300, scope: PUBLIC)
+  contextualBanners: [ContextualBanner!]!
+    @cacheControl(maxAge: 300, scope: PUBLIC)
 }

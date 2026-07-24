@@ -25,7 +25,12 @@ const FALLBACKS: Record<
     {
       component: 'PersonalizedBanner',
       contentId: null,
-      propsOverrides: { title: 'Welcome to Our Store', eyebrow: 'New Arrivals', description: 'Discover our latest collection', showPoweredBy: true },
+      propsOverrides: {
+        title: 'Welcome to Our Store',
+        eyebrow: 'New Arrivals',
+        description: 'Discover our latest collection',
+        showPoweredBy: true,
+      },
       priority: 1,
       reasoning: 'Default promotional banner',
       score: 0,
@@ -53,7 +58,7 @@ const FALLBACKS: Record<
       priority: 4,
       reasoning: 'Generic hero',
       score: 0,
-    }
+    },
   ],
 };
 
