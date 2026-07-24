@@ -20,10 +20,27 @@ export async function getPersonalizationRedis(): Promise<RedisClientType> {
     );
   }
 
-  const next = createClient({ url });
+  const next = createClient({
+    url,
+    socket: {
+      connectTimeout: 10_000,
+      timeout: 5_000,
+      reconnectStrategy: (retries: number) => {
+        if (retries > 5) {
+          return new Error('Redis max reconnection attempts exceeded');
+        }
+        return Math.min(retries * 100, 2_000);
+      },
+    },
+  });
   next.on('error', (err) => {
     logger.error(
-      { err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err },
+      {
+        err:
+          err instanceof Error
+            ? { name: err.name, message: err.message, stack: err.stack }
+            : err,
+      },
       'Personalization Redis error'
     );
   });

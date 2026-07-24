@@ -1,5 +1,8 @@
 import { personalizationResolvers } from '../resolvers/personalization/index';
-import { featureStore, type UserProfile } from '../services/personalization/feature-store';
+import {
+  type UserProfile,
+  featureStore,
+} from '../services/personalization/feature-store';
 import { signalProcessor } from '../services/personalization/signal-ingestion';
 
 const mockStore = new Map<string, string>();
@@ -7,7 +10,9 @@ const mockSetStore = new Map<string, Set<string>>();
 const mockListStore = new Map<string, string[]>();
 
 jest.mock('../services/personalization/sanity-content', () => {
-  const actual = jest.requireActual('../services/personalization/sanity-content');
+  const actual = jest.requireActual(
+    '../services/personalization/sanity-content'
+  );
   return {
     ...actual,
     fetchAvailableContent: jest.fn().mockResolvedValue([]),
@@ -16,9 +21,24 @@ jest.mock('../services/personalization/sanity-content', () => {
 
 jest.mock('../services/medusa/category-products', () => ({
   fetchCategoryProducts: jest.fn().mockResolvedValue([
-    { id: 'prod-1', title: 'Test Product', handle: 'test-product', thumbnail: '', price: 49.99, currencyCode: 'USD' },
-    { id: 'prod-2', title: 'Test Product 2', handle: 'test-product-2', thumbnail: '', price: 29.99, currencyCode: 'USD' },
-    { id: 'prod-3', title: 'Test Product 3', handle: 'test-product-3', thumbnail: '', price: 19.99, currencyCode: 'USD' },
+    {
+      id: 'prod-1',
+      title: 'Test Product',
+      handle: 'test-product',
+      thumbnail: '',
+   , price: 49.99, currencyCode: 'USD' },
+    {
+      id: 'prod-2',
+      title: 'Test Product 2',
+      handle: 'test-product-2',
+      thumbnail: '',
+   , price: 29.99, currencyCode: 'USD' },
+    {
+      id: 'prod-3',
+      title: 'Test Product 3',
+      handle: 'test-product-3',
+      thumbnail: '',
+   , price: 19.99, currencyCode: 'USD' },
     { id: 'prod-999', title: 'Wireless Headphones', handle: 'wireless-headphones', thumbnail: '', price: 149.99, currencyCode: 'USD' },
   ]),
 }));
@@ -33,7 +53,7 @@ jest.mock('../config/personalization-redis', () => {
     }),
     del: jest.fn(async (keys: string | string[]) => {
       const ks = Array.isArray(keys) ? keys : [keys];
-      ks.forEach(k => mockStore.delete(k));
+      ks.forEach((k) => mockStore.delete(k));
       return ks.length;
     }),
     sAdd: jest.fn(async (key: string, value: string) => {
@@ -101,10 +121,14 @@ describe('UserProfile type', () => {
 
     // Renamed field
     expect(profile.intentSignals).toHaveProperty('checkoutConversion');
-    expect((profile.intentSignals as Record<string, unknown>).checkoutConversion).toBe(0);
+    expect(
+      (profile.intentSignals as Record<string, unknown>).checkoutConversion
+    ).toBe(0);
 
     // Removed field
-    expect((profile.intentSignals as Record<string, unknown>).returnRate).toBeUndefined();
+    expect(
+      (profile.intentSignals as Record<string, unknown>).returnRate
+    ).toBeUndefined();
   });
 
   it('should default priceSensitivity.score to 0 (not 0.5)', async () => {
@@ -120,7 +144,11 @@ describe('UserProfile type', () => {
     expect(deviceId).toBeTruthy();
     expect(profile.deviceId).toBe(deviceId);
     expect(profile.categoryAffinity).toEqual({});
-    expect(profile.priceSensitivity).toEqual({ score: 0, avgViewedPrice: 0, dealClickRate: 0 });
+    expect(profile.priceSensitivity).toEqual({
+      score: 0,
+      avgViewedPrice: 0,
+      dealClickRate: 0,
+    });
     expect(profile.engagementLevel).toBe('LOW');
     expect(profile.lifecycleStage).toBe('NEW');
     expect(profile.sessionCount).toBe(0);
@@ -181,7 +209,9 @@ describe('Signal processing', () => {
     await signalProcessor.process(signal, deviceId);
     const profile = await featureStore.getOrCreate(deviceId);
 
-    expect(profile.recentProducts?.[0]?.productName).toBe('Product Name via name field');
+    expect(profile.recentProducts?.[0]?.productName).toBe(
+      'Product Name via name field'
+    );
   });
 
   it('should update avgViewedPrice on PRODUCT_VIEW with price', async () => {
@@ -218,22 +248,38 @@ describe('Signal processing', () => {
     await signalProcessor.process(signal, deviceId);
     const profile = await featureStore.getOrCreate(deviceId);
 
-    expect((profile.intentSignals as Record<string, unknown>).checkoutConversion).toBeGreaterThan(0);
-    expect((profile.intentSignals as Record<string, unknown>).cartToPurchaseRate).toBeUndefined();
+    expect(
+      (profile.intentSignals as Record<string, unknown>).checkoutConversion
+    ).toBeGreaterThan(0);
+    expect(
+      (profile.intentSignals as Record<string, unknown>).cartToPurchaseRate
+    ).toBeUndefined();
   });
 
   it('should decrement checkoutConversion on CHECKOUT_ABANDON', async () => {
     await featureStore.getOrCreate(deviceId);
 
     // First increment
-    await signalProcessor.process({
-      type: 'CHECKOUT_START', payload: {}, url: '/checkout', timestamp: Date.now(),
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'CHECKOUT_START',
+        payload: {},
+        url: '/checkout',
+        timestamp: Date.now(),
+      },
+      deviceId
+    );
 
     // Then decrement
-    await signalProcessor.process({
-      type: 'CHECKOUT_ABANDON', payload: {}, url: '/checkout', timestamp: Date.now(),
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'CHECKOUT_ABANDON',
+        payload: {},
+        url: '/checkout',
+        timestamp: Date.now(),
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
 
@@ -246,23 +292,37 @@ describe('Signal processing', () => {
     await featureStore.getOrCreate(deviceId);
 
     // Send a trust signal
-    await signalProcessor.process({
-      type: 'RETURN_POLICY_VIEW', payload: {}, url: '/return-policy', timestamp: Date.now(),
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'RETURN_POLICY_VIEW',
+        payload: {},
+        url: '/return-policy',
+        timestamp: Date.now(),
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
 
     // No returnRate field
-    expect((profile.intentSignals as Record<string, unknown>).returnRate).toBeUndefined();
+    expect(
+      (profile.intentSignals as Record<string, unknown>).returnRate
+    ).toBeUndefined();
     // No other side effects from trust signals
   });
 
   it('should track current session on PAGE_VIEW', async () => {
     await featureStore.getOrCreate(deviceId);
 
-    await signalProcessor.process({
-      type: 'PAGE_VIEW', payload: { category: 'electronics' }, url: '/electronics', timestamp: Date.now(),
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'PAGE_VIEW',
+        payload: { category: 'electronics' },
+        url: '/electronics',
+        timestamp: Date.now(),
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
 
@@ -276,15 +336,37 @@ describe('Signal processing', () => {
 
     const now = Date.now();
 
-    await signalProcessor.process({
-      type: 'SEARCH_QUERY', payload: { query: 'laptop' }, url: '/search', timestamp: now,
-    }, deviceId);
-    await signalProcessor.process({
-      type: 'PRODUCT_VIEW', payload: { productId: 'p1', productName: 'Laptop 1', category: 'electronics' }, url: '/products/p1', timestamp: now + 100,
-    }, deviceId);
-    await signalProcessor.process({
-      type: 'CART_ADD', payload: { productId: 'p1' }, url: '/cart', timestamp: now + 200,
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'SEARCH_QUERY',
+        payload: { query: 'laptop' },
+        url: '/search',
+        timestamp: now,
+      },
+      deviceId
+    );
+    await signalProcessor.process(
+      {
+        type: 'PRODUCT_VIEW',
+        payload: {
+          productId: 'p1',
+          productName: 'Laptop 1',
+          category: 'electronics',
+        },
+        url: '/products/p1',
+        timestamp: now + 100,
+      },
+      deviceId
+    );
+    await signalProcessor.process(
+      {
+        type: 'CART_ADD',
+        payload: { productId: 'p1' },
+        url: '/cart',
+        timestamp: now + 200,
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
 
@@ -298,12 +380,19 @@ describe('Signal processing', () => {
   it('should set firstCategory on PRODUCT_VIEW (was topCategory)', async () => {
     await featureStore.getOrCreate(deviceId);
 
-    await signalProcessor.process({
-      type: 'PRODUCT_VIEW',
-      payload: { productId: 'p1', productName: 'P1', category: 'electronics' },
-      url: '/products/p1',
-      timestamp: Date.now(),
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'PRODUCT_VIEW',
+        payload: {
+          productId: 'p1',
+          productName: 'P1',
+          category: 'electronics',
+        },
+        url: '/products/p1',
+        timestamp: Date.now(),
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
     expect(profile.currentSession).toBeDefined();
@@ -317,14 +406,26 @@ describe('Signal processing', () => {
     const thirtyOneMinutes = 31 * 60 * 1000;
 
     // First page view
-    await signalProcessor.process({
-      type: 'PAGE_VIEW', payload: {}, url: '/', timestamp: now,
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'PAGE_VIEW',
+        payload: {},
+        url: '/',
+        timestamp: now,
+      },
+      deviceId
+    );
 
     // Over 30 min later, new page view starts new session
-    await signalProcessor.process({
-      type: 'PAGE_VIEW', payload: {}, url: '/another-page', timestamp: now + thirtyOneMinutes,
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'PAGE_VIEW',
+        payload: {},
+        url: '/another-page',
+        timestamp: now + thirtyOneMinutes,
+      },
+      deviceId
+    );
 
     const profile = await featureStore.getOrCreate(deviceId);
 
@@ -339,9 +440,15 @@ describe('Signal processing', () => {
     const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
 
     // Add research via search
-    await signalProcessor.process({
-      type: 'SEARCH_QUERY', payload: { query: 'test' }, url: '/search', timestamp: now,
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'SEARCH_QUERY',
+        payload: { query: 'test' },
+        url: '/search',
+        timestamp: now,
+      },
+      deviceId
+    );
 
     // Get profile after first signal
     let profile = await featureStore.getOrCreate(deviceId);
@@ -349,22 +456,39 @@ describe('Signal processing', () => {
     expect(researchAfterSearch).toBeGreaterThan(0);
 
     // Send another signal 2 days later — researchDepth should decay
-    await signalProcessor.process({
-      type: 'PAGE_VIEW', payload: {}, url: '/', timestamp: now + twoDaysMs,
-    }, deviceId);
+    await signalProcessor.process(
+      {
+        type: 'PAGE_VIEW',
+        payload: {},
+        url: '/',
+        timestamp: now + twoDaysMs,
+      },
+      deviceId
+    );
 
     profile = await featureStore.getOrCreate(deviceId);
-    expect(profile.intentSignals.researchDepth).toBeLessThan(researchAfterSearch);
+    expect(profile.intentSignals.researchDepth).toBeLessThan(
+      researchAfterSearch
+    );
   });
 });
 
 describe('Intent classifier', () => {
   it('should classify buy_now for loyal, high engagement user with cart activity', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
-      categoryAffinity: { electronics: { views: 10, purchases: 3, lastViewed: Date.now(), score: 3 } },
+      categoryAffinity: {
+        electronics: {
+          views: 10,
+          purchases: 3,
+          lastViewed: Date.now(),
+          score: 3,
+        },
+      },
       priceSensitivity: { score: 0.3, avgViewedPrice: 100, dealClickRate: 0.1 },
       intentSignals: { researchDepth: 0.5, checkoutConversion: 0.8 },
       engagementLevel: 'HIGH',
@@ -387,13 +511,25 @@ describe('Intent classifier', () => {
   });
 
   it('should classify exploring for new user browsing many categories', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
       categoryAffinity: {
-        electronics: { views: 2, purchases: 0, lastViewed: Date.now(), score: 1 },
-        clothing: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
+        electronics: {
+          views: 2,
+          purchases: 0,
+          lastViewed: Date.now(),
+          score: 1,
+        },
+        clothing: {
+          views: 1,
+          purchases: 0,
+          lastViewed: Date.now(),
+          score: 0.5,
+        },
         home: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
         books: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
       },
@@ -417,11 +553,15 @@ describe('Intent classifier', () => {
   });
 
   it('should classify price_shop for deal-seeking user', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
-      categoryAffinity: { clothing: { views: 5, purchases: 0, lastViewed: Date.now(), score: 2 } },
+      categoryAffinity: {
+        clothing: { views: 5, purchases: 0, lastViewed: Date.now(), score: 2 },
+      },
       priceSensitivity: { score: 0.8, avgViewedPrice: 30, dealClickRate: 0.6 },
       intentSignals: { researchDepth: 0.1, checkoutConversion: 0 },
       engagementLevel: 'MEDIUM',
@@ -442,11 +582,20 @@ describe('Intent classifier', () => {
   });
 
   it('should classify uncertain for user with high hesitation', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
-      categoryAffinity: { electronics: { views: 10, purchases: 0, lastViewed: Date.now(), score: 3 } },
+      categoryAffinity: {
+        electronics: {
+          views: 10,
+          purchases: 0,
+          lastViewed: Date.now(),
+          score: 3,
+        },
+      },
       priceSensitivity: { score: 0, avgViewedPrice: 100, dealClickRate: 0.1 },
       intentSignals: { researchDepth: 3, checkoutConversion: 0.1 },
       engagementLevel: 'MEDIUM',
@@ -468,11 +617,15 @@ describe('Intent classifier', () => {
   });
 
   it('should return scores that sum to ~1.0', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
-      categoryAffinity: { sports: { views: 3, purchases: 1, lastViewed: Date.now(), score: 2 } },
+      categoryAffinity: {
+        sports: { views: 3, purchases: 1, lastViewed: Date.now(), score: 2 },
+      },
       priceSensitivity: { score: 0.4, avgViewedPrice: 75, dealClickRate: 0.2 },
       intentSignals: { researchDepth: 1, checkoutConversion: 0.3 },
       engagementLevel: 'MEDIUM',
@@ -489,13 +642,18 @@ describe('Intent classifier', () => {
     };
 
     const scores = classifyIntent(profile);
-    const total = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0);
+    const total = scores.reduce(
+      (sum: number, s: { score: number }) => sum + s.score,
+      0
+    );
     expect(total).toBeCloseTo(1.0, 5);
   });
 });
 
 describe('Decision engine', () => {
-  const { makeDecision } = require('../services/personalization/decision-engine');
+  const {
+    makeDecision,
+  } = require('../services/personalization/decision-engine');
 
   beforeEach(() => {
     mockStore.clear();
@@ -505,14 +663,26 @@ describe('Decision engine', () => {
   });
 
   it('should use exploring intent for browsing user', () => {
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     // Simulate exploring user
     const profile: UserProfile = {
       deviceId: 'test',
       categoryAffinity: {
-        electronics: { views: 2, purchases: 0, lastViewed: Date.now(), score: 1 },
-        clothing: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
+        electronics: {
+          views: 2,
+          purchases: 0,
+          lastViewed: Date.now(),
+          score: 1,
+        },
+        clothing: {
+          views: 1,
+          purchases: 0,
+          lastViewed: Date.now(),
+          score: 0.5,
+        },
         home: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
         books: { views: 1, purchases: 0, lastViewed: Date.now(), score: 0.5 },
       },
@@ -568,11 +738,20 @@ describe('AI Agent prompt', () => {
   it('should include classified intent in the prompt', () => {
     // The buildPrompt function is not exported, so we test through aiPersonalize
     // by checking the prompt construction indirectly via a mock
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
-      categoryAffinity: { electronics: { views: 10, purchases: 3, lastViewed: Date.now(), score: 3 } },
+      categoryAffinity: {
+        electronics: {
+          views: 10,
+          purchases: 3,
+          lastViewed: Date.now(),
+          score: 3,
+        },
+      },
       priceSensitivity: { score: 0.3, avgViewedPrice: 100, dealClickRate: 0.1 },
       intentSignals: { researchDepth: 0.5, checkoutConversion: 0.8 },
       engagementLevel: 'HIGH',
@@ -594,13 +773,24 @@ describe('AI Agent prompt', () => {
 
     expect(topIntent).toBe('buy_now');
     expect(scores).toHaveLength(4);
-    expect(scores.map((s: { intent: string }) => s.intent)).toEqual(expect.arrayContaining(['buy_now', 'exploring', 'price_shop', 'uncertain']));
-    expect(scores.find((s: { intent: string }) => s.intent === 'uncertain')).toBeDefined();
+    expect(scores.map((s: { intent: string }) => s.intent)).toEqual(
+      expect.arrayContaining([
+        'buy_now',
+        'exploring',
+        'price_shop',
+        'uncertain',
+      ])
+    );
+    expect(
+      scores.find((s: { intent: string }) => s.intent === 'uncertain')
+    ).toBeDefined();
   });
 
   it('should not reference old inline explanations in the prompt (cartToPurchaseRate, returnRate)', () => {
     // Test that classifyIntent doesn't use old field names
-    const { classifyIntent } = require('../services/personalization/intent-classifier');
+    const {
+      classifyIntent,
+    } = require('../services/personalization/intent-classifier');
 
     const profile: UserProfile = {
       deviceId: 'test',
@@ -623,7 +813,10 @@ describe('AI Agent prompt', () => {
     const scores = classifyIntent(profile);
     // Should not crash or use undefined values
     expect(scores).toHaveLength(4);
-    const total = scores.reduce((s: number, x: { score: number }) => s + x.score, 0);
+    const total = scores.reduce(
+      (s: number, x: { score: number }) => s + x.score,
+      0
+    );
     expect(total).toBeCloseTo(1.0, 5);
   });
 });
@@ -650,7 +843,8 @@ describe('submitConversion resolver', () => {
     profile.lastPurchaseDate = Date.now();
     const amount = 150;
     profile.totalSpent = (profile.totalSpent ?? 0) + amount;
-    profile.averageOrderValue = (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
+    profile.averageOrderValue =
+      (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
 
     expect(profile.orderCount).toBe(1);
     expect(profile.lastPurchaseDate).toBeGreaterThan(0);
@@ -662,7 +856,8 @@ describe('submitConversion resolver', () => {
     profile.lastPurchaseDate = Date.now();
     const amount2 = 250;
     profile.totalSpent = (profile.totalSpent ?? 0) + amount2;
-    profile.averageOrderValue = (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
+    profile.averageOrderValue =
+      (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
 
     expect(profile.orderCount).toBe(2);
     expect(profile.totalSpent).toBe(400);
@@ -698,7 +893,12 @@ describe('submitConversion resolver', () => {
           amount: 150,
           currency: 'USD',
           items: [
-            { productId: 'prod-1', category: 'electronics', price: 150, quantity: 1 },
+            {
+              productId: 'prod-1',
+              category: 'electronics',
+              price: 150,
+              quantity: 1,
+            },
           ],
         },
       },
@@ -708,7 +908,7 @@ describe('submitConversion resolver', () => {
         customerId: 'test-customer',
         authId: null,
         medusaToken: null,
-      },
+      }
     );
 
     expect(result).toBe(true);
@@ -735,7 +935,11 @@ describe('Component Registry — homepage surface', () => {
     const { getComponentsForSurface } = require('../config/component-registry');
     const components = getComponentsForSurface('homepage');
     expect(components.map((c: { name: string }) => c.name)).toEqual(
-      expect.arrayContaining(['HeroBanner', 'FeaturedCategoryRail', 'PersonalizedBanner', 'ProductRecommendation'])
+      expect.arrayContaining([
+        'HeroBanner',
+        'FeaturedCategoryRail',
+        'PersonalizedBanner',
+      , 'ProductRecommendation'])
     );
     expect(components).toHaveLength(4);
   });
@@ -743,13 +947,17 @@ describe('Component Registry — homepage surface', () => {
   it('getComponentsForSurface("homepage_hero") still returns just HeroBanner', () => {
     const { getComponentsForSurface } = require('../config/component-registry');
     const components = getComponentsForSurface('homepage_hero');
-    expect(components.map((c: { name: string }) => c.name)).toEqual(['HeroBanner']);
+    expect(components.map((c: { name: string }) => c.name)).toEqual([
+      'HeroBanner',
+    ]);
     expect(components).toHaveLength(1);
   });
 });
 
 describe('Decision engine — homepage surface', () => {
-  const { makeDecision } = require('../services/personalization/decision-engine');
+  const {
+    makeDecision,
+  } = require('../services/personalization/decision-engine');
 
   const newUserProfile: UserProfile = {
     deviceId: 'test-homepage-new',
@@ -777,17 +985,27 @@ describe('Decision engine — homepage surface', () => {
   });
 
   it('makeDecision("homepage", newUserProfile) returns cold-start components', async () => {
-    const decision = await makeDecision(newUserProfile, { surface: 'homepage' });
+    const decision = await makeDecision(newUserProfile, {
+      surface: 'homepage',
+    });
 
     expect(decision.components).toHaveLength(4);
 
-    const componentNames = decision.components.map((c: { component: string }) => c.component);
+    const componentNames = decision.components.map(
+      (c: { component: string }) => c.component
+    );
     expect(componentNames).toContain('HeroBanner');
     expect(componentNames).toContain('PersonalizedBanner');
-    expect(componentNames.filter((n: string) => n === 'FeaturedCategoryRail')).toHaveLength(2);
+    expect(
+      componentNames.filter((n: string) => n === 'FeaturedCategoryRail')
+    ).toHaveLength(2);
 
-    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
-    const handles = rails.map((r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle);
+    const rails = decision.components.filter(
+      (c: { component: string }) => c.component === 'FeaturedCategoryRail'
+    );
+    const handles = rails.map(
+      (r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle
+    );
     expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
 
     for (const comp of decision.components) {
@@ -803,16 +1021,26 @@ describe('Decision engine — homepage surface', () => {
       deviceId: 'test-mens-affinity',
       categoryAffinity: {
         mens: { views: 10, purchases: 2, lastViewed: Date.now(), score: 4.5 },
-        womens: { views: 1, purchases: 0, lastViewed: Date.now() - 86400000, score: 0.2 },
+        womens: {
+          views: 1,
+          purchases: 0,
+          lastViewed: Date.now() - 86400000,
+          score: 0.2,
+        },
       },
     };
 
     const decision = await makeDecision(profile, { surface: 'homepage' });
 
-    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
+    const rails = decision.components.filter(
+      (c: { component: string }) => c.component === 'FeaturedCategoryRail'
+    );
     expect(rails).toHaveLength(2);
 
-    const sortedByPriority = rails.sort((a: { priority: number }, b: { priority: number }) => a.priority - b.priority);
+    const sortedByPriority = rails.sort(
+      (a: { priority: number }, b: { priority: number }) =>
+        a.priority - b.priority
+    );
     expect(sortedByPriority[0].propsOverrides.handle).toBe('mens');
   });
 
@@ -833,7 +1061,10 @@ describe('Decision engine — homepage surface', () => {
 
     expect(decision.reasoning.intent).toBe('buy_now');
 
-    const sorted = [...decision.components].sort((a: { priority: number }, b: { priority: number }) => a.priority - b.priority);
+    const sorted = [...decision.components].sort(
+      (a: { priority: number }, b: { priority: number }) =>
+        a.priority - b.priority
+    );
     expect(sorted[0].component).toBe('HeroBanner');
   });
 
@@ -852,38 +1083,55 @@ describe('Decision engine — homepage surface', () => {
 
     const decision = await makeDecision(profile, { surface: 'homepage' });
 
-    const hero = decision.components.find((c: { component: string }) => c.component === 'HeroBanner');
+    const hero = decision.components.find(
+      (c: { component: string }) => c.component === 'HeroBanner'
+    );
     expect(hero).toBeDefined();
     expect(
-      typeof (hero!.propsOverrides.cta as Record<string, unknown> | undefined)?.label
+      typeof (hero!.propsOverrides.cta as Record<string, unknown> | undefined)
+        ?.label
     ).toBe('string');
     expect(
-      ((hero!.propsOverrides.cta as Record<string, unknown> | undefined)?.label as string).length
+      (
+        (hero!.propsOverrides.cta as Record<string, unknown> | undefined)
+          ?.label as string
+      ).length
     ).toBeGreaterThan(0);
   });
 
   it('throws when all component data sources fail and selected becomes empty', async () => {
-    const componentDef: import('../config/component-registry').ComponentDefinition = {
-      name: 'FeaturedCategoryRail',
-      description: 'Test rail',
-      requiredProps: ['title', 'handle'],
-      optionalProps: ['products'],
-      contentTypes: [],
-      surfaces: ['homepage'],
-      weight: 0.9,
-    };
+    const componentDef: import('../config/component-registry').ComponentDefinition =
+      {
+        name: 'FeaturedCategoryRail',
+        description: 'Test rail',
+        requiredProps: ['title', 'handle'],
+        optionalProps: ['products'],
+        contentTypes: [],
+        surfaces: ['homepage'],
+        weight: 0.9,
+      };
     const registry = require('../config/component-registry');
     const medusaModule = require('../services/medusa/category-products');
 
-    const compSpy = jest.spyOn(registry, 'getComponentsForSurface').mockReturnValue([componentDef]);
-    const origImpl = (medusaModule.fetchCategoryProducts as jest.Mock).getMockImplementation();
-    (medusaModule.fetchCategoryProducts as jest.Mock).mockRejectedValue(new Error('Medusa unavailable'));
+    const compSpy = jest
+      .spyOn(registry, 'getComponentsForSurface')
+      .mockReturnValue([componentDef]);
+    const origImpl = (
+      medusaModule.fetchCategoryProducts as jest.Mock
+    ).getMockImplementation();
+    (medusaModule.fetchCategoryProducts as jest.Mock).mockRejectedValue(
+      new Error('Medusa unavailable')
+    );
 
     try {
-      await expect(makeDecision(newUserProfile, { surface: 'homepage' })).rejects.toThrow('all component data sources failing');
+      await expect(
+        makeDecision(newUserProfile, { surface: 'homepage' })
+      ).rejects.toThrow('all component data sources failing');
     } finally {
       compSpy.mockRestore();
-      (medusaModule.fetchCategoryProducts as jest.Mock).mockImplementation(origImpl);
+      (medusaModule.fetchCategoryProducts as jest.Mock).mockImplementation(
+        origImpl
+      );
     }
   });
 });
@@ -943,9 +1191,12 @@ describe('AI Agent — homepage surface', () => {
   it('aiPersonalize returns mixed component types for homepage surface', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mockAiJsonResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [
+            { message: { content: JSON.stringify(mockAiJsonResponse) } },
+          ],
+        }),
     } as Response);
 
     const result = await aiPersonalize(newUserProfile, {
@@ -956,12 +1207,16 @@ describe('AI Agent — homepage surface', () => {
     fetchSpy.mockRestore();
 
     expect(result.components).toHaveLength(3);
-    const names = result.components.map((c: { component: string }) => c.component);
+    const names = result.components.map(
+      (c: { component: string }) => c.component
+    );
     expect(names).toContain('HeroBanner');
     expect(names).toContain('FeaturedCategoryRail');
     expect(names).toContain('PersonalizedBanner');
 
-    const rail = result.components.find((c: { component: string }) => c.component === 'FeaturedCategoryRail');
+    const rail = result.components.find(
+      (c: { component: string }) => c.component === 'FeaturedCategoryRail'
+    );
     expect(rail).toBeDefined();
     expect(rail!.propsOverrides.products).toBeDefined();
     expect(Array.isArray(rail!.propsOverrides.products)).toBe(true);
@@ -970,9 +1225,12 @@ describe('AI Agent — homepage surface', () => {
   it('AI prompt includes category options and product data in fetch body', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mockAiJsonResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [
+            { message: { content: JSON.stringify(mockAiJsonResponse) } },
+          ],
+        }),
     } as Response);
 
     await aiPersonalize(newUserProfile, {
@@ -984,7 +1242,9 @@ describe('AI Agent — homepage surface', () => {
     fetchSpy.mockRestore();
 
     expect(fetchCalls.length).toBeGreaterThan(0);
-    const fetchBody = (fetchCalls[0]?.[1] as Record<string, unknown> | undefined)?.body;
+    const fetchBody = (
+      fetchCalls[0]?.[1] as Record<string, unknown> | undefined
+    )?.body;
     const body = JSON.parse(typeof fetchBody === 'string' ? fetchBody : '');
     const promptText: string = body.messages[1].content;
 
@@ -999,17 +1259,30 @@ describe('AI Agent — homepage surface', () => {
   it('AI response validation works with mixed component types', async () => {
     const mixedResponse = {
       components: [
-        { component: 'FeaturedCategoryRail', contentId: null, priority: 1, propsOverrides: { handle: 'womens' }, reasoning: 'Top category is womens' },
-        { component: 'HeroBanner', contentId: null, priority: 2, propsOverrides: {}, reasoning: 'Hero' },
+        {
+          component: 'FeaturedCategoryRail',
+          contentId: null,
+          priority: 1,
+          propsOverrides: { handle: 'womens' },
+          reasoning: 'Top category is womens',
+        },
+        {
+          component: 'HeroBanner',
+          contentId: null,
+          priority: 2,
+          propsOverrides: {},
+          reasoning: 'Hero',
+        },
       ],
       overallReasoning: 'Mixed types',
     };
 
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: JSON.stringify(mixedResponse) } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: JSON.stringify(mixedResponse) } }],
+        }),
     } as Response);
 
     const result = await aiPersonalize(newUserProfile, {
@@ -1032,23 +1305,35 @@ describe('AI Agent — homepage surface', () => {
 
 describe('Decision Fallback — homepage surface', () => {
   it('getFallbackDecision("homepage") returns 4 components', () => {
-    const { getFallbackDecision } = require('../services/personalization/decision-fallback');
+    const {
+      getFallbackDecision,
+    } = require('../services/personalization/decision-fallback');
 
     const decision = getFallbackDecision('homepage', 'test-device-fallback');
 
     expect(decision.components).toHaveLength(4);
 
-    const names = decision.components.map((c: { component: string }) => c.component);
+    const names = decision.components.map(
+      (c: { component: string }) => c.component
+    );
     expect(names).toContain('HeroBanner');
     expect(names).toContain('PersonalizedBanner');
-    expect(names.filter((n: string) => n === 'FeaturedCategoryRail')).toHaveLength(2);
+    expect(
+      names.filter((n: string) => n === 'FeaturedCategoryRail')
+    ).toHaveLength(2);
 
-    const hero = decision.components.find((c: { component: string }) => c.component === 'HeroBanner');
+    const hero = decision.components.find(
+      (c: { component: string }) => c.component === 'HeroBanner'
+    );
     expect(hero!.priority).toBe(4);
     expect(hero!.propsOverrides.headline).toBe('Welcome');
 
-    const rails = decision.components.filter((c: { component: string }) => c.component === 'FeaturedCategoryRail');
-    const handles = rails.map((r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle);
+    const rails = decision.components.filter(
+      (c: { component: string }) => c.component === 'FeaturedCategoryRail'
+    );
+    const handles = rails.map(
+      (r: { propsOverrides: { handle: unknown } }) => r.propsOverrides.handle
+    );
     expect(handles).toEqual(expect.arrayContaining(['mens', 'womens']));
     for (const r of rails) {
       expect(r.propsOverrides.products).toEqual([]);
@@ -1056,16 +1341,23 @@ describe('Decision Fallback — homepage surface', () => {
 
     expect(decision.reasoning.modelVersion).toBe('fallback');
 
-    const banner = decision.components.find((c: { component: string }) => c.component === 'PersonalizedBanner');
+    const banner = decision.components.find(
+      (c: { component: string }) => c.component === 'PersonalizedBanner'
+    );
     expect(banner).toBeDefined();
     expect(typeof (banner!.propsOverrides.title as string)).toBe('string');
     expect((banner!.propsOverrides.title as string).length).toBeGreaterThan(0);
   });
 
   it('getFallbackDecision("homepage_hero") still works', () => {
-    const { getFallbackDecision } = require('../services/personalization/decision-fallback');
+    const {
+      getFallbackDecision,
+    } = require('../services/personalization/decision-fallback');
 
-    const decision = getFallbackDecision('homepage_hero', 'test-device-fallback');
+    const decision = getFallbackDecision(
+      'homepage_hero',
+      'test-device-fallback'
+    );
 
     expect(decision.components).toHaveLength(1);
     expect(decision.components[0].component).toBe('HeroBanner');
@@ -1111,7 +1403,7 @@ describe('syncOrderHistory', () => {
     const result = await featureStore.syncOrderHistory(
       deviceId,
       medusaToken,
-      profile,
+      profile
     );
 
     expect(mockMedusaList).not.toHaveBeenCalled();
@@ -1132,9 +1424,7 @@ describe('syncOrderHistory', () => {
 
   it('updates lifecycle stage to RETURNING when order count is 1', async () => {
     mockMedusaList.mockResolvedValue({
-      orders: [
-        { id: 'o1', total: 100, created_at: new Date().toISOString() },
-      ],
+      orders: [{ id: 'o1', total: 100, created_at: new Date().toISOString() }],
       count: 1,
     });
     const profile = createProfile();
@@ -1192,7 +1482,7 @@ describe('syncOrderHistory', () => {
     expect(profile.totalSpent).toBe(300);
     expect(profile.averageOrderValue).toBe(150);
     expect(profile.lastPurchaseDate).toBe(
-      new Date('2025-01-01T00:00:00Z').getTime(),
+      new Date('2025-01-01T00:00:00Z').getTime()
     );
   });
 
@@ -1231,7 +1521,7 @@ describe('syncOrderHistory', () => {
         globalHeaders: expect.objectContaining({
           Authorization: `Bearer ${medusaToken}`,
         }),
-      }),
+      })
     );
   });
 });
@@ -1244,7 +1534,7 @@ describe('FeatureStore.mergeToUser', () => {
 
   function createProfile(
     deviceId: string,
-    overrides: Partial<UserProfile> = {},
+    overrides: Partial<UserProfile> = {}
   ): UserProfile {
     return {
       deviceId,
@@ -1290,7 +1580,10 @@ describe('FeatureStore.mergeToUser', () => {
       averageOrderValue: 100,
       ordersSynced: 100,
     });
-    mockStore.set(KEY_NS + 'profile:' + deviceId1, JSON.stringify(existingProfile));
+    mockStore.set(
+      KEY_NS + 'profile:' + deviceId1,
+      JSON.stringify(existingProfile)
+    );
     mockStore.set(KEY_NS + 'user-device:' + userId, deviceId1);
     mockStore.set(KEY_NS + 'device-user:' + deviceId1, userId);
 
@@ -1310,7 +1603,10 @@ describe('FeatureStore.mergeToUser', () => {
       averageOrderValue: 120,
       ordersSynced: 200, // fresher than existing (100)
     });
-    mockStore.set(KEY_NS + 'profile:' + deviceId2, JSON.stringify(newDeviceProfile));
+    mockStore.set(
+      KEY_NS + 'profile:' + deviceId2,
+      JSON.stringify(newDeviceProfile)
+    );
 
     const merged = await featureStore.mergeToUser(deviceId2, userId);
 
@@ -1345,7 +1641,10 @@ describe('FeatureStore.mergeToUser', () => {
       averageOrderValue: 100,
       ordersSynced: 500, // fresher
     });
-    mockStore.set(KEY_NS + 'profile:' + deviceId1, JSON.stringify(existingProfile));
+    mockStore.set(
+      KEY_NS + 'profile:' + deviceId1,
+      JSON.stringify(existingProfile)
+    );
     mockStore.set(KEY_NS + 'user-device:' + userId, deviceId1);
     mockStore.set(KEY_NS + 'device-user:' + deviceId1, userId);
 
@@ -1355,7 +1654,10 @@ describe('FeatureStore.mergeToUser', () => {
       lifecycleStage: 'LOYAL',
       ordersSynced: 200, // stale — existing is 500
     });
-    mockStore.set(KEY_NS + 'profile:' + deviceId2, JSON.stringify(newDeviceProfile));
+    mockStore.set(
+      KEY_NS + 'profile:' + deviceId2,
+      JSON.stringify(newDeviceProfile)
+    );
 
     const merged = await featureStore.mergeToUser(deviceId2, userId);
 
@@ -1382,7 +1684,7 @@ describe('FeatureStore.mergeToUser', () => {
     const oldUserId = 'test-merge-old-user';
     mockStore.set(
       KEY_NS + 'profile:' + deviceId1,
-      JSON.stringify(createProfile(deviceId1)),
+      JSON.stringify(createProfile(deviceId1))
     );
     mockStore.set(KEY_NS + 'user-device:' + oldUserId, deviceId1);
     mockStore.set(KEY_NS + 'device-user:' + deviceId1, oldUserId);
@@ -1432,7 +1734,12 @@ describe('SignalProcessor.process with pre-loaded profile', () => {
       timestamp: Date.now(),
     };
 
-    const result = await signalProcessor.process(signal, deviceId, null, profile);
+    const result = await signalProcessor.process(
+      signal,
+      deviceId,
+      null,
+      profile
+    );
 
     expect(result).toBe(true);
 
@@ -1449,7 +1756,9 @@ describe('SignalProcessor.process with pre-loaded profile', () => {
   it('ignores provided profile when userId is given (calls mergeToUser instead)', async () => {
     const externalProfile: UserProfile = {
       deviceId,
-      categoryAffinity: { existing: { views: 1, purchases: 0, lastViewed: 100, score: 0.5 } },
+      categoryAffinity: {
+        existing: { views: 1, purchases: 0, lastViewed: 100, score: 0.5 },
+      },
       priceSensitivity: { score: 0, avgViewedPrice: 0, dealClickRate: 0 },
       intentSignals: { researchDepth: 0, checkoutConversion: 0 },
       engagementLevel: 'LOW',
@@ -1472,7 +1781,7 @@ describe('SignalProcessor.process with pre-loaded profile', () => {
     };
     mockStore.set(
       'bff:personalization:v1:profile:' + deviceId,
-      JSON.stringify(deviceProfile),
+      JSON.stringify(deviceProfile)
     );
 
     const signal = {
@@ -1482,7 +1791,12 @@ describe('SignalProcessor.process with pre-loaded profile', () => {
       timestamp: Date.now(),
     };
 
-    await signalProcessor.process(signal, deviceId, 'test-user', externalProfile);
+    await signalProcessor.process(
+      signal,
+      deviceId,
+      'test-user',
+      externalProfile
+    );
 
     // mergeToUser was triggered (Case B), saved profile should have userId
     const saved = mockStore.get('bff:personalization:v1:profile:' + deviceId);
@@ -1521,9 +1835,7 @@ describe('sendSignal resolver chaining', () => {
     };
 
     // Call the sendSignal resolver directly, providing input.deviceId
-    await (
-      personalizationResolvers.Mutation!.sendSignal as Function
-    )(
+    await (personalizationResolvers.Mutation!.sendSignal as Function)(
       null,
       {
         input: {
@@ -1534,7 +1846,7 @@ describe('sendSignal resolver chaining', () => {
           timestamp: Date.now(),
         },
       },
-      mockContext,
+      mockContext
     );
 
     // Wait for the fire-and-forget promise chain to complete

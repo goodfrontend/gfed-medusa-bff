@@ -1,6 +1,6 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
@@ -37,7 +37,7 @@ COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 RUN pnpm install --frozen-lockfile --prod
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs

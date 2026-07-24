@@ -114,15 +114,29 @@ export async function fetchAvailableContent(
   }
 
   try {
-    const result = await sanityClient.fetch(query, {
-      contentTypes,
-      surface,
-    });
-    const data = (result as Array<Record<string, unknown>>) ?? [];
-    setCachedContent(surface, data);
-    return data;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const result = await sanityClient.fetch(
+        query,
+        { contentTypes, surface },
+        { signal: controller.signal }
+      );
+      const data = (result as Array<Record<string, unknown>>) ?? [];
+      setCachedContent(surface, data);
+      return data;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   } catch (error) {
-    logger.error({ err: error }, 'Sanity fetch failed');
+    const isTimeout =
+      error instanceof DOMException && error.name === 'AbortError';
+    if (isTimeout) {
+      logger.warn({ err: error }, 'Sanity fetch timed out');
+    } else {
+      logger.error({ err: error }, 'Sanity fetch failed');
+    }
     return [];
   }
 }

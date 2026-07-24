@@ -1,6 +1,7 @@
 import { mergeResolvers } from '@graphql-tools/merge';
 
 import { Resolvers } from '../generated/graphql';
+import { adkPersonalizationResolvers } from './adk-personalization';
 import { contextualBannerResolvers } from './contextual-banner';
 import { footerResolvers } from './footer';
 import { homeBannerResolvers } from './home-banner';
@@ -14,5 +15,6 @@ export const resolvers: Resolvers = mergeResolvers([
   homeBannerResolvers,
   personalizationResolvers,
   contextualBannerResolvers,
+  adkPersonalizationResolvers,
   scalarsResolver,
 ]);

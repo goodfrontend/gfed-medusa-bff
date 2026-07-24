@@ -84,7 +84,11 @@ export class SignalProcessor {
     );
     const cartActivity = profile.cartActivity ?? 0;
 
-    if (profile.sessionCount <= LOW_ENGAGEMENT_MAX_SESSIONS && cartActivity === 0 && totalViews < LOW_ENGAGEMENT_MAX_VIEWS) {
+    if (
+      profile.sessionCount <= LOW_ENGAGEMENT_MAX_SESSIONS &&
+      cartActivity === 0 &&
+      totalViews < LOW_ENGAGEMENT_MAX_VIEWS
+    ) {
       profile.engagementLevel = 'LOW';
     } else if (
       profile.sessionCount > HIGH_ENGAGEMENT_MIN_SESSIONS ||
@@ -99,17 +103,26 @@ export class SignalProcessor {
     const { dealClickRate, avgViewedPrice } = profile.priceSensitivity;
     profile.priceSensitivity.score = Math.min(
       dealClickRate * DEAL_CLICK_RATE_WEIGHT +
-        (avgViewedPrice > PRICE_SENSITIVITY_HIGH_THRESHOLD ? PRICE_SENSITIVITY_HIGH_SCORE : avgViewedPrice > PRICE_SENSITIVITY_MED_THRESHOLD ? PRICE_SENSITIVITY_MED_SCORE : 0),
+        (avgViewedPrice > PRICE_SENSITIVITY_HIGH_THRESHOLD
+          ? PRICE_SENSITIVITY_HIGH_SCORE
+          : avgViewedPrice > PRICE_SENSITIVITY_MED_THRESHOLD
+            ? PRICE_SENSITIVITY_MED_SCORE
+            : 0),
       1
     );
   }
 
   private updateProfile(profile: UserProfile, signal: QueuedSignal): void {
-    if (profile.intentSignals.researchDepth > 0 && profile.lastSignalTimestamp) {
-      const hoursSinceLastSignal = (signal.timestamp - profile.lastSignalTimestamp) / (1000 * 60 * 60);
+    if (
+      profile.intentSignals.researchDepth > 0 &&
+      profile.lastSignalTimestamp
+    ) {
+      const hoursSinceLastSignal =
+        (signal.timestamp - profile.lastSignalTimestamp) / (1000 * 60 * 60);
       const daysSinceLastSignal = hoursSinceLastSignal / 24;
       const decayFactor = Math.pow(0.95, Math.max(0, daysSinceLastSignal));
-      profile.intentSignals.researchDepth = profile.intentSignals.researchDepth * decayFactor;
+      profile.intentSignals.researchDepth =
+        profile.intentSignals.researchDepth * decayFactor;
     }
 
     switch (signal.type) {
@@ -124,7 +137,8 @@ export class SignalProcessor {
       case 'SEARCH_QUERY':
         profile.intentSignals.researchDepth = Math.min(
           MAX_RESEARCH_DEPTH,
-          (profile.intentSignals.researchDepth ?? 0) + RESEARCH_DEPTH_QUERY_INCREMENT
+          (profile.intentSignals.researchDepth ?? 0) +
+            RESEARCH_DEPTH_QUERY_INCREMENT
         );
         if (!profile.searchHistory) {
           profile.searchHistory = [];
@@ -133,13 +147,15 @@ export class SignalProcessor {
           query: String(signal.payload.query ?? ''),
           timestamp: signal.timestamp,
         });
-        profile.searchHistory = profile.searchHistory.slice(-MAX_HISTORY_LENGTH);
+        profile.searchHistory =
+          profile.searchHistory.slice(-MAX_HISTORY_LENGTH);
         break;
 
       case 'SEARCH_RESULT_CLICK':
         profile.intentSignals.researchDepth = Math.min(
           MAX_RESEARCH_DEPTH,
-          (profile.intentSignals.researchDepth ?? 0) + RESEARCH_DEPTH_CLICK_INCREMENT
+          (profile.intentSignals.researchDepth ?? 0) +
+            RESEARCH_DEPTH_CLICK_INCREMENT
         );
         break;
 
@@ -151,7 +167,8 @@ export class SignalProcessor {
         ) {
           profile.priceSensitivity.dealClickRate = Math.min(
             1,
-            (profile.priceSensitivity.dealClickRate ?? 0) + DEAL_CLICK_RATE_INCREMENT
+            (profile.priceSensitivity.dealClickRate ?? 0) +
+              DEAL_CLICK_RATE_INCREMENT
           );
         }
         const priceRange = signal.payload.priceRange as
@@ -159,13 +176,18 @@ export class SignalProcessor {
           | undefined;
         if (priceRange?.max != null && typeof priceRange.max === 'number') {
           const ps = profile.priceSensitivity;
-          ps.avgViewedPrice = ((ps.avgViewedPrice ?? DEFAULT_AVG_VIEWED_PRICE) + priceRange.max) / 2;
+          ps.avgViewedPrice =
+            ((ps.avgViewedPrice ?? DEFAULT_AVG_VIEWED_PRICE) + priceRange.max) /
+            2;
         }
         break;
       }
 
       case 'CART_ADD':
-        profile.cartActivity = Math.min(MAX_CART_ACTIVITY, (profile.cartActivity ?? 0) + 1);
+        profile.cartActivity = Math.min(
+          MAX_CART_ACTIVITY,
+          (profile.cartActivity ?? 0) + 1
+        );
         break;
 
       case 'CART_REMOVE':
@@ -175,14 +197,16 @@ export class SignalProcessor {
       case 'CHECKOUT_START':
         profile.intentSignals.checkoutConversion = Math.min(
           1,
-          (profile.intentSignals.checkoutConversion ?? 0) + CHECKOUT_CONVERSION_INCREMENT
+          (profile.intentSignals.checkoutConversion ?? 0) +
+            CHECKOUT_CONVERSION_INCREMENT
         );
         break;
 
       case 'CHECKOUT_ABANDON':
         profile.intentSignals.checkoutConversion = Math.max(
           0,
-          (profile.intentSignals.checkoutConversion ?? 0) - CHECKOUT_CONVERSION_DECREMENT
+          (profile.intentSignals.checkoutConversion ?? 0) -
+            CHECKOUT_CONVERSION_DECREMENT
         );
         profile.hesitationCount = (profile.hesitationCount ?? 0) + 1;
         break;
@@ -199,18 +223,22 @@ export class SignalProcessor {
           if (!profile.recentProducts) profile.recentProducts = [];
           profile.recentProducts.push({
             productId,
-            productName: String(signal.payload.name ?? signal.payload.productName ?? ''),
+            productName: String(
+              signal.payload.name ?? signal.payload.productName ?? ''
+            ),
             category,
             price: signal.payload.price as number | undefined,
             timestamp: signal.timestamp,
           });
-          profile.recentProducts = profile.recentProducts.slice(-MAX_RECENT_PRODUCTS);
+          profile.recentProducts =
+            profile.recentProducts.slice(-MAX_RECENT_PRODUCTS);
 
           if (typeof signal.payload.price === 'number') {
             const ps = profile.priceSensitivity;
-            ps.avgViewedPrice = ps.avgViewedPrice === 0
-              ? signal.payload.price
-              : (ps.avgViewedPrice + signal.payload.price) / 2;
+            ps.avgViewedPrice =
+              ps.avgViewedPrice === 0
+                ? signal.payload.price
+                : (ps.avgViewedPrice + signal.payload.price) / 2;
           }
         }
         break;
@@ -230,9 +258,11 @@ export class SignalProcessor {
       profile.sessionCount = (profile.sessionCount ?? 0) + 1;
     }
 
-    if (!profile.currentSession ||
-        (profile.lastSignalTimestamp &&
-         signal.timestamp - profile.lastSignalTimestamp > SESSION_TIMEOUT_MS)) {
+    if (
+      !profile.currentSession ||
+      (profile.lastSignalTimestamp &&
+        signal.timestamp - profile.lastSignalTimestamp > SESSION_TIMEOUT_MS)
+    ) {
       profile.currentSession = {
         startedAt: signal.timestamp,
         signalCount: 0,
@@ -243,13 +273,15 @@ export class SignalProcessor {
     }
 
     if (profile.currentSession) {
-      profile.currentSession.signalCount = (profile.currentSession.signalCount ?? 0) + 1;
+      profile.currentSession.signalCount =
+        (profile.currentSession.signalCount ?? 0) + 1;
 
       if (signal.type === 'SEARCH_QUERY') {
         const query = String(signal.payload.query ?? '');
         if (query) {
           profile.currentSession.searches.unshift(query);
-          profile.currentSession.searches = profile.currentSession.searches.slice(0, 5);
+          profile.currentSession.searches =
+            profile.currentSession.searches.slice(0, 5);
         }
       }
 
@@ -257,7 +289,8 @@ export class SignalProcessor {
         const productId = String(signal.payload.productId ?? '');
         if (productId) {
           profile.currentSession.productViews.unshift(productId);
-          profile.currentSession.productViews = profile.currentSession.productViews.slice(0, 10);
+          profile.currentSession.productViews =
+            profile.currentSession.productViews.slice(0, 10);
         }
         const category = String(signal.payload.category ?? '');
         if (category) {
@@ -268,7 +301,8 @@ export class SignalProcessor {
       }
 
       if (signal.type === 'CART_ADD') {
-        profile.currentSession.cartAdds = (profile.currentSession.cartAdds ?? 0) + 1;
+        profile.currentSession.cartAdds =
+          (profile.currentSession.cartAdds ?? 0) + 1;
       }
     }
 
@@ -306,7 +340,10 @@ export class SignalProcessor {
       const hoursSinceLastView =
         (signal.timestamp - previousLastViewed) / MS_PER_HOUR;
       const daysSinceLastView = hoursSinceLastView / HOURS_PER_DAY;
-      const decayFactor = Math.pow(SCORE_DECAY_FACTOR, Math.max(0, daysSinceLastView));
+      const decayFactor = Math.pow(
+        SCORE_DECAY_FACTOR,
+        Math.max(0, daysSinceLastView)
+      );
       aff.score = aff.score * decayFactor;
     }
 
@@ -315,7 +352,10 @@ export class SignalProcessor {
 
     const viewIncrement = weight;
     const purchaseBonus = aff.purchases > 0 ? PURCHASE_BONUS : 0;
-    aff.score = Math.min(aff.score + viewIncrement + purchaseBonus, MAX_CATEGORY_SCORE);
+    aff.score = Math.min(
+      aff.score + viewIncrement + purchaseBonus,
+      MAX_CATEGORY_SCORE
+    );
   }
 
   private extractCategoryFromUrl(url: string): string | null {

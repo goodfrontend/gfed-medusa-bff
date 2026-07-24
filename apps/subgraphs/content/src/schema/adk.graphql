@@ -1,0 +1,26 @@
+extend type Query {
+  """
+  Personalize using the ADK Agent (parallel path to existing personalize query)
+  """
+  adkPersonalize(
+    input: SurfaceContext!
+    deviceId: String!
+  ): PersonalizationResult! @cacheControl(maxAge: 0)
+
+  """
+  Get user profile (parallel path to existing userProfile query)
+  """
+  adkUserProfile(deviceId: String!): UserProfile!
+
+  """
+  Debug intent classification (parallel path to existing debugIntent query)
+  """
+  adkDebugIntent(deviceId: String!): DecisionReasoning!
+}
+
+extend type Mutation {
+  """
+  Send signal to ADK Pub/Sub pipeline (parallel path to existing sendSignal)
+  """
+  adkSendSignal(input: SignalInput!): SendSignalResponse!
+}

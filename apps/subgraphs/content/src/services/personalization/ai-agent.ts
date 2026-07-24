@@ -2,13 +2,17 @@ import { z } from 'zod';
 
 import { getComponentsForSurface } from '../../config/component-registry';
 import { features } from '../../config/features';
+import {
+  type CategoryOption,
+  type ProductPreview,
+  fetchCategoryProducts,
+} from '../medusa/category-products';
+import { getRelevantCategories } from './decision-engine';
 import type { UserProfile } from './feature-store';
 import { PartialJsonParser } from './partial-json-parser';
 import { classifyIntent } from './intent-classifier';
-import { fetchAvailableContent } from './sanity-content';
-import { type CategoryOption, type ProductPreview, fetchCategoryProducts } from '../medusa/category-products';
-import { getRelevantCategories } from './decision-engine';
 import { logger } from './logger';
+import { fetchAvailableContent } from './sanity-content';
 
 const AI_REQUEST_TIMEOUT_MS = 15_000;
 
@@ -32,7 +36,7 @@ const HOME_BANNER_FIELDS = [
   'showPoweredBy',
 ] as const;
 
-const COMPONENT_CONTENT_FIELDS: Record<string, readonly string[]> = {
+export const COMPONENT_CONTENT_FIELDS: Record<string, readonly string[]> = {
   HeroBanner: HERO_BANNER_FIELDS,
   PersonalizedBanner: HOME_BANNER_FIELDS,
 };
@@ -197,7 +201,8 @@ async function callGeminiCompletion(
   };
 
   if (features.aiJsonMode()) {
-    (body.generationConfig as Record<string, unknown>).responseMimeType = 'application/json';
+    (body.generationConfig as Record<string, unknown>).responseMimeType =
+      'application/json';
   }
 
   const response = await fetch(url, {
@@ -334,21 +339,26 @@ function buildPrompt(
   availableCategories: CategoryOption[],
   categoryProducts: Record<string, ProductPreview[]>
 ): string {
-  const sortedAffinities = Object.entries(profile.categoryAffinity || {})
-    .sort(([, a], [, b]) => b.score - a.score);
+  const sortedAffinities = Object.entries(profile.categoryAffinity || {}).sort(
+    ([, a], [, b]) => b.score - a.score
+  );
 
   const allSearches = (profile.searchHistory ?? [])
-    .map(s => sanitizeForPrompt(s.query))
+    .map((s) => sanitizeForPrompt(s.query))
     .join(' → ');
 
   const recentProducts = (profile.recentProducts ?? [])
     .slice(-5)
-    .map(p => `{product:${sanitizeForPrompt(p.productId)}:${sanitizeForPrompt(p.productName)}, category:${sanitizeForPrompt(p.category)}${p.price ? ', $' + p.price : ''}}`)
+    .map(
+      (p) =>
+        `{product:${sanitizeForPrompt(p.productId)}:${sanitizeForPrompt(p.productName)}, category:${sanitizeForPrompt(p.category)}${p.price ? ', $' + p.price : ''}}`
+    )
     .join(', ');
 
   const intentDescription: Record<string, string> = {
     buy_now: 'Ready to purchase — high conversion intent and cart activity',
-    exploring: 'Browsing and researching — broad category interest, exploring options',
+    exploring:
+      'Browsing and researching — broad category interest, exploring options',
     price_shop: 'Deal-seeking — price-conscious, looking for discounts',
     uncertain: 'At risk — hesitant or low engagement, may need reassurance',
   };
@@ -361,42 +371,47 @@ function buildPrompt(
   }
 
   const heroBanners = contentByType['heroBanner'] ?? [];
-  const heroBannerSection = heroBanners.length > 0
-    ? heroBanners
-        .map((c) => {
-          const present = HERO_BANNER_FIELDS
-            .filter((f) => c[f] != null)
-            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
-            .join(', ');
-          return `- ID:${sanitizeForPrompt(String(c._id))} type=heroBanner fields={${present || 'none'}}`;
-        })
-        .join('\n')
-    : 'None available';
+  const heroBannerSection =
+    heroBanners.length > 0
+      ? heroBanners
+          .map((c) => {
+            const present = HERO_BANNER_FIELDS.filter((f) => c[f] != null)
+              .map((f) => `${f}: ${JSON.stringify(c[f])}`)
+              .join(', ');
+            return `- ID:${sanitizeForPrompt(String(c._id))} type=heroBanner fields={${present || 'none'}}`;
+          })
+          .join('\n')
+      : 'None available';
 
   const homeBanners = contentByType['homeBanner'] ?? [];
-  const homeBannerSection = homeBanners.length > 0
-    ? homeBanners
-        .map((c) => {
-          const present = HOME_BANNER_FIELDS
-            .filter((f) => c[f] != null)
-            .map((f) => `${f}: ${JSON.stringify(c[f])}`)
-            .join(', ');
-          return `- ID:${sanitizeForPrompt(String(c._id))} type=homeBanner fields={${present || 'none'}}`;
-        })
-        .join('\n')
-    : 'None available';
+  const homeBannerSection =
+    homeBanners.length > 0
+      ? homeBanners
+          .map((c) => {
+            const present = HOME_BANNER_FIELDS.filter((f) => c[f] != null)
+              .map((f) => `${f}: ${JSON.stringify(c[f])}`)
+              .join(', ');
+            return `- ID:${sanitizeForPrompt(String(c._id))} type=homeBanner fields={${present || 'none'}}`;
+          })
+          .join('\n')
+      : 'None available';
 
-  const categorySection = availableCategories.length > 0
-    ? availableCategories.map((cat) => {
-        const prods = categoryProducts[cat.handle] ?? [];
-        const prodList = prods.map(p => {
+  const categorySection =
+    availableCategories.length > 0
+      ? availableCategories
+          .map((cat) => {
+            const prods = categoryProducts[cat.handle] ?? [];
+            const prodList = prods
+              .map((p) => {
           const price = p.price != null ? `$${p.price}` : 'N/A';
           const thumb = p.thumbnail ? p.thumbnail : 'no-image';
           return `${p.title} (${p.handle}, ${price}, thumbnail: ${thumb})`;
-        }).join(', ');
-        return `  ${cat.name} (handle=${cat.handle}, score=${cat.score.toFixed(2)}) — products: [${prodList || 'none loaded'}]`;
-      }).join('\n')
-    : 'No categories available';
+        })
+              .join(', ');
+            return `  ${cat.name} (handle=${cat.handle}, score=${cat.score.toFixed(2)}) — products: [${prodList || 'none loaded'}]`;
+          })
+          .join('\n')
+      : 'No categories available';
 
   return `
 You are a personalization AI for an e-commerce storefront. Analyze this user's complete profile and select as many relevant components as possible (3-8) for the ${context.surface} surface. Fill the page with variety — use all available component types. You may choose from: HeroBanner, FeaturedCategoryRail, PersonalizedBanner, ProductRecommendation.
@@ -528,7 +543,10 @@ export async function aiPersonalize(
         productById.set(p.id, p);
       }
     } catch (err) {
-      logger.warn({ err, category: cat.handle }, 'AI agent: Medusa fetch failed for category');
+      logger.warn(
+        { err, category: cat.handle },
+        'AI agent: Medusa fetch failed for category'
+      );
     }
   }
 
@@ -575,22 +593,23 @@ export async function aiPersonalize(
         // Dedup: remove duplicate component+contentId pairs the AI may have returned
         const seen = new Set<string>();
         const deduped = validated.components.filter((c) => {
-          const key = c.contentId !== null
-            ? `${c.component}:${c.contentId}`
-            : c.component === 'FeaturedCategoryRail'
-              ? `FeaturedCategoryRail:${(c.propsOverrides?.handle as string) ?? 'null'}`
-              : `${c.component}:null`;
+          const key =
+            c.contentId !== null
+              ? `${c.component}:${c.contentId}`
+              : c.component === 'FeaturedCategoryRail'
+                ? `FeaturedCategoryRail:${(c.propsOverrides?.handle as string) ?? 'null'}`
+                : `${c.component}:null`;
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
         });
 
-        const contentById = new Map(
-          content.map((c) => [String(c._id), c])
-        );
+        const contentById = new Map(content.map((c) => [String(c._id), c]));
 
         const resolved = deduped.map((c) => {
-          const contentEntry = c.contentId ? contentById.get(c.contentId) : undefined;
+          const contentEntry = c.contentId
+            ? contentById.get(c.contentId)
+            : undefined;
 
           if (c.component === 'ProductRecommendation') {
             const productId = (c.propsOverrides?.id as string) ?? '';
@@ -614,7 +633,9 @@ export async function aiPersonalize(
             return {
               ...c,
               propsOverrides: {
-                title: relevantCategories.find(cat => cat.handle === handle)?.name ?? '',
+                title:
+                  relevantCategories.find((cat) => cat.handle === handle)
+                    ?.name ?? '',
                 handle,
                 products,
                 ...(c.propsOverrides ?? {}),
@@ -649,7 +670,10 @@ export async function aiPersonalize(
       } catch (err) {
         lastParseError = err;
         if (attempt === 0) {
-          logger.warn({ err, provider: providerName }, `AI response invalid, retrying`);
+          logger.warn(
+            { err, provider: providerName },
+            `AI response invalid, retrying`
+          );
           currentPrompt =
             prompt +
             '\n\nCRITICAL: Previous response was rejected. EVERY component MUST include a "reasoning" field with a non-empty string. Do not omit any field.';

@@ -11,7 +11,9 @@ jest.mock('../config/sanity', () => ({
 }));
 
 const { sanityClient } = require('../config/sanity');
-const { fetchAvailableContent } = require('../services/personalization/sanity-content');
+const {
+  fetchAvailableContent,
+} = require('../services/personalization/sanity-content');
 
 describe('Sanity Content — homepage surface', () => {
   beforeEach(() => {
@@ -56,7 +58,9 @@ describe('Sanity Content — homepage surface', () => {
     expect(query).toContain('showPoweredBy');
 
     expect(result).toHaveLength(2);
-    const homeBanner = result.find((r: Record<string, unknown>) => r._type === 'homeBanner');
+    const homeBanner = result.find(
+      (r: Record<string, unknown>) => r._type === 'homeBanner'
+    );
     expect(homeBanner).toBeDefined();
     expect(homeBanner!.eyebrow).toBe('Sale');
     expect(homeBanner!.description).toBe('Big sale description');

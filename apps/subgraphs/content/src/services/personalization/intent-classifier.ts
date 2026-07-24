@@ -29,7 +29,8 @@ export function classifyIntent(profile: UserProfile): IntentScore[] {
   // exploring: investigating, researching, or casually browsing
   s.exploring += clamp(is.researchDepth * 0.25, 0, 0.4);
   if (catCount > 3) s.exploring += 0.2;
-  if (catCount > 2 && totalViews / Math.max(catCount, 1) < 3) s.exploring += 0.3;
+  if (catCount > 2 && totalViews / Math.max(catCount, 1) < 3)
+    s.exploring += 0.3;
   if (profile.lifecycleStage === 'NEW' && totalViews > 1) s.exploring += 0.2;
 
   // price_shop: deal-seeking
@@ -38,7 +39,12 @@ export function classifyIntent(profile: UserProfile): IntentScore[] {
 
   // uncertain: hesitant or about to bounce
   if (is.researchDepth > 2 && is.checkoutConversion < 0.2) s.uncertain += 0.4;
-  if (ps.score > 0.6 && profile.engagementLevel === 'HIGH' && is.checkoutConversion < 0.3) s.uncertain += 0.3;
+  if (
+    ps.score > 0.6 &&
+    profile.engagementLevel === 'HIGH' &&
+    is.checkoutConversion < 0.3
+  )
+    s.uncertain += 0.3;
   if ((profile.hesitationCount ?? 0) > 2) s.uncertain += 0.3;
   if (totalViews <= 1 && is.checkoutConversion === 0) s.uncertain += 0.5;
 

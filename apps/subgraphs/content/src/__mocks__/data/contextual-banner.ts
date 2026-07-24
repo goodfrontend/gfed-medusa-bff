@@ -10,7 +10,7 @@ export const mockContextualBannerData = {
 };
 
 export const mockContextualBannerHighPriorityData = {
-  title: 'Don\'t miss out - limited stock available!',
+  title: "Don't miss out - limited stock available!",
   description: 'This item is selling fast. Secure yours now!',
   ctaLabel: 'Add to cart',
   ctaHref: '/cart',

@@ -1,10 +1,7 @@
 import { GraphQLError } from 'graphql';
 
 import { features } from '../../config/features';
-import type {
-  PersonalizationResult,
-  Resolvers,
-} from '../../generated/graphql';
+import type { PersonalizationResult, Resolvers } from '../../generated/graphql';
 import type { ContentGraphQLContext } from '../../graphql/context';
 import { aiPersonalize } from '../../services/personalization/ai-agent';
 import { makeDecision } from '../../services/personalization/decision-engine';
@@ -16,7 +13,6 @@ import {
 } from '../../services/personalization/feature-store';
 import { classifyIntent } from '../../services/personalization/intent-classifier';
 import { logger } from '../../services/personalization/logger';
-
 import { signalProcessor } from '../../services/personalization/signal-ingestion';
 
 function requireAuthorizedClient(context: ContentGraphQLContext): void {
@@ -128,13 +124,19 @@ export const personalizationResolvers: Resolvers = {
             signalProcessor.process(signal, deviceId, effectiveUserId, profile)
           )
           .catch((err) =>
-            logger.error({ err, signalType: input.type }, 'Signal processing failed')
+            logger.error(
+              { err, signalType: input.type },
+              'Signal processing failed'
+            )
           );
       } else {
         signalProcessor
           .process(signal, deviceId, effectiveUserId)
           .catch((err) =>
-            logger.error({ err, signalType: input.type }, 'Signal processing failed')
+            logger.error(
+              { err, signalType: input.type },
+              'Signal processing failed'
+            )
           );
       }
 
@@ -157,9 +159,13 @@ export const personalizationResolvers: Resolvers = {
       );
 
       let profile = await featureStore.getOrCreate(input.deviceId);
-      const effectiveUserId = context.customerId ?? context.authId ?? input.userId;
+      const effectiveUserId =
+        context.customerId ?? context.authId ?? input.userId;
       if (effectiveUserId) {
-        profile = await featureStore.mergeToUser(input.deviceId, effectiveUserId);
+        profile = await featureStore.mergeToUser(
+          input.deviceId,
+          effectiveUserId
+        );
       }
 
       // Apply conversion modifications to the (possibly merged) profile
@@ -169,7 +175,8 @@ export const personalizationResolvers: Resolvers = {
       profile.lastPurchaseDate = Date.now();
       if (input.amount) {
         profile.totalSpent = (profile.totalSpent ?? 0) + input.amount;
-        profile.averageOrderValue = (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
+        profile.averageOrderValue =
+          (profile.totalSpent ?? 0) / (profile.orderCount ?? 1);
       }
       const totalOrders = profile.orderCount;
 
@@ -184,17 +191,21 @@ export const personalizationResolvers: Resolvers = {
       if (input.items?.length) {
         for (const item of input.items) {
           if (item.category) {
-            const entry = profile.categoryAffinity[item.category] ??=
-              { views: 0, purchases: 0, lastViewed: 0, score: 0 };
+            const entry = (profile.categoryAffinity[item.category] ??= {
+              views: 0,
+              purchases: 0,
+              lastViewed: 0,
+              score: 0,
+            });
             entry.purchases += 1;
           }
         }
       }
 
-      if (input.items?.length && !input.items.some(i => i.category)) {
-        const affinityEntries = Object.entries(profile.categoryAffinity) as Array<
-          [string, CategoryAffinityEntry]
-        >;
+      if (input.items?.length && !input.items.some((i) => i.category)) {
+        const affinityEntries = Object.entries(
+          profile.categoryAffinity
+        ) as Array<[string, CategoryAffinityEntry]>;
         const topCategory = affinityEntries.sort(
           (a, b) => b[1].score - a[1].score
         )[0];
@@ -229,7 +240,8 @@ export const personalizationResolvers: Resolvers = {
       if (context.medusaToken) {
         await featureStore.syncOrderHistory(deviceId, context.medusaToken);
       }
-      const effectiveUserId = context.customerId?.trim() || context.authId?.trim();
+      const effectiveUserId =
+        context.customerId?.trim() || context.authId?.trim();
       if (effectiveUserId) {
         const byUser = await featureStore.getByUserId(effectiveUserId);
         if (byUser) return byUser;
@@ -241,7 +253,11 @@ export const personalizationResolvers: Resolvers = {
       requireAuthorizedClient(context);
       let profile = await featureStore.getOrCreate(deviceId);
       if (context.medusaToken) {
-        profile = await featureStore.syncOrderHistory(deviceId, context.medusaToken, profile);
+        profile = await featureStore.syncOrderHistory(
+          deviceId,
+          context.medusaToken,
+          profile
+        );
       }
       const effectiveUserId = context.customerId ?? context.authId;
       if (effectiveUserId) {
@@ -284,7 +300,10 @@ export const personalizationResolvers: Resolvers = {
               cacheKey: `decision:${deviceId}:${input.surface}`,
             };
           } catch (aiError) {
-            logger.warn({ err: aiError }, 'AI personalization failed, falling back to rules');
+            logger.warn(
+              { err: aiError },
+              'AI personalization failed, falling back to rules'
+            );
             decision = await makeDecision(profile, ctx);
           }
         } else {
@@ -316,10 +335,7 @@ export const personalizationResolvers: Resolvers = {
         logger.error({ err }, 'Decision engine error, using fallback');
         const fb = getFallbackDecision(input.surface, deviceId);
         const servedAt = new Date().toISOString();
-        return toPersonalizationResult(
-          { ...fb, servedAt },
-          servedAt
-        );
+        return toPersonalizationResult({ ...fb, servedAt }, servedAt);
       }
     },
 
@@ -328,11 +344,11 @@ export const personalizationResolvers: Resolvers = {
       if (context.medusaToken) {
         await featureStore.syncOrderHistory(deviceId, context.medusaToken);
       }
-      const effectiveUserId = context.customerId?.trim() || context.authId?.trim();
-      let profile =
-        effectiveUserId
-          ? await featureStore.getByUserId(effectiveUserId)
-          : null;
+      const effectiveUserId =
+        context.customerId?.trim() || context.authId?.trim();
+      let profile = effectiveUserId
+        ? await featureStore.getByUserId(effectiveUserId)
+        : null;
       if (!profile) {
         profile = await featureStore.getOrCreate(deviceId);
       }

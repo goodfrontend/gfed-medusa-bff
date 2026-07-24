@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
+  "globalEnv": ["ALLOWED_ORIGINS"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -23,7 +24,8 @@
         "@gfed-medusa-bff/products#dev",
         "@gfed-medusa-bff/orders#dev",
         "@gfed-medusa-bff/customers#dev",
-        "@gfed-medusa-bff/content#dev"
+        "@gfed-medusa-bff/content#dev",
+        "@gfed-medusa-bff/adk-agent#dev"
       ],
       "persistent": true
     },

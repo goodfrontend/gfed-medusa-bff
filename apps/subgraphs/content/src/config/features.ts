@@ -11,5 +11,6 @@ export const features = {
   aiJsonMode: (): boolean => process.env.AI_JSON_MODE !== 'false',
   aiMaxTokens: (): number => parseInt(process.env.AI_MAX_TOKENS || '2048', 10),
   aiGeminiApiKey: (): string => process.env.AI_GEMINI_API_KEY || '',
-  aiGeminiModel: (): string => process.env.AI_GEMINI_MODEL || 'gemini-2.0-flash',
+  aiGeminiModel: (): string =>
+    process.env.AI_GEMINI_MODEL || 'gemini-2.5-flash-lite',
 };

@@ -139,8 +139,14 @@ export type IntentSignals = {
 export type LifecycleStage = 'FREQUENT' | 'LOYAL' | 'NEW' | 'RETURNING';
 
 export type Mutation = {
+  /** Send signal to ADK Pub/Sub pipeline (parallel path to existing sendSignal) */
+  adkSendSignal: SendSignalResponse;
   sendSignal: SendSignalResponse;
   submitConversion: Scalars['Boolean']['output'];
+};
+
+export type MutationAdkSendSignalArgs = {
+  input: SignalInput;
 };
 
 export type MutationSendSignalArgs = {
@@ -195,6 +201,12 @@ export type ProductViewEntry = {
 };
 
 export type Query = {
+  /** Debug intent classification (parallel path to existing debugIntent query) */
+  adkDebugIntent: DecisionReasoning;
+  /** Personalize using the ADK Agent (parallel path to existing personalize query) */
+  adkPersonalize: PersonalizationResult;
+  /** Get user profile (parallel path to existing userProfile query) */
+  adkUserProfile: UserProfile;
   contextualBanners: Array<ContextualBanner>;
   /** Debug: current rule-based intent classification. */
   debugIntent: DecisionReasoning;
@@ -202,6 +214,19 @@ export type Query = {
   homeBanner?: Maybe<HomeBanner>;
   personalize: PersonalizationResult;
   userProfile: UserProfile;
+};
+
+export type QueryAdkDebugIntentArgs = {
+  deviceId: Scalars['String']['input'];
+};
+
+export type QueryAdkPersonalizeArgs = {
+  deviceId: Scalars['String']['input'];
+  input: SurfaceContext;
+};
+
+export type QueryAdkUserProfileArgs = {
+  deviceId: Scalars['String']['input'];
 };
 
 export type QueryDebugIntentArgs = {
@@ -713,6 +738,12 @@ export type MutationResolvers<
   ParentType extends ResolversParentTypes['Mutation'] =
     ResolversParentTypes['Mutation'],
 > = {
+  adkSendSignal?: Resolver<
+    ResolversTypes['SendSignalResponse'],
+    ParentType,
+    ContextType,
+    RequireFields<MutationAdkSendSignalArgs, 'input'>
+  >;
   sendSignal?: Resolver<
     ResolversTypes['SendSignalResponse'],
     ParentType,
@@ -819,6 +850,24 @@ export type QueryResolvers<
   ParentType extends ResolversParentTypes['Query'] =
     ResolversParentTypes['Query'],
 > = {
+  adkDebugIntent?: Resolver<
+    ResolversTypes['DecisionReasoning'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryAdkDebugIntentArgs, 'deviceId'>
+  >;
+  adkPersonalize?: Resolver<
+    ResolversTypes['PersonalizationResult'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryAdkPersonalizeArgs, 'deviceId' | 'input'>
+  >;
+  adkUserProfile?: Resolver<
+    ResolversTypes['UserProfile'],
+    ParentType,
+    ContextType,
+    RequireFields<QueryAdkUserProfileArgs, 'deviceId'>
+  >;
   contextualBanners?: Resolver<
     Array<ResolversTypes['ContextualBanner']>,
     ParentType,

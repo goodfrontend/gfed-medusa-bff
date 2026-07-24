@@ -7,6 +7,7 @@ import {
 import { server } from '@mocks/msw/node';
 import { footerResolvers } from '@resolvers/footer';
 import { createClient } from '@sanity/client';
+
 import { logger } from '../services/logger';
 
 describe('Footer Resolvers', () => {

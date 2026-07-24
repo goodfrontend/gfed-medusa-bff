@@ -4,12 +4,12 @@ import {
   KEY_NS,
   getPersonalizationRedis,
 } from '../../config/personalization-redis';
-
 import { logger } from './logger';
 
 const PROFILE_KEY = `${KEY_NS}profile:`;
 const PROFILE_TTL = 90 * 24 * 60 * 60;
 const SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const DECISION_KEY = `${KEY_NS}decisions:`;
 const DEVICE_USER_KEY = `${KEY_NS}device-user:`;
 const USER_DEVICE_KEY = `${KEY_NS}user-device:`;
 
@@ -26,6 +26,13 @@ export interface ProductViewEntry {
   category: string;
   price?: number;
   timestamp: number;
+}
+
+export interface DecisionRecord {
+  timestamp: number;
+  components: string[];
+  intent: string;
+  surface: string;
 }
 
 export interface DecisionRecord {
@@ -184,7 +191,9 @@ export class FeatureStore {
       // the new device before login is not lost.
 
       // categoryAffinity — merge entries from new device into existing
-      for (const [cat, entry] of Object.entries(newDeviceProfile.categoryAffinity)) {
+      for (const [cat, entry] of Object.entries(
+        newDeviceProfile.categoryAffinity
+      )) {
         if (!existingProfile.categoryAffinity[cat]) {
           existingProfile.categoryAffinity[cat] = { ...entry };
         } else {
@@ -218,11 +227,12 @@ export class FeatureStore {
       // recentProducts — deduplicate by productId
       if (newDeviceProfile.recentProducts?.length) {
         const existingIds = new Set(
-          existingProfile.recentProducts?.map((p) => p.productId) ?? [],
+          existingProfile.recentProducts?.map((p) => p.productId) ?? []
         );
         for (const product of newDeviceProfile.recentProducts) {
           if (!existingIds.has(product.productId)) {
-            existingProfile.recentProducts = existingProfile.recentProducts ?? [];
+            existingProfile.recentProducts =
+              existingProfile.recentProducts ?? [];
             existingProfile.recentProducts.push(product);
           }
         }
@@ -239,18 +249,18 @@ export class FeatureStore {
       // sessionCount — keep the higher value
       existingProfile.sessionCount = Math.max(
         existingProfile.sessionCount ?? 0,
-        newDeviceProfile.sessionCount ?? 0,
+        newDeviceProfile.sessionCount ?? 0
       );
 
       // intentSignals — take the max per field
       existingProfile.intentSignals = {
         researchDepth: Math.max(
           existingProfile.intentSignals.researchDepth,
-          newDeviceProfile.intentSignals.researchDepth,
+          newDeviceProfile.intentSignals.researchDepth
         ),
         checkoutConversion: Math.max(
           existingProfile.intentSignals.checkoutConversion,
-          newDeviceProfile.intentSignals.checkoutConversion,
+          newDeviceProfile.intentSignals.checkoutConversion
         ),
       };
 
@@ -295,12 +305,32 @@ export class FeatureStore {
     return profile;
   }
 
+  async storeDecision(
+    deviceId: string,
+    decision: DecisionRecord
+  ): Promise<void> {
+    const redis = await getPersonalizationRedis();
+    const key = `${DECISION_KEY}${deviceId}`;
+    const existing = await redis.get(key);
+    const decisions: DecisionRecord[] = existing ? JSON.parse(existing) : [];
+    decisions.unshift(decision);
+    const trimmed = decisions.slice(0, 10);
+    await redis.set(key, JSON.stringify(trimmed), { EX: 7 * 24 * 60 * 60 });
+  }
+
+  async getRecentDecisions(deviceId: string): Promise<DecisionRecord[]> {
+    const redis = await getPersonalizationRedis();
+    const key = `${DECISION_KEY}${deviceId}`;
+    const existing = await redis.get(key);
+    return existing ? JSON.parse(existing) : [];
+  }
+
   async syncOrderHistory(
     deviceId: string,
     medusaToken: string,
     profile?: UserProfile
   ): Promise<UserProfile> {
-    profile = profile ?? await this.getOrCreate(deviceId);
+    profile = profile ?? (await this.getOrCreate(deviceId));
 
     if (
       profile.ordersSynced &&
